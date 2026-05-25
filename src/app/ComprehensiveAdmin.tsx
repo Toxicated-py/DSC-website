@@ -92,6 +92,7 @@ export function ComprehensiveAdminPanel() {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
+  const [adminProfile, setAdminProfile] = useState<any>(null);
   const [isCertificateAdmin, setIsCertificateAdmin] = useState(false);
   const [certificateStatus, setCertificateStatus] = useState("");
   const [profileOptions, setProfileOptions] = useState<any[]>([]);
@@ -109,6 +110,16 @@ export function ComprehensiveAdminPanel() {
   const [editingCertificateId, setEditingCertificateId] = useState("");
   const [adminStatus, setAdminStatus] = useState("");
   const [eventProposals, setEventProposals] = useState<any[]>([]);
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [gallerySubmissions, setGallerySubmissions] = useState<any[]>([]);
+  const [partnerSubmissions, setPartnerSubmissions] = useState<any[]>([]);
+  const [learningMaterials, setLearningMaterials] = useState<any[]>([]);
+  const [resourceForm, setResourceForm] = useState({
+    title: "",
+    category: "General",
+    description: "",
+    resourceUrl: "",
+  });
 
   // Modal states
   const [showUserModal, setShowUserModal] = useState(false);
@@ -162,15 +173,37 @@ export function ComprehensiveAdminPanel() {
 
       const { data: myProfile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("id,role,email")
         .eq("id", userData.user.id)
         .maybeSingle();
 
-      const canManage = myProfile?.role === "admin" || myProfile?.role === "organizer";
+      setAdminProfile(myProfile);
+      const isAdmin = myProfile?.role === "admin";
+      const isOrganizer = myProfile?.role === "organizer";
+      const canManage = isAdmin || isOrganizer;
       setIsCertificateAdmin(canManage);
       if (!canManage) return;
 
-      const [{ data: profiles }, { data: certs }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }] = await Promise.all([
+      let projectQuery = supabase
+        .from("projects")
+        .select("id,title,category,technologies,summary,status,submitted_at,published_at,author_id,profiles:author_id(full_name,email)")
+        .order("submitted_at", { ascending: false });
+      let blogQuery = supabase
+        .from("blog_posts")
+        .select("id,title,summary,tags,status,published_at,author_id,profiles:author_id(full_name,email)")
+        .order("published_at", { ascending: false });
+      let eventQuery = supabase
+        .from("events")
+        .select("id,title,event_type,start_time,end_time,venue,capacity,status,registration_open,created_by,created_at")
+        .order("start_time", { ascending: false, nullsFirst: false });
+
+      if (!isAdmin && isOrganizer) {
+        projectQuery = projectQuery.eq("author_id", userData.user.id);
+        blogQuery = blogQuery.eq("author_id", userData.user.id);
+        eventQuery = eventQuery.eq("created_by", userData.user.id);
+      }
+
+      const [{ data: profiles }, { data: certs }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }, { data: blogRows }, { data: galleryRows }, { data: partnerRows }, { data: resourceRows }] = await Promise.all([
         supabase
           .from("profiles")
           .select("id,full_name,email,role,membership_status,designation,designation_status,batch_year,created_at")
@@ -179,23 +212,30 @@ export function ComprehensiveAdminPanel() {
           .from("certificates")
           .select("id,recipient_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email)")
           .order("created_at", { ascending: false }),
-        supabase
-          .from("projects")
-          .select("id,title,category,technologies,summary,status,submitted_at,published_at,profiles:author_id(full_name,email)")
-          .order("submitted_at", { ascending: false }),
+        projectQuery,
         supabase
           .from("event_proposals")
-          .select("id,title,event_type,proposed_date,venue,capacity,host,summary,coordinator_emails,status,submitted_at,profiles:proposed_by(full_name,email)")
+          .select("id,proposed_by,title,event_type,proposed_date,venue,capacity,host,summary,coordinator_emails,status,submitted_at,profiles:proposed_by(full_name,email)")
           .order("submitted_at", { ascending: false }),
-        supabase
-          .from("events")
-          .select("id,title,event_type,start_time,venue,capacity,status,registration_open,created_at")
-          .order("start_time", { ascending: false, nullsFirst: false }),
+        eventQuery,
         supabase
           .from("designation_options")
           .select("id,label,is_active,sort_order")
           .order("sort_order", { ascending: true })
           .order("label", { ascending: true }),
+        blogQuery,
+        supabase
+          .from("gallery_submissions")
+          .select("id,title,image_url,event_name,status,created_at")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("partner_submissions")
+          .select("id,name,website_url,logo_url,category,description,status,created_at")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("learning_materials")
+          .select("id,title,description,resource_url,category,status,created_at")
+          .order("created_at", { ascending: false }),
       ]);
 
       if (!mounted) return;
@@ -223,6 +263,18 @@ export function ComprehensiveAdminPanel() {
           tags: project.technologies || [],
         };
       }));
+      setBlogPosts((blogRows || []).map((post) => {
+        const author = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
+        return {
+          ...post,
+          author: author?.full_name || author?.email || "Member",
+          tags: post.tags || [],
+          publishedDate: post.published_at ? new Date(post.published_at).toLocaleDateString() : "",
+        };
+      }));
+      setGallerySubmissions(galleryRows || []);
+      setPartnerSubmissions(partnerRows || []);
+      setLearningMaterials(resourceRows || []);
       setEventProposals((proposalRows || []).map((proposal) => {
         const author = Array.isArray(proposal.profiles) ? proposal.profiles[0] : proposal.profiles;
         return {
@@ -384,8 +436,9 @@ export function ComprehensiveAdminPanel() {
 
   const createEventFromProposal = async (proposal: any) => {
     if (!isSupabaseConfigured || !supabase) return;
+    const { data: userData } = await supabase.auth.getUser();
     const slug = `${proposal.title}-${Date.now()}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    const { error } = await supabase.from("events").insert({
+    const { data: eventRow, error } = await supabase.from("events").insert({
       title: proposal.title,
       slug,
       event_type: proposal.event_type,
@@ -395,13 +448,102 @@ export function ComprehensiveAdminPanel() {
       venue: proposal.venue,
       capacity: proposal.capacity || 40,
       status: "approved",
-    });
+      created_by: proposal.proposed_by || userData.user?.id || null,
+    }).select("id").single();
     if (error) {
       setAdminStatus(error.message);
       return;
     }
+    const proposer = Array.isArray(proposal.profiles) ? proposal.profiles[0] : proposal.profiles;
+    const staffRows = [
+      proposal.proposed_by || proposer?.email
+        ? {
+            event_id: eventRow.id,
+            user_id: proposal.proposed_by || null,
+            email: proposer?.email || adminProfile?.email || "",
+            staff_role: "organizer",
+            can_scan: true,
+            created_by: userData.user?.id || null,
+          }
+        : null,
+      ...(proposal.coordinator_emails || []).map((email: string) => ({
+        event_id: eventRow.id,
+        user_id: null,
+        email,
+        staff_role: "coordinator",
+        can_scan: true,
+        created_by: userData.user?.id || null,
+      })),
+    ].filter((row: any) => row?.email);
+    if (staffRows.length) {
+      await supabase.from("event_staff").upsert(staffRows, { onConflict: "event_id,email" });
+    }
     await updateProposalStatus(proposal.id, "approved");
     setAdminStatus("Event created from proposal.");
+  };
+
+  const updateBlogStatus = async (id: string, status: string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    const { error } = await supabase.from("blog_posts").update({ status }).eq("id", id);
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+    setBlogPosts(blogPosts.map((post) => post.id === id ? { ...post, status } : post));
+  };
+
+  const updateSubmissionStatus = async (table: "gallery_submissions" | "partner_submissions", id: string, status: string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from(table)
+      .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: userData.user?.id || null })
+      .eq("id", id);
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+    if (table === "gallery_submissions") {
+      setGallerySubmissions(gallerySubmissions.map((item) => item.id === id ? { ...item, status } : item));
+    } else {
+      setPartnerSubmissions(partnerSubmissions.map((item) => item.id === id ? { ...item, status } : item));
+    }
+  };
+
+  const addLearningMaterial = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!isSupabaseConfigured || !supabase) return;
+    const { data: userData } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from("learning_materials")
+      .insert({
+        title: resourceForm.title,
+        category: resourceForm.category,
+        description: resourceForm.description,
+        resource_url: resourceForm.resourceUrl,
+        status: "published",
+        created_by: userData.user?.id || null,
+      })
+      .select("id,title,description,resource_url,category,status,created_at")
+      .single();
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+    setLearningMaterials([data, ...learningMaterials]);
+    setResourceForm({ title: "", category: "General", description: "", resourceUrl: "" });
+    setAdminStatus("Learning material published.");
+  };
+
+  const deleteLearningMaterial = async (id: string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    if (!window.confirm("Delete this learning material?")) return;
+    const { error } = await supabase.from("learning_materials").delete().eq("id", id);
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+    setLearningMaterials(learningMaterials.filter((material) => material.id !== id));
   };
 
   const handleIssueCertificate = async (event: React.FormEvent) => {
@@ -1071,30 +1213,114 @@ export function ComprehensiveAdminPanel() {
       {/* ─── CONTENT TAB ───────────────────────────────────────────────────────── */}
       {["blogs", "gallery", "partners", "resources"].includes(selectedTab) && (
         <div className="space-y-6">
-          <BrutalCard color="bg-white">
-            <div className="flex items-center justify-between gap-4 mb-4">
-              <div>
-                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>
-                  {selectedTab === "blogs" && "Blog Management"}
-                  {selectedTab === "gallery" && "Gallery Submissions"}
-                  {selectedTab === "partners" && "Partner Submissions"}
-                  {selectedTab === "resources" && "Learning Materials"}
-                </h2>
-                <p className="text-sm text-slate-600 mt-2">
-                  {selectedTab === "blogs" && "Review, publish, edit, and archive club blog posts from this section."}
-                  {selectedTab === "gallery" && "Approve gallery submissions before they appear publicly."}
-                  {selectedTab === "partners" && "Approve partner submissions before they appear publicly."}
-                  {selectedTab === "resources" && "Learning materials are admin-only for now. Add material publishing here next."}
-                </p>
+          {selectedTab === "blogs" && (
+            <>
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Blog Management</h2>
+              <div className="grid gap-4">
+                {blogPosts.map((post) => (
+                  <BrutalCard key={post.id} color="bg-white">
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold uppercase text-lg">{post.title}</h3>
+                        <p className="text-xs font-mono text-slate-500">By {post.author} - {post.publishedDate || "date pending"}</p>
+                        <p className="text-sm text-slate-600 mt-2">{post.summary}</p>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <BrutalBadge color={post.status === "published" ? "bg-green-500" : "bg-[#FFE800]"} text={post.status === "published" ? "text-white" : "text-[#171717]"}>
+                          {post.status}
+                        </BrutalBadge>
+                        {post.status !== "published" && (
+                          <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Publish</button>
+                        )}
+                        <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>
+                      </div>
+                    </div>
+                  </BrutalCard>
+                ))}
+                {blogPosts.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No blog posts yet.</p></BrutalCard>}
               </div>
-              <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Synced Tab</BrutalBadge>
+            </>
+          )}
+
+          {selectedTab === "gallery" && (
+            <>
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Gallery Submissions</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {gallerySubmissions.map((item) => (
+                  <BrutalCard key={item.id} color="bg-white">
+                    <div className="aspect-video bg-slate-100 border-2 border-[#171717] mb-4 overflow-hidden">
+                      <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                    </div>
+                    <h3 className="font-bold uppercase">{item.title}</h3>
+                    <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Approve</button>
+                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Reject</button>
+                    </div>
+                  </BrutalCard>
+                ))}
+                {gallerySubmissions.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No gallery submissions yet.</p></BrutalCard>}
+              </div>
+            </>
+          )}
+
+          {selectedTab === "partners" && (
+            <>
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Partner Submissions</h2>
+              <div className="grid gap-4">
+                {partnerSubmissions.map((partner) => (
+                  <BrutalCard key={partner.id} color="bg-white">
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold uppercase text-lg">{partner.name}</h3>
+                        <p className="text-xs font-mono text-slate-500">{partner.category || "Partner"} - {partner.status}</p>
+                        <p className="text-sm text-slate-600 mt-2">{partner.description}</p>
+                        {partner.website_url && <a href={partner.website_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-[#2563EB]">Open website</a>}
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Approve</button>
+                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Reject</button>
+                      </div>
+                    </div>
+                  </BrutalCard>
+                ))}
+                {partnerSubmissions.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No partner submissions yet.</p></BrutalCard>}
+              </div>
+            </>
+          )}
+
+          {selectedTab === "resources" && (
+            <div className="grid lg:grid-cols-[420px_1fr] gap-6">
+              <BrutalCard color="bg-white">
+                <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Add Learning Material</h2>
+                <form onSubmit={addLearningMaterial}>
+                  <BrutalInput label="Title" value={resourceForm.title} onChange={(event: any) => setResourceForm({ ...resourceForm, title: event.target.value })} required />
+                  <BrutalInput label="Category" value={resourceForm.category} onChange={(event: any) => setResourceForm({ ...resourceForm, category: event.target.value })} required />
+                  <BrutalInput label="Resource URL" value={resourceForm.resourceUrl} onChange={(event: any) => setResourceForm({ ...resourceForm, resourceUrl: event.target.value })} required />
+                  <BrutalTextarea label="Description" value={resourceForm.description} onChange={(event: any) => setResourceForm({ ...resourceForm, description: event.target.value })} />
+                  <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full">Publish Material</BrutalButton>
+                </form>
+              </BrutalCard>
+              <div className="space-y-3">
+                {learningMaterials.map((material) => (
+                  <BrutalCard key={material.id} color="bg-white">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-bold uppercase">{material.title}</h3>
+                        <p className="text-xs font-mono text-slate-500">{material.category} - {material.status}</p>
+                        <p className="text-sm text-slate-600 mt-2">{material.description}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <a href={material.resource_url} target="_blank" rel="noopener noreferrer" className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Open</a>
+                        <button onClick={() => deleteLearningMaterial(material.id)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Delete</button>
+                      </div>
+                    </div>
+                  </BrutalCard>
+                ))}
+                {learningMaterials.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No learning materials yet.</p></BrutalCard>}
+              </div>
             </div>
-            <div className="border-2 border-dashed border-[#171717] p-8 text-center bg-[#F4EFEB]">
-              <p className="font-bold uppercase tracking-widest text-sm">
-                Data tables are ready in Supabase. Full CRUD controls are the next admin pass.
-              </p>
-            </div>
-          </BrutalCard>
+          )}
         </div>
       )}
 

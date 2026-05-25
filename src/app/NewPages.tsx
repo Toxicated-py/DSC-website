@@ -817,7 +817,7 @@ export function ResourcesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 6;
 
-  const resources = [
+  const fallbackResources = [
     { id: 1, title: "Python for Data Science Cheat Sheet", category: "beginner", type: "PDF", description: "Essential Python commands and libraries for data science beginners", size: "2.3 MB", downloads: 245, date: "2025-01-10" },
     { id: 2, title: "Machine Learning Algorithms Guide", category: "intermediate", type: "PDF", description: "Comprehensive guide to ML algorithms with visual examples and code snippets", size: "5.1 MB", downloads: 189, date: "2024-12-15" },
     { id: 3, title: "Kaggle Datasets Collection", category: "beginner", type: "Link", description: "Curated list of beginner-friendly datasets for practice and competitions", size: null, downloads: 312, date: "2024-11-20" },
@@ -829,6 +829,35 @@ export function ResourcesPage() {
     { id: 9, title: "Data Viz with Matplotlib & Seaborn", category: "intermediate", type: "PDF", description: "80+ chart types with code: from bar charts to violin plots and heatmaps", size: "6.7 MB", downloads: 220, date: "2024-08-12" },
     { id: 10, title: "Scikit-learn Model Selection Guide", category: "intermediate", type: "PDF", description: "When to use which model: decision trees, SVM, neural nets, and ensemble methods", size: "4.2 MB", downloads: 167, date: "2024-07-18" },
   ];
+  const [resources, setResources] = useState<any[]>(fallbackResources);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadLearningMaterials() {
+      if (!isSupabaseConfigured || !supabase) return;
+      const { data } = await supabase
+        .from("learning_materials")
+        .select("id,title,description,resource_url,category,status,created_at")
+        .in("status", ["approved", "published"])
+        .order("created_at", { ascending: false });
+      if (!mounted || !data?.length) return;
+      setResources(data.map((item) => ({
+        id: item.id,
+        title: item.title,
+        category: item.category?.toLowerCase() || "beginner",
+        type: "Link",
+        description: item.description || "Learning material added by the club.",
+        size: null,
+        downloads: 0,
+        date: item.created_at ? item.created_at.slice(0, 10) : "",
+        url: item.resource_url,
+      })));
+    }
+    loadLearningMaterials();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const typeColors: Record<string, string> = {
     PDF: "bg-[#2563EB]",
@@ -976,7 +1005,14 @@ export function ResourcesPage() {
                     <Download size={11} /> {resource.downloads.toLocaleString()}
                   </span>
                 </div>
-                <BrutalButton color="bg-[#2563EB]" text="text-white" className="text-xs px-4 py-2">
+                <BrutalButton
+                  color="bg-[#2563EB]"
+                  text="text-white"
+                  className="text-xs px-4 py-2"
+                  onClick={() => {
+                    if ((resource as any).url) window.open((resource as any).url, "_blank", "noopener,noreferrer");
+                  }}
+                >
                   <Download size={12} className="inline mr-1" />
                   {resource.type === "Link" ? "Open" : "Download"}
                 </BrutalButton>

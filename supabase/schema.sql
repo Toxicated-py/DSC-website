@@ -280,10 +280,22 @@ security definer
 set search_path = public, private
 stable
 as $$
-  select coalesce(private.current_user_role() in ('admin', 'organizer'), false)
+  select coalesce(private.current_user_role() = 'admin', false)
 $$;
 
 grant execute on function private.current_user_is_admin() to authenticated;
+
+create or replace function private.current_user_is_admin_or_organizer()
+returns boolean
+language sql
+security definer
+set search_path = public, private
+stable
+as $$
+  select coalesce(private.current_user_role() in ('admin', 'organizer'), false)
+$$;
+
+grant execute on function private.current_user_is_admin_or_organizer() to authenticated;
 
 create trigger on_auth_user_created
   after insert on auth.users
@@ -329,10 +341,18 @@ create index if not exists events_created_by_idx on public.events(created_by);
 create index if not exists event_proposals_proposed_by_idx on public.event_proposals(proposed_by);
 create index if not exists event_registrations_event_id_idx on public.event_registrations(event_id);
 create index if not exists event_registrations_user_id_idx on public.event_registrations(user_id);
+create index if not exists event_staff_user_id_idx on public.event_staff(user_id);
+create index if not exists event_staff_created_by_idx on public.event_staff(created_by);
 create index if not exists projects_author_id_idx on public.projects(author_id);
 create index if not exists blog_posts_author_id_idx on public.blog_posts(author_id);
 create index if not exists certificates_recipient_id_idx on public.certificates(recipient_id);
 create index if not exists certificates_issued_by_idx on public.certificates(issued_by);
+create index if not exists certificates_event_id_idx on public.certificates(event_id);
+create index if not exists gallery_submissions_submitted_by_idx on public.gallery_submissions(submitted_by);
+create index if not exists gallery_submissions_reviewed_by_idx on public.gallery_submissions(reviewed_by);
+create index if not exists partner_submissions_submitted_by_idx on public.partner_submissions(submitted_by);
+create index if not exists partner_submissions_reviewed_by_idx on public.partner_submissions(reviewed_by);
+create index if not exists learning_materials_created_by_idx on public.learning_materials(created_by);
 
 create policy "Public can read published events" on public.events
   for select using (status in ('approved', 'published'));
