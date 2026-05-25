@@ -101,6 +101,7 @@ export function ComprehensiveAdminPanel() {
   const [issuedCertificates, setIssuedCertificates] = useState<any[]>([]);
   const [certificateForm, setCertificateForm] = useState({
     recipientId: "",
+    eventId: "",
     title: "",
     certificateType: "Workshop",
     issuerName: "Data Science Club",
@@ -119,6 +120,19 @@ export function ComprehensiveAdminPanel() {
     category: "General",
     description: "",
     resourceUrl: "",
+  });
+  const [eventForm, setEventForm] = useState({
+    title: "",
+    eventType: "WORKSHOP",
+    description: "",
+    shortDescription: "",
+    startTime: "",
+    endTime: "",
+    venue: "",
+    capacity: "40",
+    status: "approved",
+    registrationOpen: true,
+    coordinatorEmails: "",
   });
 
   // Modal states
@@ -210,7 +224,7 @@ export function ComprehensiveAdminPanel() {
           .order("full_name", { ascending: true }),
         supabase
           .from("certificates")
-          .select("id,recipient_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email)")
+          .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),events:event_id(title)")
           .order("created_at", { ascending: false }),
         projectQuery,
         supabase
@@ -393,12 +407,124 @@ export function ComprehensiveAdminPanel() {
     setEditingCertificateId("");
     setCertificateForm({
       recipientId: "",
+      eventId: "",
       title: "",
       certificateType: "Workshop",
       issuerName: "Data Science Club",
       issuedAt: "",
       certificateUrl: "",
     });
+  };
+
+  const resetEventForm = () => {
+    setEditingItem(null);
+    setEventForm({
+      title: "",
+      eventType: "WORKSHOP",
+      description: "",
+      shortDescription: "",
+      startTime: "",
+      endTime: "",
+      venue: "",
+      capacity: "40",
+      status: "approved",
+      registrationOpen: true,
+      coordinatorEmails: "",
+    });
+  };
+
+  const openEventModal = async (event?: any) => {
+    setAdminStatus("");
+    setEditingItem(event || null);
+    setEventForm({
+      title: event?.title || "",
+      eventType: event?.event_type || event?.category || "WORKSHOP",
+      description: event?.description || "",
+      shortDescription: event?.short_description || "",
+      startTime: event?.start_time ? event.start_time.slice(0, 16) : "",
+      endTime: event?.end_time ? event.end_time.slice(0, 16) : "",
+      venue: event?.venue || event?.location || "",
+      capacity: event?.capacity ? String(event.capacity) : "40",
+      status: event?.status || "approved",
+      registrationOpen: event?.registration_open ?? true,
+      coordinatorEmails: "",
+    });
+
+    if (event?.id && isSupabaseConfigured && supabase) {
+      const { data } = await supabase.from("event_staff").select("email").eq("event_id", event.id);
+      setEventForm((current) => ({
+        ...current,
+        coordinatorEmails: (data || []).map((staff) => staff.email).join(", "),
+      }));
+    }
+    setShowEventModal(true);
+  };
+
+  const saveEvent = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!isSupabaseConfigured || !supabase) {
+      setShowEventModal(false);
+      return;
+    }
+
+    const { data: userData } = await supabase.auth.getUser();
+    const slug = `${eventForm.title}-${editingItem?.id || Date.now()}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+    const payload = {
+      title: eventForm.title,
+      slug,
+      event_type: eventForm.eventType,
+      description: eventForm.description,
+      short_description: eventForm.shortDescription || eventForm.description.slice(0, 160),
+      start_time: eventForm.startTime ? new Date(eventForm.startTime).toISOString() : null,
+      end_time: eventForm.endTime ? new Date(eventForm.endTime).toISOString() : null,
+      venue: eventForm.venue,
+      capacity: Number(eventForm.capacity) || 40,
+      status: eventForm.status,
+      registration_open: eventForm.registrationOpen,
+      created_by: editingItem?.created_by || userData.user?.id || null,
+    };
+
+    const { data: savedEvent, error } = editingItem?.id
+      ? await supabase.from("events").update(payload).eq("id", editingItem.id).select("id,title,event_type,start_time,end_time,venue,capacity,status,registration_open,created_by,created_at").single()
+      : await supabase.from("events").insert(payload).select("id,title,event_type,start_time,end_time,venue,capacity,status,registration_open,created_by,created_at").single();
+
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+
+    const coordinatorEmails = eventForm.coordinatorEmails
+      .split(/[,\n]/)
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+    if (coordinatorEmails.length) {
+      await supabase.from("event_staff").upsert(
+        coordinatorEmails.map((email) => ({
+          event_id: savedEvent.id,
+          email,
+          staff_role: "coordinator",
+          can_scan: true,
+          created_by: userData.user?.id || null,
+        })),
+        { onConflict: "event_id,email" }
+      );
+    }
+
+    const mapped = {
+      ...savedEvent,
+      date: savedEvent.start_time ? new Date(savedEvent.start_time).toLocaleDateString() : "Not scheduled",
+      location: savedEvent.venue || "TBA",
+      category: savedEvent.event_type,
+      attendees: 0,
+      featured: savedEvent.status === "published",
+    };
+    setEvents(editingItem?.id ? events.map((row) => row.id === savedEvent.id ? mapped : row) : [mapped, ...events]);
+    setAdminStatus(editingItem?.id ? "Event updated." : "Event created.");
+    resetEventForm();
+    setShowEventModal(false);
   };
 
   const handleArchiveEvent = async (id: string) => {
@@ -409,6 +535,17 @@ export function ComprehensiveAdminPanel() {
       return;
     }
     setEvents(events.map(e => e.id === id ? { ...e, status: "archived" } : e));
+  };
+
+  const toggleEventRegistration = async (event: any) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    const next = !event.registration_open;
+    const { error } = await supabase.from("events").update({ registration_open: next }).eq("id", event.id);
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+    setEvents(events.map((row) => row.id === event.id ? { ...row, registration_open: next } : row));
   };
 
   const updateProjectStatus = async (id: string, status: string) => {
@@ -563,6 +700,7 @@ export function ComprehensiveAdminPanel() {
 
     const payload = {
       recipient_id: certificateForm.recipientId,
+      event_id: certificateForm.eventId || null,
       issued_by: userData.user.id,
       title: certificateForm.title,
       certificate_type: certificateForm.certificateType,
@@ -585,7 +723,7 @@ export function ComprehensiveAdminPanel() {
 
     const { data: certs } = await supabase
       .from("certificates")
-      .select("id,recipient_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email)")
+      .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),events:event_id(title)")
       .order("created_at", { ascending: false });
     setIssuedCertificates(certs || []);
   };
@@ -594,6 +732,7 @@ export function ComprehensiveAdminPanel() {
     setEditingCertificateId(certificate.id);
     setCertificateForm({
       recipientId: certificate.recipient_id || "",
+      eventId: certificate.event_id || "",
       title: certificate.title || "",
       certificateType: certificate.certificate_type || "Workshop",
       issuerName: certificate.issuer_name || "Data Science Club",
@@ -713,7 +852,7 @@ export function ComprehensiveAdminPanel() {
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Quick Actions</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <button
-                onClick={() => { setEditingItem(null); setShowEventModal(true); }}
+                onClick={() => void openEventModal()}
                 className="p-4 border-2 border-[#171717] bg-[#2563EB] text-white hover:bg-[#1D4ED8] transition-all brutal-shadow brutal-shadow-hover"
               >
                 <Plus size={20} className="mb-2" />
@@ -987,7 +1126,7 @@ export function ComprehensiveAdminPanel() {
               />
             </div>
             <button
-              onClick={() => { setEditingItem(null); setShowEventModal(true); }}
+              onClick={() => void openEventModal()}
               className="px-6 py-3 bg-[#7C3AED] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-sm brutal-shadow brutal-shadow-hover flex items-center gap-2 justify-center"
             >
               <Plus size={16} /> Create Event
@@ -1023,10 +1162,16 @@ export function ComprehensiveAdminPanel() {
                 </BrutalBadge>
                 <div className="flex gap-2 pt-4 border-t-2 border-slate-200">
                   <button
-                    onClick={() => { setEditingItem(event); setShowEventModal(true); }}
+                    onClick={() => void openEventModal(event)}
                     className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
                   >
                     Edit
+                  </button>
+                  <button
+                    onClick={() => toggleEventRegistration(event)}
+                    className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
+                  >
+                    {event.registration_open ? "Close Reg" : "Open Reg"}
                   </button>
                   <button
                     onClick={() => handleArchiveEvent(event.id)}
@@ -1359,6 +1504,18 @@ export function ComprehensiveAdminPanel() {
                   required
                 />
                 <BrutalSelect
+                  label="Related Event"
+                  value={certificateForm.eventId}
+                  onChange={(event: any) => setCertificateForm({ ...certificateForm, eventId: event.target.value })}
+                  options={[
+                    { value: "", label: "No event" },
+                    ...events.map((event) => ({
+                      value: event.id,
+                      label: event.title,
+                    })),
+                  ]}
+                />
+                <BrutalSelect
                   label="Type"
                   value={certificateForm.certificateType}
                   onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateType: event.target.value })}
@@ -1430,6 +1587,11 @@ export function ComprehensiveAdminPanel() {
                         <p className="text-xs font-mono text-slate-500">
                           Issuer: {certificate.issuer_name || "Data Science Club"} - Created: {certificate.created_at ? new Date(certificate.created_at).toLocaleString() : "unknown"}
                         </p>
+                        {certificate.events && (
+                          <p className="text-xs font-mono text-slate-500">
+                            Event: {Array.isArray(certificate.events) ? certificate.events[0]?.title : certificate.events.title}
+                          </p>
+                        )}
                       </div>
                       <div className="flex gap-2 flex-wrap">
                         <BrutalBadge color="bg-[#7C3AED]">{certificate.certificate_type}</BrutalBadge>
@@ -1648,45 +1810,72 @@ export function ComprehensiveAdminPanel() {
               <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>
                 {editingItem ? "Edit Event" : "Create Event"}
               </h2>
-              <button onClick={() => setShowEventModal(false)} className="p-2 hover:bg-slate-100 transition-all">
+              <button onClick={() => { resetEventForm(); setShowEventModal(false); }} className="p-2 hover:bg-slate-100 transition-all">
                 <X size={20} />
               </button>
             </div>
-            <BrutalInput label="Event Title" defaultValue={editingItem?.title || ""} />
-            <BrutalTextarea label="Description" defaultValue="" />
-            <BrutalInput label="Date" type="date" defaultValue={editingItem?.date || ""} />
-            <BrutalInput label="Location" defaultValue={editingItem?.location || ""} />
-            <BrutalSelect
-              label="Category"
-              defaultValue={editingItem?.category || "Workshop"}
-              options={[
-                { value: "Workshop", label: "Workshop" },
-                { value: "Talk", label: "Talk" },
-                { value: "Competition", label: "Competition" },
-                { value: "Social", label: "Social" },
-              ]}
-            />
-            <BrutalSelect
-              label="Status"
-              defaultValue={editingItem?.status || "Upcoming"}
-              options={[
-                { value: "Upcoming", label: "Upcoming" },
-                { value: "Ongoing", label: "Ongoing" },
-                { value: "Completed", label: "Completed" },
-                { value: "Cancelled", label: "Cancelled" },
-              ]}
-            />
-            <div className="flex gap-3">
-              <BrutalButton color="bg-[#7C3AED]" text="text-white" className="flex-1">
-                <Save size={16} className="inline mr-2" /> Save Event
-              </BrutalButton>
+            <form onSubmit={saveEvent}>
+              <BrutalInput label="Event Title" value={eventForm.title} onChange={(event: any) => setEventForm({ ...eventForm, title: event.target.value })} required />
+              <BrutalTextarea label="Description" value={eventForm.description} onChange={(event: any) => setEventForm({ ...eventForm, description: event.target.value })} required />
+              <BrutalInput label="Short Description" value={eventForm.shortDescription} onChange={(event: any) => setEventForm({ ...eventForm, shortDescription: event.target.value })} />
+              <div className="grid md:grid-cols-2 gap-4">
+                <BrutalInput label="Start Time" type="datetime-local" value={eventForm.startTime} onChange={(event: any) => setEventForm({ ...eventForm, startTime: event.target.value })} />
+                <BrutalInput label="End Time" type="datetime-local" value={eventForm.endTime} onChange={(event: any) => setEventForm({ ...eventForm, endTime: event.target.value })} />
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <BrutalInput label="Location" value={eventForm.venue} onChange={(event: any) => setEventForm({ ...eventForm, venue: event.target.value })} />
+                <BrutalInput label="Capacity" type="number" value={eventForm.capacity} onChange={(event: any) => setEventForm({ ...eventForm, capacity: event.target.value })} />
+              </div>
+              <BrutalSelect
+                label="Category"
+                value={eventForm.eventType}
+                onChange={(event: any) => setEventForm({ ...eventForm, eventType: event.target.value })}
+                options={[
+                  { value: "WORKSHOP", label: "Workshop" },
+                  { value: "SEMINAR", label: "Seminar" },
+                  { value: "COMPETITION", label: "Competition" },
+                  { value: "COMMUNITY", label: "Community" },
+                ]}
+              />
+              <BrutalSelect
+                label="Status"
+                value={eventForm.status}
+                onChange={(event: any) => setEventForm({ ...eventForm, status: event.target.value })}
+                options={[
+                  { value: "draft", label: "Draft" },
+                  { value: "approved", label: "Approved" },
+                  { value: "published", label: "Published" },
+                  { value: "archived", label: "Archived" },
+                ]}
+              />
+              <BrutalTextarea
+                label="Coordinator Emails"
+                value={eventForm.coordinatorEmails}
+                onChange={(event: any) => setEventForm({ ...eventForm, coordinatorEmails: event.target.value })}
+                placeholder="coordinator@sms.tu.edu.np, external@example.com"
+              />
+              <label className="mb-5 flex items-center gap-3 text-xs font-bold uppercase tracking-widest">
+                <input
+                  type="checkbox"
+                  checked={eventForm.registrationOpen}
+                  onChange={(event) => setEventForm({ ...eventForm, registrationOpen: event.target.checked })}
+                  className="w-4 h-4 accent-[#2563EB]"
+                />
+                Registration open
+              </label>
+              <div className="flex gap-3">
+                <BrutalButton type="submit" color="bg-[#7C3AED]" text="text-white" className="flex-1">
+                  <Save size={16} className="inline mr-2" /> Save Event
+                </BrutalButton>
               <button
-                onClick={() => setShowEventModal(false)}
+                type="button"
+                onClick={() => { resetEventForm(); setShowEventModal(false); }}
                 className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
               >
                 Cancel
               </button>
-            </div>
+              </div>
+            </form>
           </BrutalCard>
         </div>
       )}
