@@ -297,6 +297,33 @@ $$;
 
 grant execute on function private.current_user_is_admin_or_organizer() to authenticated;
 
+create or replace function private.current_user_can_manage_event(target_event_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public, private
+stable
+as $$
+  select coalesce(
+    private.current_user_is_admin()
+    or exists (
+      select 1 from public.events e
+      where e.id = target_event_id and e.created_by = auth.uid()
+    )
+    or exists (
+      select 1
+      from public.event_staff staff
+      join auth.users u on u.id = auth.uid()
+      where staff.event_id = target_event_id
+        and staff.can_scan = true
+        and (staff.user_id = auth.uid() or lower(staff.email) = lower(u.email))
+    ),
+    false
+  )
+$$;
+
+grant execute on function private.current_user_can_manage_event(uuid) to authenticated;
+
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
@@ -408,6 +435,13 @@ create policy "Users can create and read own registrations" on public.event_regi
   for all using ((select auth.uid()) = user_id)
   with check ((select auth.uid()) = user_id);
 
+create policy "Event managers can read registrations" on public.event_registrations
+  for select using (private.current_user_can_manage_event(event_id));
+
+create policy "Event managers can update registrations" on public.event_registrations
+  for update using (private.current_user_can_manage_event(event_id))
+  with check (private.current_user_can_manage_event(event_id));
+
 create policy "Admins manage event staff" on public.event_staff
   for all using ((select private.current_user_is_admin()))
   with check ((select private.current_user_is_admin()));
@@ -419,6 +453,9 @@ create policy "Staff can read own event staff row" on public.event_staff
     or (select private.current_user_is_admin())
   );
 
+create policy "Event managers can read event staff" on public.event_staff
+  for select using (private.current_user_can_manage_event(event_id));
+
 create policy "Public and owners can read projects" on public.projects
   for select using (status = 'published' or (select auth.uid()) = author_id);
 
@@ -428,6 +465,10 @@ create policy "Users can submit own projects" on public.projects
 create policy "Admins can manage events" on public.events
   for all using ((select private.current_user_is_admin()))
   with check ((select private.current_user_is_admin()));
+
+create policy "Event managers can update own events" on public.events
+  for update using (private.current_user_can_manage_event(id))
+  with check (private.current_user_can_manage_event(id));
 
 create policy "Admins can manage projects" on public.projects
   for all using ((select private.current_user_is_admin()))
@@ -449,6 +490,10 @@ create policy "Users can read own certificates" on public.certificates
 create policy "Admins can manage certificates" on public.certificates
   for all using ((select private.current_user_is_admin()))
   with check ((select private.current_user_is_admin()));
+
+create policy "Event managers can manage certificates" on public.certificates
+  for all using (private.current_user_can_manage_event(event_id))
+  with check (private.current_user_can_manage_event(event_id));
 
 create policy "Public can read approved gallery submissions" on public.gallery_submissions
   for select using (status in ('approved', 'published') or (select private.current_user_is_admin()) or submitted_by = (select auth.uid()));

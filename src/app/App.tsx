@@ -1129,6 +1129,119 @@ function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [reserveStatus, setReserveStatus] = useState("");
+  const [eventInfo, setEventInfo] = useState<any>(null);
+  const [attendees, setAttendees] = useState<any[]>([]);
+  const [canManageEvent, setCanManageEvent] = useState(false);
+  const [managerStatus, setManagerStatus] = useState("");
+
+  const isUuidEvent = Boolean(id && /^[0-9a-f-]{36}$/i.test(id));
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadEventWorkspace() {
+      if (!isUuidEvent || !isSupabaseConfigured || !supabase || !id) return;
+
+      const { data: userData } = await supabase.auth.getUser();
+      const [{ data: eventRow }, { count }] = await Promise.all([
+        supabase
+          .from("events")
+          .select("id,title,event_type,description,short_description,start_time,end_time,venue,capacity,status,registration_open,created_by")
+          .eq("id", id)
+          .maybeSingle(),
+        supabase
+          .from("event_registrations")
+          .select("id", { count: "exact", head: true })
+          .eq("event_id", id)
+          .eq("status", "registered"),
+      ]);
+      if (!mounted || !eventRow) return;
+
+      setEventInfo({ ...eventRow, registeredCount: count || 0 });
+
+      if (!userData.user) return;
+
+      const [{ data: profile }, { data: staffRows }] = await Promise.all([
+        supabase.from("profiles").select("role,email").eq("id", userData.user.id).maybeSingle(),
+        supabase.from("event_staff").select("id,email,staff_role,can_scan").eq("event_id", id),
+      ]);
+
+      const isManager =
+        profile?.role === "admin" ||
+        eventRow.created_by === userData.user.id ||
+        (staffRows || []).some((staff) => {
+          const staffEmail = staff.email?.toLowerCase();
+          return staff.can_scan && staffEmail && staffEmail === (profile?.email || userData.user.email || "").toLowerCase();
+        });
+
+      setCanManageEvent(Boolean(isManager));
+
+      if (isManager) {
+        const { data: registrations } = await supabase
+          .from("event_registrations")
+          .select("id,user_id,ticket_code,status,registered_at,checked_in_at,profiles:user_id(full_name,email)")
+          .eq("event_id", id)
+          .order("registered_at", { ascending: false });
+
+        if (!mounted) return;
+        setAttendees(registrations || []);
+      }
+    }
+
+    loadEventWorkspace();
+
+    return () => {
+      mounted = false;
+    };
+  }, [id, isUuidEvent]);
+
+  const checkInAttendee = async (registrationId: string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    setManagerStatus("");
+    const { error } = await supabase
+      .from("event_registrations")
+      .update({ status: "checked_in", checked_in_at: new Date().toISOString() })
+      .eq("id", registrationId);
+    if (error) {
+      setManagerStatus(error.message);
+      return;
+    }
+    setAttendees(attendees.map((attendee) => attendee.id === registrationId ? {
+      ...attendee,
+      status: "checked_in",
+      checked_in_at: new Date().toISOString(),
+    } : attendee));
+  };
+
+  const issueBulkCertificates = async () => {
+    if (!isSupabaseConfigured || !supabase || !id) return;
+    const checkedIn = attendees.filter((attendee) => attendee.status === "checked_in" || attendee.checked_in_at);
+    if (!checkedIn.length) {
+      setManagerStatus("No checked-in attendees found.");
+      return;
+    }
+    const { data: userData } = await supabase.auth.getUser();
+    const rows = checkedIn.map((attendee) => ({
+      recipient_id: attendee.profiles?.id || attendee.user_id,
+      event_id: id,
+      issued_by: userData.user?.id || null,
+      title: `${eventInfo?.title || "Event"} Participation Certificate`,
+      certificate_type: "Event",
+      issuer_name: "Data Science Club",
+      issued_at: new Date().toISOString().slice(0, 10),
+      status: "approved",
+    })).filter((row) => row.recipient_id);
+    if (!rows.length) {
+      setManagerStatus("Could not find attendee profile IDs for certificates.");
+      return;
+    }
+    const { error } = await supabase.from("certificates").insert(rows);
+    if (error) {
+      setManagerStatus(error.message);
+      return;
+    }
+    setManagerStatus(`Issued ${rows.length} certificate${rows.length === 1 ? "" : "s"}.`);
+  };
 
   const reserveSpot = async () => {
     setReserveStatus("");
@@ -1137,7 +1250,7 @@ function EventDetailPage() {
       setReserveStatus("Invalid event.");
       return;
     }
-    if (!isSupabaseConfigured || !supabase || !/^[0-9a-f-]{36}$/i.test(id)) {
+    if (!isSupabaseConfigured || !supabase || !isUuidEvent) {
       navigate("/ticket");
       return;
     }
@@ -1182,6 +1295,18 @@ function EventDetailPage() {
     navigate("/ticket");
   };
 
+  const displayEvent = eventInfo || {
+    title: "Neural Nets 101",
+    event_type: "WORKSHOP",
+    description: "This hands-on workshop dives deep into the fundamentals of Artificial Neural Networks. We will build a multi-layer perceptron from scratch using only NumPy, then transition into PyTorch for production-grade pipelines.",
+    start_time: null,
+    venue: "SMS Lab 3",
+    capacity: 50,
+    registeredCount: 4,
+  };
+  const startDate = displayEvent.start_time ? new Date(displayEvent.start_time) : null;
+  const eventEnded = Boolean(displayEvent.end_time && new Date(displayEvent.end_time).getTime() < Date.now());
+
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
       <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
@@ -1190,24 +1315,24 @@ function EventDetailPage() {
 
       <BrutalCard color="bg-[#2563EB]" className="text-white mb-12 border-4">
         <div className="flex justify-between items-start mb-10">
-           <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">WORKSHOP</BrutalBadge>
+           <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{displayEvent.event_type || "WORKSHOP"}</BrutalBadge>
            <div className="text-right">
-             <div className="text-5xl" style={fonts.display}>24</div>
-             <div className="font-bold tracking-widest">FEB</div>
+             <div className="text-5xl" style={fonts.display}>{startDate ? startDate.getDate() : "24"}</div>
+             <div className="font-bold tracking-widest">{startDate ? startDate.toLocaleString("en", { month: "short" }).toUpperCase() : "FEB"}</div>
            </div>
         </div>
-        <h1 className="text-5xl md:text-7xl uppercase leading-none mb-6" style={fonts.display}>Neural Nets 101</h1>
+        <h1 className="text-5xl md:text-7xl uppercase leading-none mb-6" style={fonts.display}>{displayEvent.title}</h1>
         <div className="flex flex-wrap gap-6 font-mono text-sm opacity-90">
-          <span className="flex items-center gap-2"><MapPin size={16}/> SMS Lab 3</span>
-          <span className="flex items-center gap-2"><Calendar size={16}/> 14:00 - 17:00</span>
-          <span className="flex items-center gap-2"><Users size={16}/> 4/50 Spots Filled</span>
+          <span className="flex items-center gap-2"><MapPin size={16}/> {displayEvent.venue || "TBA"}</span>
+          <span className="flex items-center gap-2"><Calendar size={16}/> {startDate ? startDate.toLocaleString() : "Date TBA"}</span>
+          <span className="flex items-center gap-2"><Users size={16}/> {displayEvent.registeredCount || 0}/{displayEvent.capacity || 0} Spots Filled</span>
         </div>
       </BrutalCard>
 
       <div className="grid md:grid-cols-3 gap-10">
         <div className="md:col-span-2 prose prose-lg text-[#171717]">
           <h2 className="uppercase font-bold tracking-widest text-xl mb-4">About The Event</h2>
-          <p>This hands-on workshop dives deep into the fundamentals of Artificial Neural Networks. We will build a multi-layer perceptron from scratch using only NumPy, then transition into PyTorch for production-grade pipelines.</p>
+          <p>{displayEvent.description || displayEvent.short_description || "Event details will be updated soon."}</p>
           <h3 className="uppercase font-bold tracking-widest text-lg mt-8 mb-4">Prerequisites</h3>
           <ul className="list-disc pl-5 space-y-2">
             <li>Basic understanding of linear algebra</li>
@@ -1221,9 +1346,65 @@ function EventDetailPage() {
             <p className="text-sm font-mono text-slate-500 mb-6">Registration closes in 48 hours.</p>
             {reserveStatus && <p className="mb-4 text-xs font-bold text-[#FB7185]">{reserveStatus}</p>}
             <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white">Reserve Spot</BrutalButton>
+            {canManageEvent && isUuidEvent && (
+              <div className="mt-4 pt-4 border-t-2 border-[#171717] space-y-3">
+                <BrutalButton onClick={() => navigate(`/scanner?event=${id}`)} className="w-full text-xs" color="bg-[#171717]" text="text-white">
+                  <QrCode size={14} className="inline mr-2" /> Scan Tickets
+                </BrutalButton>
+                <BrutalButton onClick={issueBulkCertificates} className="w-full text-xs" color="bg-[#FFE800]">
+                  <Award size={14} className="inline mr-2" /> Bulk Certificates
+                </BrutalButton>
+              </div>
+            )}
           </BrutalCard>
         </div>
       </div>
+
+      {canManageEvent && isUuidEvent && (
+        <BrutalCard color="bg-white" className="mt-10">
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <h2 className="text-3xl uppercase" style={fonts.display}>Organizer Workspace</h2>
+            <BrutalBadge color={eventEnded ? "bg-slate-400" : "bg-green-500"}>{eventEnded ? "Ended" : "Active"}</BrutalBadge>
+          </div>
+          {managerStatus && <p className="mb-4 text-xs font-bold text-[#2563EB]">{managerStatus}</p>}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b-2 border-[#171717]">
+                  <th className="text-left p-3 uppercase text-xs">Attendee</th>
+                  <th className="text-left p-3 uppercase text-xs">Ticket</th>
+                  <th className="text-left p-3 uppercase text-xs">Status</th>
+                  <th className="text-right p-3 uppercase text-xs">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attendees.map((attendee) => {
+                  const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles;
+                  return (
+                    <tr key={attendee.id} className="border-b border-slate-200">
+                      <td className="p-3 font-bold">{profile?.full_name || profile?.email || "Member"}</td>
+                      <td className="p-3 font-mono text-xs">{attendee.ticket_code}</td>
+                      <td className="p-3">{attendee.checked_in_at ? "Checked in" : attendee.status}</td>
+                      <td className="p-3 text-right">
+                        {!attendee.checked_in_at && (
+                          <button onClick={() => checkInAttendee(attendee.id)} className="px-3 py-2 border-2 border-[#171717] bg-green-500 text-white text-xs font-bold uppercase">
+                            Check In
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {attendees.length === 0 && (
+                  <tr>
+                    <td className="p-6 text-center text-slate-500 font-mono" colSpan={4}>No registrations yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </BrutalCard>
+      )}
     </div>
   );
 }
@@ -2175,11 +2356,99 @@ function TicketPage() {
 }
 
 function ScannerPage() {
+  const navigate = useNavigate();
+  const eventId = new URLSearchParams(window.location.search).get("event") || "";
+  const [ticketCode, setTicketCode] = useState("");
+  const [scannerStatus, setScannerStatus] = useState("Checking scanner access...");
+  const [scannerReady, setScannerReady] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function checkScannerAccess() {
+      if (!eventId || !/^[0-9a-f-]{36}$/i.test(eventId)) {
+        setScannerStatus("Open scanner from an event page.");
+        return;
+      }
+      if (!isSupabaseConfigured || !supabase) {
+        setScannerReady(true);
+        setScannerStatus("Demo scanner active.");
+        return;
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      if (!mounted) return;
+      if (!userData.user) {
+        navigate(`/login?redirect=/scanner?event=${eventId}`);
+        return;
+      }
+
+      const [{ data: eventRow }, { data: profile }, { data: staffRows }] = await Promise.all([
+        supabase.from("events").select("id,title,end_time,created_by,status").eq("id", eventId).maybeSingle(),
+        supabase.from("profiles").select("role,email").eq("id", userData.user.id).maybeSingle(),
+        supabase.from("event_staff").select("email,user_id,can_scan").eq("event_id", eventId),
+      ]);
+
+      if (!mounted) return;
+      if (!eventRow) {
+        setScannerStatus("Event not found.");
+        return;
+      }
+      if (eventRow.end_time && new Date(eventRow.end_time).getTime() < Date.now()) {
+        setScannerStatus("Scanner closed because this event has ended.");
+        return;
+      }
+
+      const canScan =
+        profile?.role === "admin" ||
+        eventRow.created_by === userData.user.id ||
+        (staffRows || []).some((staff) =>
+          staff.can_scan &&
+          (staff.user_id === userData.user?.id || staff.email?.toLowerCase() === (profile?.email || userData.user?.email || "").toLowerCase())
+        );
+
+      setScannerReady(Boolean(canScan));
+      setScannerStatus(canScan ? `Scanner active for ${eventRow.title}.` : "You are not allowed to scan for this event.");
+    }
+
+    checkScannerAccess();
+
+    return () => {
+      mounted = false;
+    };
+  }, [eventId, navigate]);
+
+  const scanTicket = async () => {
+    if (!scannerReady || !eventId || !ticketCode.trim()) return;
+    if (!isSupabaseConfigured || !supabase) {
+      setScannerStatus("Demo ticket accepted.");
+      return;
+    }
+    const { data, error } = await supabase
+      .from("event_registrations")
+      .update({ status: "checked_in", checked_in_at: new Date().toISOString() })
+      .eq("event_id", eventId)
+      .eq("ticket_code", ticketCode.trim())
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      setScannerStatus(error.message);
+      return;
+    }
+    if (!data) {
+      setScannerStatus("Ticket not found for this event.");
+      return;
+    }
+    setTicketCode("");
+    setScannerStatus("Ticket checked in.");
+  };
+
   return (
     <div className="min-h-screen bg-[#171717] pt-12 pb-20 px-6 flex flex-col items-center justify-center text-white relative">
       <div className="text-center mb-8">
         <h1 className="text-5xl uppercase" style={fonts.display}>Scanner Protocol</h1>
-        <p className="font-mono text-slate-400 mt-2">Awaiting QR Code...</p>
+        <p className="font-mono text-slate-400 mt-2">{scannerStatus}</p>
       </div>
       
       <div className="relative w-full max-w-sm aspect-square bg-black border-4 border-[#2563EB] mb-12 overflow-hidden flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.3)]">
@@ -2198,8 +2467,14 @@ function ScannerPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
-        <BrutalButton color="bg-[#FFE800]" className="flex-1">Manual Search</BrutalButton>
-        <BrutalButton color="bg-[#FB7185]" text="text-white" className="flex-1">Flashlight</BrutalButton>
+        <input
+          value={ticketCode}
+          onChange={(event) => setTicketCode(event.target.value)}
+          placeholder="Ticket code"
+          disabled={!scannerReady}
+          className="flex-1 border-2 border-[#FFE800] bg-black p-3 font-mono text-sm text-white focus:outline-none disabled:opacity-40"
+        />
+        <BrutalButton onClick={scanTicket} disabled={!scannerReady} color="bg-[#FFE800]" className="flex-1">Check In</BrutalButton>
       </div>
     </div>
   );
