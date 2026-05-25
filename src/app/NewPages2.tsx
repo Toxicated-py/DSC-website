@@ -67,9 +67,18 @@ const BrutalTextarea = ({ label, ...props }: any) => (
 // ─── 5. GALLERY PAGE ───────────────────────────────────────────────────────────
 
 export function GalleryPage() {
+  const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [submittedPhotos, setSubmittedPhotos] = useState<any[]>([]);
+  const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState("");
+  const [galleryForm, setGalleryForm] = useState({
+    title: "",
+    imageUrl: "",
+    eventName: "",
+  });
 
-  const photos = [
+  const fallbackPhotos = [
     {
       id: 1,
       url: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&h=600&fit=crop",
@@ -120,9 +129,66 @@ export function GalleryPage() {
     },
   ];
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadGallery() {
+      if (!isSupabaseConfigured || !supabase) return;
+      const { data } = await supabase
+        .from("gallery_submissions")
+        .select("id,title,image_url,event_name,created_at")
+        .in("status", ["approved", "published"])
+        .order("created_at", { ascending: false });
+      if (!mounted) return;
+      setSubmittedPhotos((data || []).map((item) => ({
+        id: item.id,
+        url: item.image_url,
+        title: item.title,
+        event: item.event_name || "Community",
+        date: item.created_at ? new Date(item.created_at).toLocaleDateString() : "",
+        likes: 0,
+      })));
+    }
+
+    loadGallery();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const photos = submittedPhotos.length ? submittedPhotos : fallbackPhotos;
+  const filters = ["all", ...Array.from(new Set(photos.map((photo) => photo.event.toLowerCase())))];
   const filteredPhotos = selectedFilter === "all"
     ? photos
     : photos.filter(p => p.event.toLowerCase() === selectedFilter);
+
+  const submitGalleryPhoto = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitStatus("");
+    if (!isSupabaseConfigured || !supabase) {
+      setSubmitStatus("Submissions are unavailable right now.");
+      return;
+    }
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      navigate("/login?redirect=/gallery");
+      return;
+    }
+    const { error } = await supabase.from("gallery_submissions").insert({
+      title: galleryForm.title.trim(),
+      image_url: galleryForm.imageUrl.trim(),
+      event_name: galleryForm.eventName.trim() || "Community",
+      submitted_by: userData.user.id,
+      status: "pending",
+    });
+    if (error) {
+      setSubmitStatus(error.message);
+      return;
+    }
+    setGalleryForm({ title: "", imageUrl: "", eventName: "" });
+    setSubmitStatus("Photo submitted for admin approval.");
+    setShowSubmitForm(false);
+  };
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-7xl mx-auto">
@@ -141,7 +207,7 @@ export function GalleryPage() {
 
       {/* Filters */}
       <div className="mb-8 flex justify-center gap-2 flex-wrap">
-        {["all", "workshop", "competition", "talk", "social"].map((filter) => (
+        {filters.map((filter) => (
           <button
             key={filter}
             onClick={() => setSelectedFilter(filter)}
@@ -194,9 +260,37 @@ export function GalleryPage() {
         <p className="text-slate-700 mb-4">
           Help us build our community gallery by sharing your event photos!
         </p>
-        <BrutalButton color="bg-[#171717]" text="text-white">
+        <BrutalButton color="bg-[#171717]" text="text-white" onClick={() => setShowSubmitForm(!showSubmitForm)}>
           Upload Photos
         </BrutalButton>
+        {showSubmitForm && (
+          <form onSubmit={submitGalleryPhoto} className="mt-6 max-w-2xl mx-auto text-left">
+            <BrutalInput
+              label="Photo Title"
+              value={galleryForm.title}
+              onChange={(event: any) => setGalleryForm({ ...galleryForm, title: event.target.value })}
+              required
+            />
+            <BrutalInput
+              label="Image URL"
+              type="url"
+              value={galleryForm.imageUrl}
+              onChange={(event: any) => setGalleryForm({ ...galleryForm, imageUrl: event.target.value })}
+              placeholder="https://..."
+              required
+            />
+            <BrutalInput
+              label="Event Name"
+              value={galleryForm.eventName}
+              onChange={(event: any) => setGalleryForm({ ...galleryForm, eventName: event.target.value })}
+              placeholder="Workshop, Hackathon, Community"
+            />
+            <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full">
+              Submit for Review
+            </BrutalButton>
+          </form>
+        )}
+        {submitStatus && <p className="mt-4 text-sm font-bold">{submitStatus}</p>}
       </BrutalCard>
     </div>
   );
@@ -743,7 +837,19 @@ export function AchievementsPage() {
 // ─── 8. PARTNERS PAGE ──────────────────────────────────────────────────────────
 
 export function PartnersPage() {
-  const partners = [
+  const navigate = useNavigate();
+  const [submittedPartners, setSubmittedPartners] = useState<any[]>([]);
+  const [showPartnerForm, setShowPartnerForm] = useState(false);
+  const [partnerStatus, setPartnerStatus] = useState("");
+  const [partnerForm, setPartnerForm] = useState({
+    name: "",
+    websiteUrl: "",
+    logoUrl: "",
+    category: "",
+    description: "",
+  });
+
+  const fallbackPartners = [
     {
       name: "Bisup",
       logo: "https://www.bisup.com/assets/img/logo.png",
@@ -771,6 +877,65 @@ export function PartnersPage() {
       featured: false
     },
   ];
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadPartners() {
+      if (!isSupabaseConfigured || !supabase) return;
+      const { data } = await supabase
+        .from("partner_submissions")
+        .select("id,name,website_url,logo_url,category,description,created_at")
+        .in("status", ["approved", "published"])
+        .order("created_at", { ascending: false });
+      if (!mounted) return;
+      setSubmittedPartners((data || []).map((partner) => ({
+        name: partner.name,
+        logo: partner.logo_url,
+        category: partner.category || "Community Partner",
+        description: partner.description || "",
+        website: partner.website_url,
+        featured: false,
+      })));
+    }
+
+    loadPartners();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const partners = [...fallbackPartners, ...submittedPartners];
+
+  const submitPartner = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setPartnerStatus("");
+    if (!isSupabaseConfigured || !supabase) {
+      setPartnerStatus("Partner applications are unavailable right now.");
+      return;
+    }
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      navigate("/login?redirect=/partners");
+      return;
+    }
+    const { error } = await supabase.from("partner_submissions").insert({
+      name: partnerForm.name.trim(),
+      website_url: partnerForm.websiteUrl.trim() || null,
+      logo_url: partnerForm.logoUrl.trim() || null,
+      category: partnerForm.category.trim() || "Community Partner",
+      description: partnerForm.description.trim(),
+      submitted_by: userData.user.id,
+      status: "pending",
+    });
+    if (error) {
+      setPartnerStatus(error.message);
+      return;
+    }
+    setPartnerForm({ name: "", websiteUrl: "", logoUrl: "", category: "", description: "" });
+    setPartnerStatus("Partner application submitted for admin approval.");
+    setShowPartnerForm(false);
+  };
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto">
@@ -850,9 +1015,51 @@ export function PartnersPage() {
         <p className="mb-6 max-w-2xl mx-auto">
           Interested in supporting our mission? We're always looking for partners who share our passion for empowering students through data science education.
         </p>
-        <BrutalButton color="bg-white" text="text-[#2563EB]">
+        <BrutalButton color="bg-white" text="text-[#2563EB]" onClick={() => setShowPartnerForm(!showPartnerForm)}>
           <Mail size={16} className="inline mr-2" /> Contact Us
         </BrutalButton>
+        {showPartnerForm && (
+          <form onSubmit={submitPartner} className="mt-6 max-w-2xl mx-auto text-left text-[#171717]">
+            <div className="bg-white border-2 border-[#171717] p-5">
+              <BrutalInput
+                label="Organization Name"
+                value={partnerForm.name}
+                onChange={(event: any) => setPartnerForm({ ...partnerForm, name: event.target.value })}
+                required
+              />
+              <BrutalInput
+                label="Website URL"
+                type="url"
+                value={partnerForm.websiteUrl}
+                onChange={(event: any) => setPartnerForm({ ...partnerForm, websiteUrl: event.target.value })}
+                placeholder="https://..."
+              />
+              <BrutalInput
+                label="Logo URL"
+                type="url"
+                value={partnerForm.logoUrl}
+                onChange={(event: any) => setPartnerForm({ ...partnerForm, logoUrl: event.target.value })}
+                placeholder="https://..."
+              />
+              <BrutalInput
+                label="Category"
+                value={partnerForm.category}
+                onChange={(event: any) => setPartnerForm({ ...partnerForm, category: event.target.value })}
+                placeholder="Technology Partner"
+              />
+              <BrutalTextarea
+                label="Description"
+                value={partnerForm.description}
+                onChange={(event: any) => setPartnerForm({ ...partnerForm, description: event.target.value })}
+                required
+              />
+              <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full">
+                Submit for Review
+              </BrutalButton>
+            </div>
+          </form>
+        )}
+        {partnerStatus && <p className="mt-4 text-sm font-bold">{partnerStatus}</p>}
       </BrutalCard>
     </div>
   );
