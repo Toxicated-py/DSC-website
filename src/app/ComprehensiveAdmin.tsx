@@ -134,12 +134,33 @@ export function ComprehensiveAdminPanel() {
     registrationOpen: true,
     coordinatorEmails: "",
   });
+  const [projectForm, setProjectForm] = useState({
+    title: "",
+    category: "Machine Learning",
+    team: "",
+    technologies: "",
+    summary: "",
+    content: "",
+    thumbnailUrl: "",
+    status: "submitted",
+  });
+  const [blogForm, setBlogForm] = useState({
+    title: "",
+    summary: "",
+    tags: "",
+    content: "",
+    coverImageUrl: "",
+    status: "draft",
+  });
 
   // Modal states
   const [showUserModal, setShowUserModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showBlogModal, setShowBlogModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingProjectId, setEditingProjectId] = useState("");
+  const [editingBlogId, setEditingBlogId] = useState("");
 
   const [users, setUsers] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -175,6 +196,16 @@ export function ComprehensiveAdminPanel() {
     { id: "settings", label: "Settings", icon: <Settings size={16} /> },
     { id: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
   ];
+  const adminOnlyTabs = ["users", "gallery", "partners", "resources", "settings", "analytics"];
+  const isFullAdmin = adminProfile?.role === "admin";
+  const visibleTabs = isFullAdmin ? tabs : tabs.filter((tab) => !adminOnlyTabs.includes(tab.id));
+
+  useEffect(() => {
+    if (!adminProfile) return;
+    if (!visibleTabs.some((tab) => tab.id === selectedTab)) {
+      setSelectedTab("overview");
+    }
+  }, [adminProfile, selectedTab, visibleTabs]);
 
   useEffect(() => {
     let mounted = true;
@@ -200,11 +231,11 @@ export function ComprehensiveAdminPanel() {
 
       let projectQuery = supabase
         .from("projects")
-        .select("id,title,category,technologies,summary,status,submitted_at,published_at,author_id,profiles:author_id(full_name,email)")
+        .select("id,title,category,team,technologies,summary,content,thumbnail_url,status,submitted_at,published_at,author_id,profiles:author_id(full_name,email)")
         .order("submitted_at", { ascending: false });
       let blogQuery = supabase
         .from("blog_posts")
-        .select("id,title,summary,tags,status,published_at,author_id,profiles:author_id(full_name,email)")
+        .select("id,title,summary,tags,content,cover_image_url,status,published_at,author_id,profiles:author_id(full_name,email)")
         .order("published_at", { ascending: false });
       let eventQuery = supabase
         .from("events")
@@ -218,10 +249,15 @@ export function ComprehensiveAdminPanel() {
       }
 
       const [{ data: profiles }, { data: certs }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }, { data: blogRows }, { data: galleryRows }, { data: partnerRows }, { data: resourceRows }] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id,full_name,email,role,membership_status,designation,designation_status,batch_year,created_at")
-          .order("full_name", { ascending: true }),
+        isAdmin
+          ? supabase
+              .from("profiles")
+              .select("id,full_name,email,role,membership_status,designation,designation_status,batch_year,created_at")
+              .order("full_name", { ascending: true })
+          : supabase
+              .from("profiles")
+              .select("id,full_name,email,role,membership_status,designation,designation_status,batch_year,created_at")
+              .eq("id", userData.user.id),
         supabase
           .from("certificates")
           .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),events:event_id(title)")
@@ -433,6 +469,32 @@ export function ComprehensiveAdminPanel() {
     });
   };
 
+  const resetProjectForm = () => {
+    setEditingProjectId("");
+    setProjectForm({
+      title: "",
+      category: "Machine Learning",
+      team: "",
+      technologies: "",
+      summary: "",
+      content: "",
+      thumbnailUrl: "",
+      status: "submitted",
+    });
+  };
+
+  const resetBlogForm = () => {
+    setEditingBlogId("");
+    setBlogForm({
+      title: "",
+      summary: "",
+      tags: "",
+      content: "",
+      coverImageUrl: "",
+      status: "draft",
+    });
+  };
+
   const openEventModal = async (event?: any) => {
     setAdminStatus("");
     setEditingItem(event || null);
@@ -561,6 +623,63 @@ export function ComprehensiveAdminPanel() {
     setProjects(projects.map(p => p.id === id ? { ...p, status } : p));
   };
 
+  const openProjectModal = (project: any) => {
+    setAdminStatus("");
+    setEditingProjectId(project.id);
+    setProjectForm({
+      title: project.title || "",
+      category: project.category || "Machine Learning",
+      team: project.team || "",
+      technologies: (project.technologies || project.tags || []).join(", "),
+      summary: project.summary || "",
+      content: project.content || "",
+      thumbnailUrl: project.thumbnail_url || "",
+      status: project.status || "submitted",
+    });
+    setShowProjectModal(true);
+  };
+
+  const saveProject = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingProjectId || !isSupabaseConfigured || !supabase) return;
+    const technologies = projectForm.technologies
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+    const payload = {
+      title: projectForm.title,
+      category: projectForm.category,
+      team: projectForm.team || null,
+      technologies,
+      summary: projectForm.summary,
+      content: projectForm.content,
+      thumbnail_url: projectForm.thumbnailUrl || null,
+      status: projectForm.status,
+      published_at: projectForm.status === "published" ? new Date().toISOString() : null,
+    };
+    const { data, error } = await supabase
+      .from("projects")
+      .update(payload)
+      .eq("id", editingProjectId)
+      .select("id,title,category,team,technologies,summary,content,thumbnail_url,status,submitted_at,published_at,author_id,profiles:author_id(full_name,email)")
+      .single();
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+    const author = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
+    const mapped = {
+      ...data,
+      author: author?.full_name || author?.email || "Member",
+      submittedDate: data.submitted_at ? new Date(data.submitted_at).toLocaleDateString() : "",
+      tags: data.technologies || [],
+    };
+    setProjects(projects.map((project) => project.id === editingProjectId ? mapped : project));
+    resetProjectForm();
+    setShowProjectModal(false);
+    setAdminStatus("Project updated.");
+  };
+
   const updateProposalStatus = async (id: string, status: string) => {
     if (!isSupabaseConfigured || !supabase) return;
     const { error } = await supabase.from("event_proposals").update({ status }).eq("id", id);
@@ -627,6 +746,59 @@ export function ComprehensiveAdminPanel() {
       return;
     }
     setBlogPosts(blogPosts.map((post) => post.id === id ? { ...post, status } : post));
+  };
+
+  const openBlogModal = (post: any) => {
+    setAdminStatus("");
+    setEditingBlogId(post.id);
+    setBlogForm({
+      title: post.title || "",
+      summary: post.summary || "",
+      tags: (post.tags || []).join(", "),
+      content: post.content || "",
+      coverImageUrl: post.cover_image_url || "",
+      status: post.status || "draft",
+    });
+    setShowBlogModal(true);
+  };
+
+  const saveBlogPost = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingBlogId || !isSupabaseConfigured || !supabase) return;
+    const tags = blogForm.tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+    const payload = {
+      title: blogForm.title,
+      summary: blogForm.summary,
+      tags,
+      content: blogForm.content,
+      cover_image_url: blogForm.coverImageUrl || null,
+      status: blogForm.status,
+      published_at: blogForm.status === "published" ? new Date().toISOString() : new Date().toISOString(),
+    };
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .update(payload)
+      .eq("id", editingBlogId)
+      .select("id,title,summary,tags,content,cover_image_url,status,published_at,author_id,profiles:author_id(full_name,email)")
+      .single();
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+    const author = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
+    const mapped = {
+      ...data,
+      author: author?.full_name || author?.email || "Member",
+      tags: data.tags || [],
+      publishedDate: data.published_at ? new Date(data.published_at).toLocaleDateString() : "",
+    };
+    setBlogPosts(blogPosts.map((post) => post.id === editingBlogId ? mapped : post));
+    resetBlogForm();
+    setShowBlogModal(false);
+    setAdminStatus("Blog post updated.");
   };
 
   const updateSubmissionStatus = async (table: "gallery_submissions" | "partner_submissions", id: string, status: string) => {
@@ -774,13 +946,13 @@ export function ComprehensiveAdminPanel() {
       <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <BrutalBadge color="bg-[#FB7185]" className="mb-4 inline-flex items-center gap-1">
-            <Shield size={10} /> ADMIN ACCESS
+            <Shield size={10} /> {isFullAdmin ? "ADMIN ACCESS" : "ORGANIZER ACCESS"}
           </BrutalBadge>
           <h1 className="text-4xl md:text-6xl lg:text-7xl uppercase leading-none" style={fonts.display}>
-            Admin Panel
+            {isFullAdmin ? "Admin Panel" : "Organizer Panel"}
           </h1>
           <p className="mt-4 font-mono text-xs md:text-sm text-slate-500">
-            Manage all aspects of your Data Science Club website
+            {isFullAdmin ? "Manage all aspects of your Data Science Club website" : "Manage your events, projects, blogs, certificates, and check-ins"}
           </p>
         </div>
         <div className="flex gap-3 flex-wrap">
@@ -801,7 +973,7 @@ export function ComprehensiveAdminPanel() {
 
       {/* Tabs */}
       <div className="mb-8 flex gap-2 border-b-2 border-[#171717] pb-2 overflow-x-auto">
-        {tabs.map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setSelectedTab(tab.id)}
@@ -851,20 +1023,24 @@ export function ComprehensiveAdminPanel() {
           <BrutalCard className="mb-8">
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Quick Actions</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <button
-                onClick={() => void openEventModal()}
-                className="p-4 border-2 border-[#171717] bg-[#2563EB] text-white hover:bg-[#1D4ED8] transition-all brutal-shadow brutal-shadow-hover"
-              >
-                <Plus size={20} className="mb-2" />
-                <div className="text-xs font-bold uppercase tracking-widest">Create Event</div>
-              </button>
-              <button
-                onClick={() => setSelectedTab("users")}
-                className="p-4 border-2 border-[#171717] bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-all brutal-shadow brutal-shadow-hover"
-              >
-                <Users size={20} className="mb-2" />
-                <div className="text-xs font-bold uppercase tracking-widest">Manage Users</div>
-              </button>
+              {isFullAdmin && (
+                <button
+                  onClick={() => void openEventModal()}
+                  className="p-4 border-2 border-[#171717] bg-[#2563EB] text-white hover:bg-[#1D4ED8] transition-all brutal-shadow brutal-shadow-hover"
+                >
+                  <Plus size={20} className="mb-2" />
+                  <div className="text-xs font-bold uppercase tracking-widest">Create Event</div>
+                </button>
+              )}
+              {isFullAdmin && (
+                <button
+                  onClick={() => setSelectedTab("users")}
+                  className="p-4 border-2 border-[#171717] bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-all brutal-shadow brutal-shadow-hover"
+                >
+                  <Users size={20} className="mb-2" />
+                  <div className="text-xs font-bold uppercase tracking-widest">Manage Users</div>
+                </button>
+              )}
               <button
                 onClick={() => setSelectedTab("projects")}
                 className="p-4 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all brutal-shadow brutal-shadow-hover"
@@ -912,7 +1088,7 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* ─── USERS TAB ───────────────────────────────────────────────────────── */}
-      {selectedTab === "users" && (
+      {selectedTab === "users" && isFullAdmin && (
         <>
           {/* Search & Actions */}
           <div className="mb-8 flex flex-col md:flex-row gap-4">
@@ -1125,12 +1301,14 @@ export function ComprehensiveAdminPanel() {
                 className="w-full border-2 border-[#171717] p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all brutal-shadow"
               />
             </div>
-            <button
-              onClick={() => void openEventModal()}
-              className="px-6 py-3 bg-[#7C3AED] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-sm brutal-shadow brutal-shadow-hover flex items-center gap-2 justify-center"
-            >
-              <Plus size={16} /> Create Event
-            </button>
+            {isFullAdmin && (
+              <button
+                onClick={() => void openEventModal()}
+                className="px-6 py-3 bg-[#7C3AED] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-sm brutal-shadow brutal-shadow-hover flex items-center gap-2 justify-center"
+              >
+                <Plus size={16} /> Create Event
+              </button>
+            )}
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1184,7 +1362,7 @@ export function ComprehensiveAdminPanel() {
             ))}
           </div>
 
-          <div className="mt-10">
+          {isFullAdmin && <div className="mt-10">
             <div className="flex items-center justify-between gap-4 mb-5">
               <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Proposed Events</h2>
               <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{eventProposals.length}</BrutalBadge>
@@ -1237,7 +1415,7 @@ export function ComprehensiveAdminPanel() {
                 ))
               )}
             </div>
-          </div>
+          </div>}
         </>
       )}
 
@@ -1332,6 +1510,12 @@ export function ComprehensiveAdminPanel() {
                       {project.status}
                     </BrutalBadge>
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => openProjectModal(project)}
+                        className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
+                      >
+                        Edit
+                      </button>
                       {project.status !== "published" && (
                         <button
                           onClick={() => updateProjectStatus(project.id, "published")}
@@ -1356,7 +1540,7 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* ─── CONTENT TAB ───────────────────────────────────────────────────────── */}
-      {["blogs", "gallery", "partners", "resources"].includes(selectedTab) && (
+      {["blogs", "gallery", "partners", "resources"].includes(selectedTab) && (isFullAdmin || selectedTab === "blogs") && (
         <div className="space-y-6">
           {selectedTab === "blogs" && (
             <>
@@ -1374,6 +1558,7 @@ export function ComprehensiveAdminPanel() {
                         <BrutalBadge color={post.status === "published" ? "bg-green-500" : "bg-[#FFE800]"} text={post.status === "published" ? "text-white" : "text-[#171717]"}>
                           {post.status}
                         </BrutalBadge>
+                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
                         {post.status !== "published" && (
                           <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Publish</button>
                         )}
@@ -1874,6 +2059,96 @@ export function ComprehensiveAdminPanel() {
               >
                 Cancel
               </button>
+              </div>
+            </form>
+          </BrutalCard>
+        </div>
+      )}
+
+      {showProjectModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <BrutalCard className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Edit Project</h2>
+              <button onClick={() => { resetProjectForm(); setShowProjectModal(false); }} className="p-2 hover:bg-slate-100 transition-all">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={saveProject}>
+              <BrutalInput label="Project Title" value={projectForm.title} onChange={(event: any) => setProjectForm({ ...projectForm, title: event.target.value })} required />
+              <div className="grid md:grid-cols-2 gap-4">
+                <BrutalInput label="Category" value={projectForm.category} onChange={(event: any) => setProjectForm({ ...projectForm, category: event.target.value })} required />
+                <BrutalInput label="Team" value={projectForm.team} onChange={(event: any) => setProjectForm({ ...projectForm, team: event.target.value })} />
+              </div>
+              <BrutalInput label="Technologies" value={projectForm.technologies} onChange={(event: any) => setProjectForm({ ...projectForm, technologies: event.target.value })} placeholder="Python, React, TensorFlow" />
+              <BrutalTextarea label="Summary" value={projectForm.summary} onChange={(event: any) => setProjectForm({ ...projectForm, summary: event.target.value })} required />
+              <BrutalTextarea label="Content" value={projectForm.content} onChange={(event: any) => setProjectForm({ ...projectForm, content: event.target.value })} />
+              <BrutalInput label="Thumbnail URL" value={projectForm.thumbnailUrl} onChange={(event: any) => setProjectForm({ ...projectForm, thumbnailUrl: event.target.value })} />
+              <BrutalSelect
+                label="Status"
+                value={projectForm.status}
+                onChange={(event: any) => setProjectForm({ ...projectForm, status: event.target.value })}
+                options={[
+                  { value: "submitted", label: "Submitted" },
+                  { value: "approved", label: "Approved" },
+                  { value: "published", label: "Published" },
+                  { value: "rejected", label: "Rejected" },
+                  { value: "archived", label: "Archived" },
+                ]}
+              />
+              <div className="flex gap-3">
+                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1">
+                  <Save size={16} className="inline mr-2" /> Save Project
+                </BrutalButton>
+                <button
+                  type="button"
+                  onClick={() => { resetProjectForm(); setShowProjectModal(false); }}
+                  className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </BrutalCard>
+        </div>
+      )}
+
+      {showBlogModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <BrutalCard className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Edit Blog Post</h2>
+              <button onClick={() => { resetBlogForm(); setShowBlogModal(false); }} className="p-2 hover:bg-slate-100 transition-all">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={saveBlogPost}>
+              <BrutalInput label="Post Title" value={blogForm.title} onChange={(event: any) => setBlogForm({ ...blogForm, title: event.target.value })} required />
+              <BrutalTextarea label="Summary" value={blogForm.summary} onChange={(event: any) => setBlogForm({ ...blogForm, summary: event.target.value })} required />
+              <BrutalInput label="Tags" value={blogForm.tags} onChange={(event: any) => setBlogForm({ ...blogForm, tags: event.target.value })} placeholder="AI, Events, Research" />
+              <BrutalTextarea label="Content" value={blogForm.content} onChange={(event: any) => setBlogForm({ ...blogForm, content: event.target.value })} required />
+              <BrutalInput label="Cover Image URL" value={blogForm.coverImageUrl} onChange={(event: any) => setBlogForm({ ...blogForm, coverImageUrl: event.target.value })} />
+              <BrutalSelect
+                label="Status"
+                value={blogForm.status}
+                onChange={(event: any) => setBlogForm({ ...blogForm, status: event.target.value })}
+                options={[
+                  { value: "draft", label: "Draft" },
+                  { value: "published", label: "Published" },
+                  { value: "archived", label: "Archived" },
+                ]}
+              />
+              <div className="flex gap-3">
+                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1">
+                  <Save size={16} className="inline mr-2" /> Save Post
+                </BrutalButton>
+                <button
+                  type="button"
+                  onClick={() => { resetBlogForm(); setShowBlogModal(false); }}
+                  className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
               </div>
             </form>
           </BrutalCard>

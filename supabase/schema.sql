@@ -208,24 +208,36 @@ begin
     coalesce(new.raw_user_meta_data->>'full_name', new.email, ''),
     new.raw_user_meta_data->>'avatar_url',
     'member',
-    array['member'],
-    'approved',
-    false,
     case
+      when lower(new.email) like '%@sms.tu.edu.np' then array['member', 'student']
+      else array['member']
+    end,
+    'approved',
+    lower(new.email) like '%@sms.tu.edu.np',
+    case
+      when lower(new.email) like '%@sms.tu.edu.np' then lower(new.email)
       when lower(nullif(new.raw_user_meta_data->>'student_email', '')) like '%@sms.tu.edu.np'
       then lower(nullif(new.raw_user_meta_data->>'student_email', ''))
       else null
     end,
-    'pending'
+    case
+      when lower(new.email) like '%@sms.tu.edu.np' then 'approved'::public.review_status
+      else 'pending'::public.review_status
+    end
   )
   on conflict (id) do update
     set email = excluded.email,
         full_name = coalesce(nullif(excluded.full_name, ''), public.profiles.full_name),
         avatar_url = coalesce(excluded.avatar_url, public.profiles.avatar_url),
         role = case when public.profiles.role = 'student' then 'member'::public.user_role else public.profiles.role end,
-        roles = array(select distinct unnest(array_append(public.profiles.roles, 'member'))),
+        roles = array(select distinct unnest(public.profiles.roles || excluded.roles)),
         membership_status = case when public.profiles.membership_status = 'pending' then 'approved'::public.review_status else public.profiles.membership_status end,
+        is_sms_student = public.profiles.is_sms_student or excluded.is_sms_student,
         student_email = coalesce(excluded.student_email, public.profiles.student_email),
+        student_email_status = case
+          when excluded.student_email_status = 'approved' then 'approved'::public.review_status
+          else public.profiles.student_email_status
+        end,
         updated_at = now();
 
   return new;
@@ -456,11 +468,19 @@ create policy "Staff can read own event staff row" on public.event_staff
 create policy "Event managers can read event staff" on public.event_staff
   for select using (private.current_user_can_manage_event(event_id));
 
+create policy "Event managers can manage event staff" on public.event_staff
+  for all using (private.current_user_can_manage_event(event_id))
+  with check (private.current_user_can_manage_event(event_id));
+
 create policy "Public and owners can read projects" on public.projects
   for select using (status = 'published' or (select auth.uid()) = author_id);
 
 create policy "Users can submit own projects" on public.projects
   for insert with check ((select auth.uid()) = author_id);
+
+create policy "Users can update own projects" on public.projects
+  for update using ((select auth.uid()) = author_id)
+  with check ((select auth.uid()) = author_id);
 
 create policy "Admins can manage events" on public.events
   for all using ((select private.current_user_is_admin()))
@@ -479,6 +499,10 @@ create policy "Public and owners can read blog posts" on public.blog_posts
 
 create policy "Users can write own blog posts" on public.blog_posts
   for insert with check ((select auth.uid()) = author_id);
+
+create policy "Users can update own blog posts" on public.blog_posts
+  for update using ((select auth.uid()) = author_id)
+  with check ((select auth.uid()) = author_id);
 
 create policy "Admins can manage blog posts" on public.blog_posts
   for all using ((select private.current_user_is_admin()))
