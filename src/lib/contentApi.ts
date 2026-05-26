@@ -20,8 +20,35 @@ async function insertOrMock(table: string, payload: JsonRecord, mockKey: string)
     ...(table === "blog_posts" ? { author_id: userData.user.id } : {}),
   };
 
+  const title = typeof payload.title === "string" ? payload.title.trim() : "";
+  if (title) {
+    const ownerColumn =
+      table === "event_proposals" ? "proposed_by" :
+      table === "projects" ? "author_id" :
+      table === "blog_posts" ? "author_id" :
+      "";
+    if (ownerColumn) {
+      const { data: existing, error: existingError } = await supabase
+        .from(table)
+        .select("id")
+        .eq(ownerColumn, userData.user.id)
+        .eq("title", title)
+        .in("status", ["draft", "submitted", "pending", "approved", "published"])
+        .limit(1);
+      if (existingError) {
+        throw existingError;
+      }
+      if (existing?.length) {
+        throw new Error("This item was already submitted. Please wait for review or edit the existing one.");
+      }
+    }
+  }
+
   const { error } = await supabase.from(table).insert(ownedPayload);
   if (error) {
+    if (error.code === "23505") {
+      throw new Error("This item was already submitted. Please wait for review or edit the existing one.");
+    }
     if (error.code === "42P01" || error.message.toLowerCase().includes("could not find the table")) {
       throw new Error(`Supabase table "${table}" does not exist yet. Run supabase/schema.sql in the Supabase SQL Editor.`);
     }

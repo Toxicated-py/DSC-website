@@ -1428,6 +1428,8 @@ function EventProposalPage() {
     };
   });
   const [status, setStatus] = useState("");
+  const [submittingProject, setSubmittingProject] = useState(false);
+  const [submittingProposal, setSubmittingProposal] = useState(false);
 
   const updateField = (field: string, value: string) => {
     const next = { ...form, [field]: value };
@@ -1437,6 +1439,7 @@ function EventProposalPage() {
 
   const submitProposal = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (submittingProposal) return;
     if (!requireLoginForAction(navigate, "/events/propose")) return;
     if (!form.title.trim() || !form.summary.trim() || !form.host.trim()) {
       setStatus("Title, host, and summary are required before submitting.");
@@ -1452,6 +1455,7 @@ function EventProposalPage() {
       return;
     }
     try {
+      setSubmittingProposal(true);
       const result = await submitEventProposal({
         title: form.title,
         event_type: form.type,
@@ -1470,6 +1474,8 @@ function EventProposalPage() {
       setStatus(`Event proposal submitted. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not submit proposal.");
+    } finally {
+      setSubmittingProposal(false);
     }
   };
 
@@ -1548,7 +1554,9 @@ function EventProposalPage() {
           )}
 
           <div className="flex flex-col gap-3">
-            <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full">Submit Proposal</BrutalButton>
+            <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full" disabled={submittingProposal}>
+              {submittingProposal ? "Submitting..." : "Submit Proposal"}
+            </BrutalButton>
             <BrutalButton
               type="button"
               color="bg-white"
@@ -1791,12 +1799,14 @@ function ProjectSubmissionPage() {
 
   const submitProjectForm = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingProject) return;
     if (!requireLoginForAction(navigate, "/projects/submit")) return;
     if (!form.title.trim() || !form.summary.trim()) {
       setStatus("Add a title and short summary before submitting.");
       return;
     }
     try {
+      setSubmittingProject(true);
       const result = await submitProject({
         title: form.title,
         category: form.category,
@@ -1810,6 +1820,8 @@ function ProjectSubmissionPage() {
       setStatus(`Project submitted for review. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not submit project.");
+    } finally {
+      setSubmittingProject(false);
     }
   };
 
@@ -1855,7 +1867,9 @@ function ProjectSubmissionPage() {
           )}
 
           <div className="flex flex-col gap-3">
-            <BrutalButton type="submit" color="bg-[#FB7185]" text="text-white" className="w-full">Submit for Review</BrutalButton>
+            <BrutalButton type="submit" color="bg-[#FB7185]" text="text-white" className="w-full" disabled={submittingProject}>
+              {submittingProject ? "Submitting..." : "Submit for Review"}
+            </BrutalButton>
             <BrutalButton
               type="button"
               color="bg-white"
@@ -2073,6 +2087,7 @@ function BlogEditorPage() {
   });
   const [preview, setPreview] = useState(false);
   const [status, setStatus] = useState("");
+  const [publishingPost, setPublishingPost] = useState(false);
 
   const updateField = (field: string, value: string) => {
     const next = { ...form, [field]: value };
@@ -2082,12 +2097,14 @@ function BlogEditorPage() {
 
   const publishPostForm = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (publishingPost) return;
     if (!requireLoginForAction(navigate, "/blog/write")) return;
     if (!form.title.trim() || !form.summary.trim() || !form.content.trim()) {
       setStatus("Title, summary, and content are required before publishing.");
       return;
     }
     try {
+      setPublishingPost(true);
       const result = await publishBlogPost({
         title: form.title,
         summary: form.summary,
@@ -2100,6 +2117,8 @@ function BlogEditorPage() {
       setStatus(`Post published. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not publish post.");
+    } finally {
+      setPublishingPost(false);
     }
   };
 
@@ -2157,7 +2176,9 @@ function BlogEditorPage() {
           )}
 
           <div className="flex flex-col gap-3">
-            <BrutalButton type="submit" color="bg-[#171717]" text="text-white" className="w-full">Publish Post</BrutalButton>
+            <BrutalButton type="submit" color="bg-[#171717]" text="text-white" className="w-full" disabled={publishingPost}>
+              {publishingPost ? "Publishing..." : "Publish Post"}
+            </BrutalButton>
             <BrutalButton
               type="button"
               color="bg-white"

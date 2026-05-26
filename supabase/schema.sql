@@ -393,6 +393,22 @@ create index if not exists partner_submissions_submitted_by_idx on public.partne
 create index if not exists partner_submissions_reviewed_by_idx on public.partner_submissions(reviewed_by);
 create index if not exists learning_materials_created_by_idx on public.learning_materials(created_by);
 
+create unique index if not exists event_proposals_unique_active_user_title
+  on public.event_proposals(proposed_by, lower(title))
+  where status in ('draft', 'submitted', 'pending', 'approved', 'published');
+
+create unique index if not exists projects_unique_active_author_title
+  on public.projects(author_id, lower(title))
+  where status in ('draft', 'submitted', 'pending', 'approved', 'published');
+
+create unique index if not exists blog_posts_unique_active_author_title
+  on public.blog_posts(author_id, lower(title))
+  where status in ('draft', 'submitted', 'pending', 'approved', 'published');
+
+create unique index if not exists gallery_submissions_unique_active_user_image
+  on public.gallery_submissions(submitted_by, lower(image_url))
+  where status in ('submitted', 'pending', 'approved', 'published');
+
 create policy "Public can read published events" on public.events
   for select using (status in ('approved', 'published'));
 

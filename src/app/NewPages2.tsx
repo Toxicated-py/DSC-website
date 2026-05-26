@@ -72,6 +72,7 @@ export function GalleryPage() {
   const [submittedPhotos, setSubmittedPhotos] = useState<any[]>([]);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
+  const [submittingGallery, setSubmittingGallery] = useState(false);
   const [galleryForm, setGalleryForm] = useState({
     title: "",
     imageUrl: "",
@@ -164,6 +165,7 @@ export function GalleryPage() {
 
   const submitGalleryPhoto = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (submittingGallery) return;
     setSubmitStatus("");
     if (!isSupabaseConfigured || !supabase) {
       setSubmitStatus("Submissions are unavailable right now.");
@@ -172,6 +174,24 @@ export function GalleryPage() {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
       navigate("/login?redirect=/gallery");
+      return;
+    }
+    setSubmittingGallery(true);
+    const { data: existing, error: existingError } = await supabase
+      .from("gallery_submissions")
+      .select("id")
+      .eq("submitted_by", userData.user.id)
+      .eq("image_url", galleryForm.imageUrl.trim())
+      .in("status", ["pending", "approved", "published"])
+      .limit(1);
+    if (existingError) {
+      setSubmitStatus(existingError.message);
+      setSubmittingGallery(false);
+      return;
+    }
+    if (existing?.length) {
+      setSubmitStatus("This photo was already submitted.");
+      setSubmittingGallery(false);
       return;
     }
     const { error } = await supabase.from("gallery_submissions").insert({
@@ -183,11 +203,13 @@ export function GalleryPage() {
     });
     if (error) {
       setSubmitStatus(error.message);
+      setSubmittingGallery(false);
       return;
     }
     setGalleryForm({ title: "", imageUrl: "", eventName: "" });
     setSubmitStatus("Photo submitted for admin approval.");
     setShowSubmitForm(false);
+    setSubmittingGallery(false);
   };
 
   return (
@@ -285,8 +307,8 @@ export function GalleryPage() {
               onChange={(event: any) => setGalleryForm({ ...galleryForm, eventName: event.target.value })}
               placeholder="Workshop, Hackathon, Community"
             />
-            <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full">
-              Submit for Review
+            <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full" disabled={submittingGallery}>
+              {submittingGallery ? "Submitting..." : "Submit for Review"}
             </BrutalButton>
           </form>
         )}
