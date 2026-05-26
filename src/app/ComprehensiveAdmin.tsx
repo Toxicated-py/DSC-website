@@ -171,6 +171,7 @@ export function ComprehensiveAdminPanel() {
   const [editingProjectId, setEditingProjectId] = useState("");
   const [editingBlogId, setEditingBlogId] = useState("");
   const [editingPartnerId, setEditingPartnerId] = useState("");
+  const [reviewPreview, setReviewPreview] = useState<any>(null);
 
   const [users, setUsers] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -930,6 +931,17 @@ export function ComprehensiveAdminPanel() {
     setAdminStatus("Partner deleted.");
   };
 
+  const openReviewPreview = (title: string, rows: Array<{ label: string; value: any }>, imageUrl?: string) => {
+    setReviewPreview({
+      title,
+      imageUrl,
+      rows: rows.map((row) => ({
+        label: row.label,
+        value: Array.isArray(row.value) ? row.value.join(", ") : (row.value || "Not provided"),
+      })),
+    });
+  };
+
   const addLearningMaterial = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!isSupabaseConfigured || !supabase) return;
@@ -1524,6 +1536,22 @@ export function ComprehensiveAdminPanel() {
                       </div>
                       <div className="flex gap-2 flex-wrap">
                         <button
+                          onClick={() => openReviewPreview("Event Proposal", [
+                            { label: "Title", value: proposal.title },
+                            { label: "Type", value: proposal.event_type },
+                            { label: "Proposer", value: proposal.proposer },
+                            { label: "Submitted", value: proposal.submittedDate },
+                            { label: "Date", value: proposal.proposed_date },
+                            { label: "Venue", value: proposal.venue },
+                            { label: "Capacity", value: proposal.capacity },
+                            { label: "Coordinators", value: proposal.coordinator_emails },
+                            { label: "Summary", value: proposal.summary },
+                          ])}
+                          className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
+                        >
+                          View
+                        </button>
+                        <button
                           onClick={() => createEventFromProposal(proposal)}
                           className="px-3 py-2 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs"
                         >
@@ -1671,6 +1699,22 @@ export function ComprehensiveAdminPanel() {
                     </BrutalBadge>
                     <div className="flex gap-2">
                       <button
+                        onClick={() => openReviewPreview("Project Submission", [
+                          { label: "Title", value: project.title },
+                          { label: "Author", value: project.author },
+                          { label: "Submitted", value: project.submittedDate },
+                          { label: "Category", value: project.category },
+                          { label: "Team", value: project.team },
+                          { label: "Technologies", value: project.tags },
+                          { label: "Summary", value: project.summary },
+                          { label: "Content", value: project.content },
+                          { label: "Status", value: project.status },
+                        ], project.thumbnail_url)}
+                        className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
+                      >
+                        View
+                      </button>
+                      <button
                         onClick={() => openProjectModal(project)}
                         className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
                       >
@@ -1759,6 +1803,20 @@ export function ComprehensiveAdminPanel() {
                         <BrutalBadge color={post.status === "published" ? "bg-green-500" : "bg-[#FFE800]"} text={post.status === "published" ? "text-white" : "text-[#171717]"}>
                           {post.status}
                         </BrutalBadge>
+                        <button
+                          onClick={() => openReviewPreview("Blog Post", [
+                            { label: "Title", value: post.title },
+                            { label: "Author", value: post.author },
+                            { label: "Published Date", value: post.publishedDate },
+                            { label: "Tags", value: post.tags },
+                            { label: "Summary", value: post.summary },
+                            { label: "Content", value: post.content },
+                            { label: "Status", value: post.status },
+                          ], post.cover_image_url)}
+                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs"
+                        >
+                          View
+                        </button>
                         <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
                         {post.status !== "published" && (
                           <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Publish</button>
@@ -1824,6 +1882,18 @@ export function ComprehensiveAdminPanel() {
                     <h3 className="font-bold uppercase">{item.title}</h3>
                     <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => openReviewPreview("Gallery Submission", [
+                          { label: "Title", value: item.title },
+                          { label: "Event", value: item.event_name },
+                          { label: "Status", value: item.status },
+                          { label: "Submitted", value: item.created_at ? new Date(item.created_at).toLocaleString() : "" },
+                          { label: "Image URL", value: item.image_url },
+                        ], item.image_url)}
+                        className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs"
+                      >
+                        View
+                      </button>
                       <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Approve</button>
                       <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Reject</button>
                     </div>
@@ -2229,6 +2299,38 @@ export function ComprehensiveAdminPanel() {
 
       {/* ─── MODALS ──────────────────────────────────────────────────────────── */}
       
+      {reviewPreview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <BrutalCard className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>{reviewPreview.title}</h2>
+              <button onClick={() => setReviewPreview(null)} className="p-2 hover:bg-slate-100 transition-all">
+                <X size={20} />
+              </button>
+            </div>
+            {reviewPreview.imageUrl && (
+              <div className="mb-6 border-2 border-[#171717] bg-slate-100 overflow-hidden">
+                <img src={reviewPreview.imageUrl} alt={reviewPreview.title} className="w-full max-h-80 object-cover" />
+              </div>
+            )}
+            <div className="space-y-3">
+              {reviewPreview.rows.map((row: any) => (
+                <div key={row.label} className="border-2 border-[#171717] bg-white p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{row.label}</p>
+                  <p className="text-sm whitespace-pre-wrap break-words">{row.value}</p>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setReviewPreview(null)}
+              className="mt-6 w-full px-6 py-3 border-2 border-[#171717] bg-[#171717] text-white hover:bg-black transition-all font-bold uppercase tracking-widest"
+            >
+              Close
+            </button>
+          </BrutalCard>
+        </div>
+      )}
+
       {/* User Modal */}
       {showUserModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
