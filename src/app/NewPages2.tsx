@@ -327,6 +327,7 @@ export function UserProfilePage() {
   const [saveStatus, setSaveStatus] = useState("");
   const [newSkill, setNewSkill] = useState("");
   const [designationOptions, setDesignationOptions] = useState<string[]>([]);
+  const [submissions, setSubmissions] = useState<any[]>([]);
   const [profile, setProfile] = useState({
     name: "Member",
     email: "",
@@ -377,6 +378,34 @@ export function UserProfilePage() {
         .order("sort_order", { ascending: true })
         .order("label", { ascending: true });
 
+      const [projectRows, blogRows, proposalRows, galleryRows, certificateRows] = await Promise.all([
+        supabase
+          .from("projects")
+          .select("id,title,status,submitted_at,published_at")
+          .eq("author_id", userData.user.id)
+          .order("submitted_at", { ascending: false }),
+        supabase
+          .from("blog_posts")
+          .select("id,title,status,published_at")
+          .eq("author_id", userData.user.id)
+          .order("published_at", { ascending: false }),
+        supabase
+          .from("event_proposals")
+          .select("id,title,status,submitted_at")
+          .eq("proposed_by", userData.user.id)
+          .order("submitted_at", { ascending: false }),
+        supabase
+          .from("gallery_submissions")
+          .select("id,title,status,created_at")
+          .eq("submitted_by", userData.user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("certificates")
+          .select("id,title,status,created_at")
+          .eq("recipient_id", userData.user.id)
+          .order("created_at", { ascending: false }),
+      ]);
+
       if (!mounted) return;
       const optionLabels = (options || []).map((option) => option.label);
       if (data?.designation && !optionLabels.includes(data.designation)) {
@@ -397,6 +426,13 @@ export function UserProfilePage() {
         linkedin: data?.linkedin_username || "",
         skills: data?.skills?.length ? data.skills : current.skills,
       }));
+      setSubmissions([
+        ...(projectRows.data || []).map((item) => ({ ...item, type: "Project", date: item.submitted_at || item.published_at })),
+        ...(blogRows.data || []).map((item) => ({ ...item, type: "Blog", date: item.published_at })),
+        ...(proposalRows.data || []).map((item) => ({ ...item, type: "Event Proposal", date: item.submitted_at })),
+        ...(galleryRows.data || []).map((item) => ({ ...item, type: "Gallery", date: item.created_at })),
+        ...(certificateRows.data || []).map((item) => ({ ...item, type: "Certificate", date: item.created_at })),
+      ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
       setLoadingProfile(false);
     }
 
@@ -459,16 +495,16 @@ export function UserProfilePage() {
 
   const stats = {
     eventsAttended: 12,
-    projectsSubmitted: 5,
-    certificatesEarned: 8,
+    projectsSubmitted: submissions.filter((item) => item.type === "Project").length,
+    certificatesEarned: submissions.filter((item) => item.type === "Certificate" && ["approved", "published"].includes(item.status)).length,
     memberSince: "September 2023"
   };
 
-  const recentActivity = [
-    { type: "event", title: "Attended ML Workshop", date: "2 days ago" },
-    { type: "project", title: "Submitted Stock Predictor", date: "1 week ago" },
-    { type: "certificate", title: "Earned Python Certificate", date: "2 weeks ago" },
-  ];
+  const statusColor = (status: string) => {
+    if (status === "published" || status === "approved") return "bg-green-500";
+    if (status === "rejected" || status === "archived") return "bg-[#FB7185]";
+    return "bg-[#FFE800]";
+  };
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto">
@@ -680,6 +716,33 @@ export function UserProfilePage() {
                 >
                   <Linkedin size={14} /> LinkedIn
                 </a>
+              </div>
+            )}
+          </BrutalCard>
+
+          <BrutalCard>
+            <h3 className="text-2xl uppercase mb-4" style={fonts.display}>My Submissions</h3>
+            {submissions.length === 0 ? (
+              <p className="text-sm text-slate-500 font-mono">No submissions yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {submissions.map((item) => (
+                  <div key={`${item.type}-${item.id}`} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">{item.type}</p>
+                      <h4 className="font-bold uppercase">{item.title}</h4>
+                      <p className="text-xs font-mono text-slate-500">
+                        {item.date ? new Date(item.date).toLocaleDateString() : "Date pending"}
+                      </p>
+                    </div>
+                    <BrutalBadge
+                      color={statusColor(item.status)}
+                      text={item.status === "pending" || item.status === "submitted" || item.status === "draft" ? "text-[#171717]" : "text-white"}
+                    >
+                      {item.status}
+                    </BrutalBadge>
+                  </div>
+                ))}
               </div>
             )}
           </BrutalCard>

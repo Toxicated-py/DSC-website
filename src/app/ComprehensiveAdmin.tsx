@@ -949,10 +949,11 @@ export function ComprehensiveAdminPanel() {
     setAdminStatus("Partner deleted.");
   };
 
-  const openReviewPreview = (title: string, rows: Array<{ label: string; value: any }>, imageUrl?: string) => {
+  const openReviewPreview = (title: string, rows: Array<{ label: string; value: any }>, imageUrl?: string, preview?: any) => {
     setReviewPreview({
       title,
       imageUrl,
+      preview,
       rows: rows.map((row) => ({
         label: row.label,
         value: Array.isArray(row.value) ? row.value.join(", ") : (row.value || "Not provided"),
@@ -1564,7 +1565,15 @@ export function ComprehensiveAdminPanel() {
                             { label: "Capacity", value: proposal.capacity },
                             { label: "Coordinators", value: proposal.coordinator_emails },
                             { label: "Summary", value: proposal.summary },
-                          ])}
+                          ], undefined, {
+                            kind: "event",
+                            title: proposal.title,
+                            category: proposal.event_type,
+                            summary: proposal.summary,
+                            date: proposal.proposed_date || "Date TBD",
+                            location: proposal.venue || "Venue TBD",
+                            capacity: proposal.capacity || "Capacity TBD",
+                          })}
                           className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
                         >
                           View
@@ -1728,7 +1737,15 @@ export function ComprehensiveAdminPanel() {
                           { label: "Summary", value: project.summary },
                           { label: "Content", value: project.content },
                           { label: "Status", value: project.status },
-                        ], project.thumbnail_url)}
+                        ], project.thumbnail_url, {
+                          kind: "project",
+                          title: project.title,
+                          category: project.category,
+                          summary: project.summary,
+                          author: project.author,
+                          tags: project.tags,
+                          imageUrl: project.thumbnail_url,
+                        })}
                         className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
                       >
                         View
@@ -1836,7 +1853,15 @@ export function ComprehensiveAdminPanel() {
                             { label: "Summary", value: post.summary },
                             { label: "Content", value: post.content },
                             { label: "Status", value: post.status },
-                          ], post.cover_image_url)}
+                          ], post.cover_image_url, {
+                            kind: "blog",
+                            title: post.title,
+                            summary: post.summary,
+                            author: post.author,
+                            tags: post.tags,
+                            imageUrl: post.cover_image_url,
+                            content: post.content,
+                          })}
                           className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs"
                         >
                           View
@@ -1913,7 +1938,13 @@ export function ComprehensiveAdminPanel() {
                           { label: "Status", value: item.status },
                           { label: "Submitted", value: item.created_at ? new Date(item.created_at).toLocaleString() : "" },
                           { label: "Image URL", value: item.image_url },
-                        ], item.image_url)}
+                        ], item.image_url, {
+                          kind: "gallery",
+                          title: item.title,
+                          event: item.event_name || "Community",
+                          imageUrl: item.image_url,
+                          date: item.created_at ? new Date(item.created_at).toLocaleDateString() : "",
+                        })}
                         className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs"
                       >
                         View
@@ -2332,9 +2363,56 @@ export function ComprehensiveAdminPanel() {
                 <X size={20} />
               </button>
             </div>
-            {reviewPreview.imageUrl && (
-              <div className="mb-6 border-2 border-[#171717] bg-slate-100 overflow-hidden">
-                <img src={reviewPreview.imageUrl} alt={reviewPreview.title} className="w-full max-h-80 object-cover" />
+            {reviewPreview.preview && (
+              <div className="mb-6">
+                {reviewPreview.preview.kind === "event" && (
+                  <div className="border-2 border-[#171717] bg-[#F4EFEB] p-6 brutal-shadow">
+                    <BrutalBadge color="bg-[#2563EB]" className="mb-4">{reviewPreview.preview.category}</BrutalBadge>
+                    <h3 className="text-4xl uppercase leading-tight mb-3" style={fonts.display}>{reviewPreview.preview.title}</h3>
+                    <p className="text-slate-700 mb-5">{reviewPreview.preview.summary}</p>
+                    <div className="grid sm:grid-cols-3 gap-3 text-xs font-mono">
+                      <div className="border-2 border-[#171717] bg-white p-3">Date<br /><b>{reviewPreview.preview.date}</b></div>
+                      <div className="border-2 border-[#171717] bg-white p-3">Venue<br /><b>{reviewPreview.preview.location}</b></div>
+                      <div className="border-2 border-[#171717] bg-white p-3">Capacity<br /><b>{reviewPreview.preview.capacity}</b></div>
+                    </div>
+                  </div>
+                )}
+                {reviewPreview.preview.kind === "project" && (
+                  <div className="border-2 border-[#171717] bg-white overflow-hidden brutal-shadow">
+                    {reviewPreview.preview.imageUrl && <img src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-56 object-cover border-b-2 border-[#171717]" />}
+                    <div className="p-6">
+                      <BrutalBadge color="bg-[#FB7185]" className="mb-3">{reviewPreview.preview.category}</BrutalBadge>
+                      <h3 className="text-4xl uppercase leading-tight mb-2" style={fonts.display}>{reviewPreview.preview.title}</h3>
+                      <p className="text-xs font-mono text-slate-500 mb-4">By {reviewPreview.preview.author}</p>
+                      <p className="text-slate-700 mb-4">{reviewPreview.preview.summary}</p>
+                      <div className="flex gap-2 flex-wrap">{(reviewPreview.preview.tags || []).map((tag: string) => <BrutalBadge key={tag} color="bg-[#2563EB]">{tag}</BrutalBadge>)}</div>
+                    </div>
+                  </div>
+                )}
+                {reviewPreview.preview.kind === "blog" && (
+                  <article className="border-2 border-[#171717] bg-white overflow-hidden brutal-shadow">
+                    {reviewPreview.preview.imageUrl && <img src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-56 object-cover border-b-2 border-[#171717]" />}
+                    <div className="p-6">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#7C3AED] mb-3">{(reviewPreview.preview.tags || []).join(" / ") || "Blog"}</p>
+                      <h3 className="text-4xl uppercase leading-tight mb-3" style={fonts.display}>{reviewPreview.preview.title}</h3>
+                      <p className="text-xs font-mono text-slate-500 mb-4">By {reviewPreview.preview.author}</p>
+                      <p className="text-lg text-slate-700 mb-5">{reviewPreview.preview.summary}</p>
+                      <pre className="whitespace-pre-wrap border-2 border-[#171717] bg-[#F4EFEB] p-4 text-xs font-mono max-h-72 overflow-auto">{reviewPreview.preview.content}</pre>
+                    </div>
+                  </article>
+                )}
+                {reviewPreview.preview.kind === "gallery" && (
+                  <div className="border-2 border-[#171717] bg-white overflow-hidden brutal-shadow">
+                    <img src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-80 object-cover border-b-2 border-[#171717]" />
+                    <div className="p-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <BrutalBadge color="bg-[#2563EB]">{reviewPreview.preview.event}</BrutalBadge>
+                        <span className="text-xs font-mono text-slate-500">{reviewPreview.preview.date}</span>
+                      </div>
+                      <h3 className="text-3xl uppercase" style={fonts.display}>{reviewPreview.preview.title}</h3>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <div className="space-y-3">
