@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Image, User, Edit, Save, Trophy, Star, Award, Target, Heart,
   Calendar, MapPin, Mail, Github, Linkedin, ExternalLink, Zap,
-  TrendingUp, Users, Code, BookOpen, Shield, Crown, GraduationCap, UserCheck
+  TrendingUp, Users, Code, BookOpen, Shield, Crown, GraduationCap, UserCheck, Handshake
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
@@ -79,57 +79,6 @@ export function GalleryPage() {
     eventName: "",
   });
 
-  const fallbackPhotos = [
-    {
-      id: 1,
-      url: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&h=600&fit=crop",
-      title: "ML Workshop 2024",
-      event: "Workshop",
-      date: "March 2024",
-      likes: 45
-    },
-    {
-      id: 2,
-      url: "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&h=600&fit=crop",
-      title: "Hackathon Finals",
-      event: "Competition",
-      date: "February 2024",
-      likes: 78
-    },
-    {
-      id: 3,
-      url: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=600&fit=crop",
-      title: "Data Viz Presentation",
-      event: "Talk",
-      date: "January 2024",
-      likes: 32
-    },
-    {
-      id: 4,
-      url: "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=800&h=600&fit=crop",
-      title: "Team Building",
-      event: "Social",
-      date: "December 2023",
-      likes: 56
-    },
-    {
-      id: 5,
-      url: "https://images.unsplash.com/photo-1591115765373-5207764f72e7?w=800&h=600&fit=crop",
-      title: "Python Bootcamp",
-      event: "Workshop",
-      date: "November 2023",
-      likes: 41
-    },
-    {
-      id: 6,
-      url: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&h=600&fit=crop",
-      title: "Guest Lecture",
-      event: "Talk",
-      date: "October 2023",
-      likes: 29
-    },
-  ];
-
   useEffect(() => {
     let mounted = true;
 
@@ -157,7 +106,7 @@ export function GalleryPage() {
     };
   }, []);
 
-  const photos = submittedPhotos.length ? submittedPhotos : fallbackPhotos;
+  const photos = submittedPhotos;
   const filters = ["all", ...Array.from(new Set(photos.map((photo) => photo.event.toLowerCase())))];
   const filteredPhotos = selectedFilter === "all"
     ? photos
@@ -245,6 +194,12 @@ export function GalleryPage() {
       </div>
 
       {/* Photo Grid */}
+      {filteredPhotos.length === 0 ? (
+        <div className="text-center py-20 border-2 border-dashed border-[#171717] bg-white">
+          <p className="text-2xl font-bold uppercase tracking-widest text-slate-400" style={fonts.display}>No photos yet</p>
+          <p className="text-sm font-mono text-slate-400 mt-2">Approved gallery submissions will appear here.</p>
+        </div>
+      ) : (
       <div className="grid md:grid-cols-3 gap-6">
         {filteredPhotos.map((photo) => (
           <BrutalCard key={photo.id} className="p-0 overflow-hidden group cursor-pointer">
@@ -274,6 +229,7 @@ export function GalleryPage() {
           </BrutalCard>
         ))}
       </div>
+      )}
 
       {/* Upload CTA */}
       <BrutalCard color="bg-[#FFE800]" className="mt-12 text-center">
@@ -494,11 +450,15 @@ export function UserProfilePage() {
   };
 
   const stats = {
-    eventsAttended: 12,
+    eventsAttended: 0,
     projectsSubmitted: submissions.filter((item) => item.type === "Project").length,
     certificatesEarned: submissions.filter((item) => item.type === "Certificate" && ["approved", "published"].includes(item.status)).length,
-    memberSince: "September 2023"
+    memberSince: "New member"
   };
+  const recentActivity = submissions.slice(0, 4).map((item) => ({
+    title: `${item.type}: ${item.title}`,
+    date: item.date ? new Date(item.date).toLocaleDateString() : "Date pending",
+  }));
 
   const statusColor = (status: string) => {
     if (status === "published" || status === "approved") return "bg-green-500";
@@ -776,27 +736,16 @@ export function UserProfilePage() {
           {/* Badges/Achievements */}
           <BrutalCard color="bg-[#FFE800]">
             <h3 className="text-xl uppercase mb-4" style={fonts.display}>Badges</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-[#FB7185] border-2 border-[#171717] mx-auto mb-2 flex items-center justify-center">
-                  <Trophy size={24} className="text-white" />
-                </div>
-                <p className="text-[8px] font-bold uppercase">Top Contributor</p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-[#7C3AED] border-2 border-[#171717] mx-auto mb-2 flex items-center justify-center">
-                  <Star size={24} className="text-white" />
-                </div>
-                <p className="text-[8px] font-bold uppercase">Event Master</p>
-              </div>
-            </div>
+            <p className="text-sm font-mono text-[#171717]/70">Verified badges will appear here when issued.</p>
           </BrutalCard>
 
           {/* Recent Activity */}
           <BrutalCard>
             <h3 className="text-xl uppercase mb-4" style={fonts.display}>Activity</h3>
             <div className="space-y-3">
-              {recentActivity.map((activity, idx) => (
+              {recentActivity.length === 0 ? (
+                <p className="text-sm font-mono text-slate-500">No recent activity yet.</p>
+              ) : recentActivity.map((activity, idx) => (
                 <div key={idx} className="pb-3 border-b border-slate-200 last:border-0">
                   <p className="text-sm font-bold">{activity.title}</p>
                   <p className="text-xs text-slate-400 font-mono">{activity.date}</p>
@@ -813,51 +762,6 @@ export function UserProfilePage() {
 // ─── 7. ACHIEVEMENTS PAGE ──────────────────────────────────────────────────────
 
 export function AchievementsPage() {
-  const achievements = [
-    {
-      year: "2024",
-      title: "Hackathon Champions",
-      description: "Our team won 1st place at the National Data Science Hackathon",
-      icon: <Trophy size={32} />,
-      color: "bg-[#FFE800]"
-    },
-    {
-      year: "2024",
-      title: "100+ Members Milestone",
-      description: "Reached over 100 active members in our community",
-      icon: <Users size={32} />,
-      color: "bg-[#2563EB]"
-    },
-    {
-      year: "2023",
-      title: "Best Student Club Award",
-      description: "Recognized as the most impactful student organization at TU",
-      icon: <Award size={32} />,
-      color: "bg-[#FB7185]"
-    },
-    {
-      year: "2023",
-      title: "20+ Workshops Conducted",
-      description: "Successfully organized and conducted 20+ technical workshops",
-      icon: <Target size={32} />,
-      color: "bg-[#7C3AED]"
-    },
-    {
-      year: "2023",
-      title: "Partnership with Industry Leaders",
-      description: "Established partnerships with leading tech companies",
-      icon: <Zap size={32} />,
-      color: "bg-[#FFE800]"
-    },
-    {
-      year: "2022",
-      title: "Club Founded",
-      description: "Data Science Club officially established at SMS TU",
-      icon: <Star size={32} />,
-      color: "bg-[#2563EB]"
-    },
-  ];
-
   return (
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto">
       {/* Header */}
@@ -873,43 +777,20 @@ export function AchievementsPage() {
         </p>
       </div>
 
-      {/* Timeline */}
-      <div className="relative">
-        {/* Vertical Line */}
-        <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-1 bg-[#171717] hidden md:block" />
-
-        {achievements.map((achievement, idx) => (
-          <div key={idx} className="mb-12 md:mb-16 relative">
-            <div className={`md:flex md:items-center ${idx % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}`}>
-              {/* Content */}
-              <div className={`md:w-1/2 ${idx % 2 === 0 ? 'md:pr-12' : 'md:pl-12'}`}>
-                <BrutalCard color={achievement.color} className={idx % 2 === 0 ? '' : 'text-white'}>
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className={`p-3 ${idx % 2 === 0 ? 'bg-[#171717] text-white' : 'bg-white text-[#171717]'} border-2 border-[#171717]`}>
-                      {achievement.icon}
-                    </div>
-                    <BrutalBadge color="bg-[#171717]" text="text-white">{achievement.year}</BrutalBadge>
-                  </div>
-                  <h3 className="text-2xl font-bold uppercase mb-2" style={fonts.display}>{achievement.title}</h3>
-                  <p className={`text-sm ${idx % 2 === 0 ? 'text-slate-700' : 'opacity-90'}`}>
-                    {achievement.description}
-                  </p>
-                </BrutalCard>
-              </div>
-
-              {/* Timeline Dot */}
-              <div className="hidden md:block absolute left-1/2 -translate-x-1/2 w-6 h-6 bg-[#171717] border-4 border-[#F4EFEB]" />
-            </div>
-          </div>
-        ))}
-      </div>
+      <BrutalCard color="bg-white" className="text-center">
+        <Trophy size={48} className="mx-auto mb-4 text-[#FFE800]" />
+        <h2 className="text-3xl uppercase mb-3" style={fonts.display}>No achievements published yet</h2>
+        <p className="text-sm text-slate-600 max-w-2xl mx-auto">
+          Verified club achievements will appear here after they are added by the admin team.
+        </p>
+      </BrutalCard>
 
       {/* Future Goals */}
       <BrutalCard color="bg-[#2563EB]" className="text-white text-center mt-16">
         <Target size={48} className="mx-auto mb-4" />
         <h3 className="text-3xl uppercase mb-4" style={fonts.display}>What's Next?</h3>
         <p className="mb-6 max-w-2xl mx-auto">
-          We're aiming to host our first international data science conference, launch a mentorship program, and expand our community to 500+ members by 2025!
+          Follow our events, projects, and announcements to see what the community is building next.
         </p>
         <BrutalButton color="bg-white" text="text-[#2563EB]">
           Join Our Journey
@@ -923,34 +804,6 @@ export function AchievementsPage() {
 
 export function PartnersPage() {
   const [adminPartners, setAdminPartners] = useState<any[]>([]);
-  const fallbackPartners = [
-    {
-      name: "Bisup",
-      logo: "https://www.bisup.com/assets/img/logo.png",
-      category: "Hosting Partner",
-      description: "Providing domain and hosting services for our website",
-      website: "https://www.bisup.com",
-      featured: true
-    },
-    {
-      name: "Google Developer Groups",
-      category: "Technology Partner",
-      description: "Supporting our workshops and providing cloud credits",
-      featured: false
-    },
-    {
-      name: "Kaggle",
-      category: "Competition Partner",
-      description: "Hosting datasets and supporting our data science competitions",
-      featured: false
-    },
-    {
-      name: "Local Tech Company",
-      category: "Industry Partner",
-      description: "Providing mentorship and internship opportunities",
-      featured: false
-    },
-  ];
 
   useEffect(() => {
     let mounted = true;
@@ -979,7 +832,7 @@ export function PartnersPage() {
     };
   }, []);
 
-  const partners = adminPartners.length ? adminPartners : fallbackPartners;
+  const partners = adminPartners;
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto">
@@ -1032,6 +885,13 @@ export function PartnersPage() {
 
       {/* Other Partners */}
       <h2 className="text-3xl uppercase mb-8" style={fonts.display}>All Partners</h2>
+      {partners.length === 0 ? (
+        <BrutalCard color="bg-white" className="mb-12 text-center">
+          <Handshake size={44} className="mx-auto mb-4 text-[#7C3AED]" />
+          <h3 className="text-2xl uppercase mb-2" style={fonts.display}>No partners published yet</h3>
+          <p className="text-sm text-slate-600">Partners added by admins will appear here.</p>
+        </BrutalCard>
+      ) : (
       <div className="grid md:grid-cols-2 gap-6 mb-12">
         {partners.filter(p => !p.featured).map((partner, idx) => (
           <BrutalCard key={idx}>
@@ -1051,6 +911,7 @@ export function PartnersPage() {
           </BrutalCard>
         ))}
       </div>
+      )}
 
       {/* Become a Partner CTA */}
       <BrutalCard color="bg-[#2563EB]" className="text-white text-center">

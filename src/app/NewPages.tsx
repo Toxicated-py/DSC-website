@@ -817,19 +817,7 @@ export function ResourcesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 6;
 
-  const fallbackResources = [
-    { id: 1, title: "Python for Data Science Cheat Sheet", category: "beginner", type: "PDF", description: "Essential Python commands and libraries for data science beginners", size: "2.3 MB", downloads: 245, date: "2025-01-10" },
-    { id: 2, title: "Machine Learning Algorithms Guide", category: "intermediate", type: "PDF", description: "Comprehensive guide to ML algorithms with visual examples and code snippets", size: "5.1 MB", downloads: 189, date: "2024-12-15" },
-    { id: 3, title: "Kaggle Datasets Collection", category: "beginner", type: "Link", description: "Curated list of beginner-friendly datasets for practice and competitions", size: null, downloads: 312, date: "2024-11-20" },
-    { id: 4, title: "Deep Learning with TensorFlow", category: "advanced", type: "Video", description: "Workshop recording: Neural networks fundamentals to production deployment", size: "450 MB", downloads: 156, date: "2025-02-01" },
-    { id: 5, title: "Statistics Fundamentals", category: "beginner", type: "PDF", description: "Core statistical concepts for data analysis: probability, distributions, hypothesis testing", size: "3.2 MB", downloads: 278, date: "2024-10-05" },
-    { id: 6, title: "SQL Query Reference", category: "intermediate", type: "PDF", description: "Complete SQL reference with practical examples for data wrangling and analysis", size: "1.8 MB", downloads: 201, date: "2024-09-30" },
-    { id: 7, title: "Intro to Pandas & NumPy", category: "beginner", type: "Notebook", description: "Interactive Jupyter notebook covering dataframes, indexing, and vectorized operations", size: "8.4 MB", downloads: 334, date: "2025-01-25" },
-    { id: 8, title: "NLP Preprocessing Pipeline", category: "advanced", type: "Notebook", description: "Production-ready NLP pipeline: tokenization, stemming, BERT embeddings for Nepali text", size: "12 MB", downloads: 89, date: "2025-02-20" },
-    { id: 9, title: "Data Viz with Matplotlib & Seaborn", category: "intermediate", type: "PDF", description: "80+ chart types with code: from bar charts to violin plots and heatmaps", size: "6.7 MB", downloads: 220, date: "2024-08-12" },
-    { id: 10, title: "Scikit-learn Model Selection Guide", category: "intermediate", type: "PDF", description: "When to use which model: decision trees, SVM, neural nets, and ensemble methods", size: "4.2 MB", downloads: 167, date: "2024-07-18" },
-  ];
-  const [resources, setResources] = useState<any[]>(fallbackResources);
+  const [resources, setResources] = useState<any[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -840,8 +828,8 @@ export function ResourcesPage() {
         .select("id,title,description,resource_url,category,status,created_at")
         .in("status", ["approved", "published"])
         .order("created_at", { ascending: false });
-      if (!mounted || !data?.length) return;
-      setResources(data.map((item) => ({
+      if (!mounted) return;
+      setResources((data || []).map((item) => ({
         id: item.id,
         title: item.title,
         category: item.category?.toLowerCase() || "beginner",
@@ -977,7 +965,7 @@ export function ResourcesPage() {
       {paginated.length === 0 ? (
         <div className="text-center py-24 border-2 border-dashed border-[#171717]">
           <p className="text-2xl font-bold uppercase tracking-widest text-slate-400" style={fonts.display}>No resources found</p>
-          <p className="text-sm font-mono text-slate-400 mt-2">Try adjusting your filters</p>
+          <p className="text-sm font-mono text-slate-400 mt-2">Admin-added learning materials will appear here.</p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-6">

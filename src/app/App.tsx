@@ -675,11 +675,7 @@ function Layout() {
 
 // ─── Pages ─────────────────────────────────────────────────────────────────────
 
-const heroEvents = [
-  { num: "24", label: "Neural Nets 101", type: "WORKSHOP", color: "bg-[#2563EB]" },
-  { num: "03", label: "Data Viz with Python", type: "SEMINAR", color: "bg-[#FB7185]" },
-  { num: "15", label: "ML Hackathon", type: "COMPETITION", color: "bg-[#171717]", hot: true },
-  { num: "08", label: "Open Data Day", type: "COMMUNITY", color: "bg-[#7C3AED]" },
+const heroEvents: any[] = [
 ];
 
 function HomePage() {
@@ -736,8 +732,8 @@ function HomePage() {
                   <Check size={14} className="text-[#171717]" strokeWidth={3} />
                 </div>
               </div>
-              <p className="text-white font-bold text-lg leading-none" style={fonts.display}>YOU'RE IN</p>
-              <p className="text-white/70 text-xs font-mono mt-1">Batch '25 — BDS Program</p>
+              <p className="text-white font-bold text-lg leading-none" style={fonts.display}>COMMUNITY</p>
+              <p className="text-white/70 text-xs font-mono mt-1">Members, organizers, and builders</p>
             </div>
 
             {/* Upcoming event card */}
@@ -745,23 +741,23 @@ function HomePage() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400" style={fonts.sans}>Next Up</span>
               <div className="mt-2 flex items-end justify-between">
                 <div>
-                  <p className="text-4xl font-bold text-[#2563EB] leading-none" style={fonts.display}>24</p>
-                  <p className="text-xs font-bold uppercase text-slate-500 mt-1">FEB 2025</p>
+                  <p className="text-4xl font-bold text-[#2563EB] leading-none" style={fonts.display}>--</p>
+                  <p className="text-xs font-bold uppercase text-slate-500 mt-1">No event yet</p>
                 </div>
-                <BrutalBadge color="bg-[#2563EB]">Workshop</BrutalBadge>
+                <BrutalBadge color="bg-[#2563EB]">Event</BrutalBadge>
               </div>
-              <p className="text-sm font-bold mt-3 text-[#171717] uppercase" style={fonts.display}>Neural Nets 101</p>
+              <p className="text-sm font-bold mt-3 text-[#171717] uppercase" style={fonts.display}>Approved events will appear here</p>
               <div className="flex items-center gap-1 text-xs font-mono text-slate-400 mt-1">
-                <Users size={12} /> 4/50 spots filled
+                <Users size={12} /> Club event
               </div>
             </div>
 
             {/* Projects teaser */}
             <div className="bg-[#7C3AED] border-2 border-[#171717] p-5 brutal-shadow rotate-1">
               <span className="text-[10px] font-bold uppercase tracking-widest text-white/70" style={fonts.sans}>Projects</span>
-              <p className="text-white font-bold text-xl leading-tight mt-2" style={fonts.display}>KATHMANDU TRAFFIC CV</p>
+              <p className="text-white font-bold text-xl leading-tight mt-2" style={fonts.display}>PUBLISHED PROJECTS</p>
               <div className="flex gap-2 mt-3 flex-wrap">
-                {["OpenCV","YOLO","Python"].map(t => (
+                {["Admin approved"].map(t => (
                   <span key={t} className="px-2 py-0.5 bg-white/20 text-white text-[10px] font-bold uppercase border border-white/30">{t}</span>
                 ))}
               </div>
@@ -811,24 +807,24 @@ function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-0 border-2 border-[#171717]">
             <div className="p-8 border-b-2 md:border-b-0 md:border-r-2 border-[#171717] bg-white">
-              <p className="text-4xl font-bold text-[#2563EB] mb-2" style={fonts.display}>120+</p>
+              <p className="text-4xl font-bold text-[#2563EB] mb-2" style={fonts.display}>Live</p>
               <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4" style={fonts.sans}>Active Members</p>
               <p className="text-sm text-slate-600 leading-relaxed" style={fonts.sans}>
-                Students from every batch of the Bachelor in Data Science program at School of Mathematical Sciences, TU.
+                Members added through the connected account system will make up the active club community.
               </p>
             </div>
             <div className="p-8 border-b-2 md:border-b-0 md:border-r-2 border-[#171717] bg-[#2563EB] text-white">
-              <p className="text-4xl font-bold mb-2" style={fonts.display}>18+</p>
+              <p className="text-4xl font-bold mb-2" style={fonts.display}>Live</p>
               <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-4" style={fonts.sans}>Events Run</p>
               <p className="text-sm opacity-80 leading-relaxed" style={fonts.sans}>
-                Workshops, hackathons, seminars, and open data jams — bringing the data science community together since 2025.
+                Approved events added by admins will power the public events page and member dashboard.
               </p>
             </div>
             <div className="p-8 bg-[#F4EFEB]">
-              <p className="text-4xl font-bold text-[#FB7185] mb-2" style={fonts.display}>12+</p>
+              <p className="text-4xl font-bold text-[#FB7185] mb-2" style={fonts.display}>Live</p>
               <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4" style={fonts.sans}>Student Projects</p>
               <p className="text-sm text-slate-600 leading-relaxed" style={fonts.sans}>
-                Real-world projects built by students, from Nepali NLP models to Kathmandu traffic CV systems.
+                Published student projects will appear in the showcase after admin review.
               </p>
             </div>
           </div>
@@ -948,19 +944,48 @@ function EventsPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("date-asc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [allEvents, setAllEvents] = useState<any[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
   const ITEMS_PER_PAGE = 6;
 
-  const allEvents = [
-    { id: "1", title: "Neural Nets 101", date: "24 FEB 2025", dateSort: "2025-02-24", type: "WORKSHOP", total: 50, filled: 4, color: "bg-[#2563EB]", status: "upcoming" },
-    { id: "2", title: "Data Viz with Python", date: "03 MAR 2025", dateSort: "2025-03-03", type: "SEMINAR", total: 70, filled: 6, color: "bg-[#FB7185]", status: "upcoming" },
-    { id: "3", title: "ML Hackathon Weekend", date: "15 MAR 2025", dateSort: "2025-03-15", type: "COMPETITION", total: 12, filled: 10, color: "bg-[#171717]", hot: true, status: "upcoming" },
-    { id: "4", title: "Open Data Day", date: "20 MAR 2025", dateSort: "2025-03-20", type: "COMMUNITY", total: 100, filled: 22, color: "bg-[#7C3AED]", status: "upcoming" },
-    { id: "5", title: "NLP in Nepali Language", date: "05 APR 2025", dateSort: "2025-04-05", type: "WORKSHOP", total: 40, filled: 15, color: "bg-[#2563EB]", status: "upcoming" },
-    { id: "6", title: "SQL & Databases Bootcamp", date: "18 APR 2025", dateSort: "2025-04-18", type: "WORKSHOP", total: 40, filled: 30, color: "bg-[#FB7185]", status: "upcoming" },
-    { id: "7", title: "TensorFlow Zero to Hero", date: "10 JAN 2025", dateSort: "2025-01-10", type: "WORKSHOP", total: 50, filled: 50, color: "bg-[#2563EB]", status: "past" },
-    { id: "8", title: "Datathon 2024", date: "15 DEC 2024", dateSort: "2024-12-15", type: "COMPETITION", total: 50, filled: 48, color: "bg-[#171717]", status: "past" },
-    { id: "9", title: "Power BI for Beginners", date: "02 NOV 2024", dateSort: "2024-11-02", type: "SEMINAR", total: 60, filled: 57, color: "bg-[#7C3AED]", status: "past" },
-  ];
+  useEffect(() => {
+    let mounted = true;
+    async function loadEvents() {
+      setLoadingEvents(true);
+      if (!isSupabaseConfigured || !supabase) {
+        setAllEvents([]);
+        setLoadingEvents(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("events")
+        .select("id,title,description,event_type,start_time,capacity,status,created_at")
+        .in("status", ["approved", "published"])
+        .order("start_time", { ascending: true });
+      if (!mounted) return;
+      const colors = ["bg-[#2563EB]", "bg-[#FB7185]", "bg-[#171717]", "bg-[#7C3AED]"];
+      const today = new Date();
+      setAllEvents((data || []).map((event, index) => {
+        const start = event.start_time ? new Date(event.start_time) : new Date(event.created_at || Date.now());
+        return {
+          id: event.id,
+          title: event.title,
+          date: start.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }).toUpperCase(),
+          dateSort: start.toISOString().slice(0, 10),
+          type: (event.event_type || "EVENT").toUpperCase(),
+          total: event.capacity || 0,
+          filled: 0,
+          color: colors[index % colors.length],
+          status: start >= today ? "upcoming" : "past",
+        };
+      }));
+      setLoadingEvents(false);
+    }
+    loadEvents();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filtered = allEvents
     .filter(ev => {
@@ -1055,8 +1080,12 @@ function EventsPage() {
       {/* Events Grid */}
       {paginated.length === 0 ? (
         <div className="text-center py-24 border-2 border-dashed border-[#171717]">
-          <p className="text-2xl font-bold uppercase tracking-widest text-slate-400" style={fonts.display}>No events found</p>
-          <p className="text-sm font-mono text-slate-400 mt-2">Try adjusting your search or filters</p>
+          <p className="text-2xl font-bold uppercase tracking-widest text-slate-400" style={fonts.display}>
+            {loadingEvents ? "Loading events" : "No events found"}
+          </p>
+          <p className="text-sm font-mono text-slate-400 mt-2">
+            {loadingEvents ? "Please wait..." : "Approved events will appear here after admin review."}
+          </p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -1133,6 +1162,7 @@ function EventDetailPage() {
   const [attendees, setAttendees] = useState<any[]>([]);
   const [canManageEvent, setCanManageEvent] = useState(false);
   const [managerStatus, setManagerStatus] = useState("");
+  const [loadingEvent, setLoadingEvent] = useState(true);
 
   const isUuidEvent = Boolean(id && /^[0-9a-f-]{36}$/i.test(id));
 
@@ -1140,7 +1170,10 @@ function EventDetailPage() {
     let mounted = true;
 
     async function loadEventWorkspace() {
-      if (!isUuidEvent || !isSupabaseConfigured || !supabase || !id) return;
+      if (!isUuidEvent || !isSupabaseConfigured || !supabase || !id) {
+        setLoadingEvent(false);
+        return;
+      }
 
       const { data: userData } = await supabase.auth.getUser();
       const [{ data: eventRow }, { count }] = await Promise.all([
@@ -1155,9 +1188,14 @@ function EventDetailPage() {
           .eq("event_id", id)
           .eq("status", "registered"),
       ]);
-      if (!mounted || !eventRow) return;
+      if (!mounted) return;
+      if (!eventRow) {
+        setLoadingEvent(false);
+        return;
+      }
 
       setEventInfo({ ...eventRow, registeredCount: count || 0 });
+      setLoadingEvent(false);
 
       if (!userData.user) return;
 
@@ -1295,15 +1333,32 @@ function EventDetailPage() {
     navigate("/ticket");
   };
 
-  const displayEvent = eventInfo || {
-    title: "Neural Nets 101",
-    event_type: "WORKSHOP",
-    description: "This hands-on workshop dives deep into the fundamentals of Artificial Neural Networks. We will build a multi-layer perceptron from scratch using only NumPy, then transition into PyTorch for production-grade pipelines.",
-    start_time: null,
-    venue: "SMS Lab 3",
-    capacity: 50,
-    registeredCount: 4,
-  };
+  const displayEvent = eventInfo;
+
+  if (loadingEvent) {
+    return (
+      <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
+        <BrutalCard color="bg-white">
+          <p className="font-mono text-sm text-slate-500">Loading event...</p>
+        </BrutalCard>
+      </div>
+    );
+  }
+
+  if (!displayEvent) {
+    return (
+      <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
+        <button onClick={() => navigate("/events")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+          <ArrowLeft size={16} /> Back to Events
+        </button>
+        <BrutalCard color="bg-white">
+          <h1 className="text-4xl uppercase mb-3" style={fonts.display}>Event not found</h1>
+          <p className="text-sm text-slate-600">Only approved events are visible publicly.</p>
+        </BrutalCard>
+      </div>
+    );
+  }
+
   const startDate = displayEvent.start_time ? new Date(displayEvent.start_time) : null;
   const eventEnded = Boolean(displayEvent.end_time && new Date(displayEvent.end_time).getTime() < Date.now());
 
@@ -1333,12 +1388,6 @@ function EventDetailPage() {
         <div className="md:col-span-2 prose prose-lg text-[#171717]">
           <h2 className="uppercase font-bold tracking-widest text-xl mb-4">About The Event</h2>
           <p>{displayEvent.description || displayEvent.short_description || "Event details will be updated soon."}</p>
-          <h3 className="uppercase font-bold tracking-widest text-lg mt-8 mb-4">Prerequisites</h3>
-          <ul className="list-disc pl-5 space-y-2">
-            <li>Basic understanding of linear algebra</li>
-            <li>Python proficiency</li>
-            <li>Laptop with Jupyter environment installed</li>
-          </ul>
         </div>
         <div>
           <BrutalCard className="sticky top-32">
@@ -1563,7 +1612,7 @@ function EventProposalPage() {
               className="w-full"
               onClick={() => {
                 if (!requireLoginForAction(navigate, "/events/propose")) return;
-                setStatus("Draft saved to your account mock.");
+                setStatus("Draft saved in this browser.");
               }}
             >
               Save Draft
@@ -1581,20 +1630,56 @@ function ProjectsPage() {
   const [activeTag, setActiveTag] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
+  const [allProjects, setAllProjects] = useState<any[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
   const ITEMS_PER_PAGE = 6;
 
-  const allProjects = [
-    { id: "1", title: "EduPredict AI", tags: ["PyTorch", "XGBoost", "Python"], author: "Batch '24", year: 2024, color: "bg-[#F4EFEB]", text: "text-[#171717]", desc: "Early warning system for at-risk students using LMS activity data." },
-    { id: "2", title: "Kathmandu Traffic CV", tags: ["OpenCV", "YOLO", "Python"], author: "S. Sharma", year: 2024, color: "bg-[#2563EB]", text: "text-white", desc: "Real-time traffic density analysis using computer vision at major intersections." },
-    { id: "3", title: "Nepali Sentiment Engine", tags: ["NLP", "Transformers", "Python"], author: "Batch '25", year: 2025, color: "bg-[#FB7185]", text: "text-white", desc: "Fine-tuned multilingual BERT for Devanagari social media sentiment analysis." },
-    { id: "4", title: "SMS Dashboard", tags: ["React", "D3.js", "TypeScript"], author: "Web Team", year: 2025, color: "bg-[#FFE800]", text: "text-[#171717]", desc: "Real-time academic performance dashboard for faculty and administration." },
-    { id: "5", title: "AgroPredict Nepal", tags: ["Python", "XGBoost", "SQL"], author: "Batch '24", year: 2024, color: "bg-[#7C3AED]", text: "text-white", desc: "Crop yield prediction model using satellite data and weather patterns." },
-    { id: "6", title: "Nepali ASR System", tags: ["PyTorch", "NLP", "Python"], author: "R. Adhikari", year: 2025, color: "bg-[#171717]", text: "text-white", desc: "Automatic speech recognition for Nepali using transformer architecture." },
-    { id: "7", title: "BankFraud Detector", tags: ["Python", "XGBoost", "SQL"], author: "Batch '25", year: 2025, color: "bg-[#FB7185]", text: "text-white", desc: "Anomaly detection pipeline for transaction fraud in real-time." },
-    { id: "8", title: "KTM Air Quality", tags: ["Python", "D3.js", "SQL"], author: "P. Shrestha", year: 2024, color: "bg-[#2563EB]", text: "text-white", desc: "PM2.5 forecasting model for Kathmandu Valley with interactive map." },
-  ];
+  useEffect(() => {
+    let mounted = true;
+    async function loadProjects() {
+      setLoadingProjects(true);
+      if (!isSupabaseConfigured || !supabase) {
+        setAllProjects([]);
+        setLoadingProjects(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("projects")
+        .select("id,title,category,technologies,summary,published_at,submitted_at,status")
+        .in("status", ["approved", "published"])
+        .order("published_at", { ascending: false, nullsFirst: false });
+      if (!mounted) return;
+      const styles = [
+        { color: "bg-[#F4EFEB]", text: "text-[#171717]" },
+        { color: "bg-[#2563EB]", text: "text-white" },
+        { color: "bg-[#FB7185]", text: "text-white" },
+        { color: "bg-[#FFE800]", text: "text-[#171717]" },
+        { color: "bg-[#7C3AED]", text: "text-white" },
+        { color: "bg-[#171717]", text: "text-white" },
+      ];
+      setAllProjects((data || []).map((project, index) => {
+        const style = styles[index % styles.length];
+        const date = project.published_at || project.submitted_at;
+        return {
+          id: project.id,
+          title: project.title,
+          tags: project.technologies?.length ? project.technologies : [project.category || "Project"],
+          author: "Club Member",
+          year: date ? new Date(date).getFullYear() : new Date().getFullYear(),
+          color: style.color,
+          text: style.text,
+          desc: project.summary || "Project details will be updated soon.",
+        };
+      }));
+      setLoadingProjects(false);
+    }
+    loadProjects();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  const allTags = ["all", "Python", "PyTorch", "NLP", "OpenCV", "React", "D3.js", "SQL", "XGBoost", "Transformers", "TypeScript", "YOLO"];
+  const allTags = ["all", ...Array.from(new Set(allProjects.flatMap((project) => project.tags)))];
 
   const filtered = allProjects
     .filter(p => {
@@ -1675,8 +1760,12 @@ function ProjectsPage() {
       {/* Projects Grid */}
       {paginated.length === 0 ? (
         <div className="text-center py-24 border-2 border-dashed border-[#171717]">
-          <p className="text-2xl font-bold uppercase tracking-widest text-slate-400" style={fonts.display}>No projects found</p>
-          <p className="text-sm font-mono text-slate-400 mt-2">Try a different tag or search term</p>
+          <p className="text-2xl font-bold uppercase tracking-widest text-slate-400" style={fonts.display}>
+            {loadingProjects ? "Loading projects" : "No projects found"}
+          </p>
+          <p className="text-sm font-mono text-slate-400 mt-2">
+            {loadingProjects ? "Please wait..." : "Published projects will appear here after admin review."}
+          </p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -1741,37 +1830,62 @@ function ProjectsPage() {
 
 function ProjectDetailPage() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const [project, setProject] = useState<any>(null);
+  const [loadingProject, setLoadingProject] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadProject() {
+      if (!isSupabaseConfigured || !supabase || !id) {
+        setProject(null);
+        setLoadingProject(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("projects")
+        .select("id,title,category,technologies,summary,content,published_at,status")
+        .eq("id", id)
+        .in("status", ["approved", "published"])
+        .maybeSingle();
+      if (!mounted) return;
+      setProject(data);
+      setLoadingProject(false);
+    }
+    loadProject();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
       <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
         <ArrowLeft size={16} /> Back to Gallery
       </button>
 
-      <div className="w-full aspect-video bg-[#2563EB] border-4 border-[#171717] brutal-shadow-lg mb-12 flex items-center justify-center">
-        <h1 className="text-5xl md:text-8xl text-white uppercase text-center" style={fonts.display}>EduPredict AI</h1>
-      </div>
-
-      <div className="flex flex-wrap gap-4 mb-8">
-        <BrutalBadge>PyTorch</BrutalBadge>
-        <BrutalBadge>XGBoost</BrutalBadge>
-        <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Batch '24</BrutalBadge>
-      </div>
-
-      <div className="prose prose-lg max-w-none text-[#171717]">
-        <p className="text-2xl font-serif italic mb-8">Predicting student performance using LMS activity data across multiple semesters.</p>
-        <h2 className="uppercase font-bold tracking-widest text-xl mb-4">The Problem</h2>
-        <p>Early identification of at-risk students allows for timely intervention. By analyzing login frequency, assignment submission times, and forum participation, we sought to build an early warning system.</p>
-        
-        <h2 className="uppercase font-bold tracking-widest text-xl mt-8 mb-4">Methodology</h2>
-        <div className="bg-[#171717] text-white p-6 font-mono text-sm mb-8 border-2 border-[#171717] brutal-shadow">
-          {`import torch
-import xgboost as xgb
-
-# Model ensemble initialization
-xgb_model = xgb.XGBClassifier(max_depth=5, learning_rate=0.1)
-nn_model = ActivityNet(input_dim=14, hidden_dim=64)`}
+      {loadingProject ? (
+        <BrutalCard><p className="font-mono text-sm text-slate-500">Loading project...</p></BrutalCard>
+      ) : !project ? (
+        <BrutalCard><p className="font-bold uppercase">Project not found or not published yet.</p></BrutalCard>
+      ) : (
+        <>
+        <div className="w-full aspect-video bg-[#2563EB] border-4 border-[#171717] brutal-shadow-lg mb-12 flex items-center justify-center p-8">
+          <h1 className="text-5xl md:text-8xl text-white uppercase text-center" style={fonts.display}>{project.title}</h1>
         </div>
-      </div>
+
+        <div className="flex flex-wrap gap-4 mb-8">
+          {(project.technologies?.length ? project.technologies : [project.category || "Project"]).map((tag: string) => (
+            <BrutalBadge key={tag}>{tag}</BrutalBadge>
+          ))}
+        </div>
+
+        <div className="prose prose-lg max-w-none text-[#171717]">
+          <p className="text-2xl font-serif italic mb-8">{project.summary || "Project details will be updated soon."}</p>
+          <div className="whitespace-pre-wrap text-base leading-relaxed">{project.content || project.summary}</div>
+        </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1876,7 +1990,7 @@ function ProjectSubmissionPage() {
               className="w-full"
               onClick={() => {
                 if (!requireLoginForAction(navigate, "/projects/submit")) return;
-                setStatus("Draft saved to your account mock.");
+                setStatus("Draft saved in this browser.");
               }}
             >
               Save Draft
@@ -1894,20 +2008,48 @@ function BlogPage() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
+  const [allPosts, setAllPosts] = useState<any[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
   const ITEMS_PER_PAGE = 4;
 
-  const allPosts = [
-    { id: 1, title: "Why we migrated from TensorFlow to PyTorch", date: "Jan 12, 2025", dateSort: "2025-01-12", category: "TUTORIAL", author: "Sanjay K.", readTime: "8 min", excerpt: "After two years on TensorFlow, switching frameworks felt risky. Here's what changed our minds and how the migration actually went." },
-    { id: 2, title: "Winning the National Datathon: Our Strategy", date: "Dec 05, 2024", dateSort: "2024-12-05", category: "EVENT", author: "Priya M.", readTime: "5 min", excerpt: "Three weeks of prep, 48 hours of execution, and one unexpected pivot on day two. A full breakdown of our winning approach." },
-    { id: 3, title: "Building Data Sarathi: A Neo-Brutalist Case Study", date: "Nov 20, 2024", dateSort: "2024-11-20", category: "DESIGN", author: "Web Team", readTime: "12 min", excerpt: "Why a data science club chose neo-brutalism over minimal SaaS, and what we learned about design systems along the way." },
-    { id: 4, title: "Getting Started with Nepali NLP", date: "Nov 05, 2024", dateSort: "2024-11-05", category: "TUTORIAL", author: "Anita D.", readTime: "10 min", excerpt: "Nepal has over 100 languages. Here's a practical guide to tokenization, corpuses, and fine-tuning multilingual models for Devanagari text." },
-    { id: 5, title: "SMS TU Lab: New GPU Setup Guide", date: "Oct 18, 2024", dateSort: "2024-10-18", category: "NEWS", author: "Admin", readTime: "3 min", excerpt: "The department just installed two NVIDIA A100s. Here is how to request access, set up your environment, and run your first training job." },
-    { id: 6, title: "Python vs R for Statistics in 2025", date: "Oct 01, 2024", dateSort: "2024-10-01", category: "OPINION", author: "Dr. Ram Kumar", readTime: "7 min", excerpt: "The eternal debate, revisited with 2025 context. Spoiler: the answer depends entirely on what you are building." },
-    { id: 7, title: "Open Data: Where to Find Nepal Datasets", date: "Sep 14, 2024", dateSort: "2024-09-14", category: "TUTORIAL", author: "B. Thapa", readTime: "6 min", excerpt: "A curated walkthrough of government portals, NGO datasets, and scraped sources that are genuinely useful for Nepali ML projects." },
-    { id: 8, title: "Recap: SMS Hackathon Spring 2024", date: "Aug 28, 2024", dateSort: "2024-08-28", category: "EVENT", author: "Club Team", readTime: "4 min", excerpt: "Highlights, winning projects, and lessons learned from our biggest event of the year with 80+ participants across 18 teams." },
-  ];
+  useEffect(() => {
+    let mounted = true;
+    async function loadPosts() {
+      setLoadingPosts(true);
+      if (!isSupabaseConfigured || !supabase) {
+        setAllPosts([]);
+        setLoadingPosts(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("blog_posts")
+        .select("id,title,summary,tags,content,published_at,status")
+        .in("status", ["approved", "published"])
+        .order("published_at", { ascending: false, nullsFirst: false });
+      if (!mounted) return;
+      setAllPosts((data || []).map((post) => {
+        const date = post.published_at;
+        const words = `${post.summary || ""} ${post.content || ""}`.trim().split(/\s+/).filter(Boolean).length;
+        return {
+          id: post.id,
+          title: post.title,
+          date: date ? new Date(date).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" }) : "",
+          dateSort: date ? new Date(date).toISOString().slice(0, 10) : "",
+          category: (post.tags?.[0] || "NEWS").toUpperCase(),
+          author: "Data Science Club",
+          readTime: `${Math.max(1, Math.ceil(words / 220))} min`,
+          excerpt: post.summary || post.content?.slice(0, 180) || "Post details will be updated soon.",
+        };
+      }));
+      setLoadingPosts(false);
+    }
+    loadPosts();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  const categories = ["all", "TUTORIAL", "EVENT", "DESIGN", "NEWS", "OPINION"];
+  const categories = ["all", ...Array.from(new Set(allPosts.map((post) => post.category)))];
   const categoryColors: Record<string, string> = {
     TUTORIAL: "bg-[#2563EB]",
     EVENT: "bg-[#FB7185]",
@@ -1997,8 +2139,12 @@ function BlogPage() {
       {/* Posts */}
       {paginated.length === 0 ? (
         <div className="text-center py-24 border-2 border-dashed border-[#171717]">
-          <p className="text-2xl font-bold uppercase tracking-widest text-slate-400" style={fonts.display}>No posts found</p>
-          <p className="text-sm font-mono text-slate-400 mt-2">Try a different search or category</p>
+          <p className="text-2xl font-bold uppercase tracking-widest text-slate-400" style={fonts.display}>
+            {loadingPosts ? "Loading posts" : "No posts found"}
+          </p>
+          <p className="text-sm font-mono text-slate-400 mt-2">
+            {loadingPosts ? "Please wait..." : "Published blog posts will appear here after review."}
+          </p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-0 border-2 border-[#171717]">
@@ -2185,7 +2331,7 @@ function BlogEditorPage() {
               className="w-full"
               onClick={() => {
                 if (!requireLoginForAction(navigate, "/blog/write")) return;
-                setStatus("Draft saved to your account mock.");
+                setStatus("Draft saved in this browser.");
               }}
             >
               Save Draft
@@ -2348,7 +2494,7 @@ function TicketPage() {
         
         <div className="text-center mb-6 border-b-2 border-[#171717] pb-6 border-dashed">
           <h2 className="text-5xl uppercase leading-none mb-2" style={fonts.display}>Admit One</h2>
-          <p className="font-bold font-mono tracking-widest text-sm">Neural Nets Workshop</p>
+          <p className="font-bold font-mono tracking-widest text-sm">Your reserved event</p>
         </div>
         
         <div className="flex justify-center mb-6">
@@ -2364,11 +2510,11 @@ function TicketPage() {
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">ID</span>
-            <span className="font-bold">SMS-25-0492</span>
+            <span className="font-bold">Assigned after reservation</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Date</span>
-            <span className="font-bold">24 FEB 2025</span>
+            <span className="font-bold">Event date</span>
           </div>
         </div>
       </div>
@@ -2513,6 +2659,9 @@ function DashboardPage() {
     projects: 0,
     blogPosts: 0,
   });
+  const [dashboardEvents, setDashboardEvents] = useState<any[]>([]);
+  const [dashboardProjects, setDashboardProjects] = useState<any[]>([]);
+  const [dashboardPosts, setDashboardPosts] = useState<any[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -2529,7 +2678,7 @@ function DashboardPage() {
         userData.user.email ||
         "Member";
 
-      const [{ data: profile }, eventProposalCount, projectCount, blogCount] = await Promise.all([
+      const [{ data: profile }, eventProposalCount, projectCount, blogCount, publicEvents, publicProjects, publicPosts] = await Promise.all([
         supabase
           .from("profiles")
           .select("full_name,email,batch_year,created_at")
@@ -2547,6 +2696,25 @@ function DashboardPage() {
           .from("blog_posts")
           .select("id", { count: "exact", head: true })
           .eq("author_id", userData.user.id),
+        supabase
+          .from("events")
+          .select("id,title,event_type,start_time,capacity")
+          .in("status", ["approved", "published"])
+          .gte("start_time", new Date().toISOString())
+          .order("start_time", { ascending: true })
+          .limit(1),
+        supabase
+          .from("projects")
+          .select("id,title,category,technologies,summary,published_at")
+          .in("status", ["approved", "published"])
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(1),
+        supabase
+          .from("blog_posts")
+          .select("id,title,tags,published_at")
+          .in("status", ["approved", "published"])
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(4),
       ]);
 
       if (!mounted) return;
@@ -2560,6 +2728,9 @@ function DashboardPage() {
         projects: projectCount.count || 0,
         blogPosts: blogCount.count || 0,
       });
+      setDashboardEvents(publicEvents.data || []);
+      setDashboardProjects(publicProjects.data || []);
+      setDashboardPosts(publicPosts.data || []);
     }
 
     loadDashboard();
@@ -2576,27 +2747,15 @@ function DashboardPage() {
     { label: "Member Since", value: member.memberSince, icon: <Zap size={20} />, color: "bg-[#7C3AED]", trend: "Account created" },
   ];
 
-  const announcements = [
-    { id: 1, title: "ML Hackathon Registration Open", date: "2 hours ago", type: "EVENT", important: true },
-    { id: 2, title: "New GPU Lab Access for Members", date: "Yesterday", type: "NEWS", important: false },
-    { id: 3, title: "Winners: Data Viz Competition", date: "3 days ago", type: "ANNOUNCEMENT", important: false },
-    { id: 4, title: "TensorFlow Workshop Materials Now Available", date: "5 days ago", type: "RESOURCE", important: false },
-  ];
-
-  const leaderboard = [
-    { rank: 1, name: "Sanjay K.", points: 2450, badge: "🥇", batch: "'24" },
-    { rank: 2, name: "Priya M.", points: 2280, badge: "🥈", batch: "'25" },
-    { rank: 3, name: "Rajan S.", points: 2140, badge: "🥉", batch: "'24" },
-    { rank: 4, name: "Anita D.", points: 1980, badge: "", batch: "'25" },
-    { rank: 5, name: "Bikash T.", points: 1850, badge: "", batch: "'24" },
-    { rank: 15, name: "You", points: 1240, badge: "", batch: "'25", highlight: true },
-  ];
-
-  const upcomingEvents = [
-    { id: "1", title: "Neural Nets 101", date: "24 FEB", time: "14:00", type: "WORKSHOP", registered: true, color: "bg-[#2563EB]" },
-    { id: "2", title: "Data Viz with Python", date: "03 MAR", time: "15:30", type: "SEMINAR", registered: false, color: "bg-[#FB7185]" },
-    { id: "3", title: "ML Hackathon Weekend", date: "15 MAR", time: "10:00", type: "COMPETITION", registered: true, color: "bg-[#171717]" },
-  ];
+  const nextEvent = dashboardEvents[0];
+  const featuredProject = dashboardProjects[0];
+  const announcements = dashboardPosts.map((post) => ({
+    id: post.id,
+    title: post.title,
+    date: post.published_at ? new Date(post.published_at).toLocaleDateString() : "",
+    type: (post.tags?.[0] || "POST").toUpperCase(),
+    important: false,
+  }));
 
   const quickActions = [
     { label: "Register for Event", icon: <Calendar size={18} />, onClick: () => navigate("/events"), color: "bg-[#2563EB]" },
@@ -2692,23 +2851,36 @@ function DashboardPage() {
               <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Next Up</h2>
             </div>
             <BrutalCard color="bg-white" className="p-0 overflow-hidden">
-              <div className="p-5 md:p-6">
+              {nextEvent ? (
+              <div className="p-5 md:p-6 cursor-pointer" onClick={() => navigate(`/events/${nextEvent.id}`)}>
                 <div className="flex items-start justify-between gap-4 mb-5 md:mb-6">
                   <div>
                     <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">NEXT UP</div>
-                    <div className="text-5xl md:text-6xl font-bold text-[#2563EB] mb-1" style={fonts.display}>24</div>
-                    <div className="text-sm md:text-base font-bold uppercase tracking-widest text-slate-400">FEB 2025</div>
+                    <div className="text-5xl md:text-6xl font-bold text-[#2563EB] mb-1" style={fonts.display}>
+                      {new Date(nextEvent.start_time).toLocaleDateString(undefined, { day: "2-digit" })}
+                    </div>
+                    <div className="text-sm md:text-base font-bold uppercase tracking-widest text-slate-400">
+                      {new Date(nextEvent.start_time).toLocaleDateString(undefined, { month: "short", year: "numeric" })}
+                    </div>
                   </div>
-                  <BrutalBadge color="bg-[#2563EB]" className="text-xs md:text-sm px-3 md:px-4 py-2">WORKSHOP</BrutalBadge>
+                  <BrutalBadge color="bg-[#2563EB]" className="text-xs md:text-sm px-3 md:px-4 py-2">
+                    {(nextEvent.event_type || "EVENT").toUpperCase()}
+                  </BrutalBadge>
                 </div>
-                <h3 className="text-xl md:text-2xl font-bold uppercase mb-3 md:mb-4" style={fonts.display}>Neural Nets 101</h3>
+                <h3 className="text-xl md:text-2xl font-bold uppercase mb-3 md:mb-4" style={fonts.display}>{nextEvent.title}</h3>
                 <div className="flex items-center gap-2 text-xs md:text-sm font-mono text-slate-600">
                   <Users size={14} className="text-[#2563EB]" />
-                  <span className="font-bold">4/50</span>
+                  <span className="font-bold">{nextEvent.capacity || "Open"}</span>
                   <BrutalBadge color="bg-[#2563EB]" className="text-[10px]">spots</BrutalBadge>
-                  <span className="text-slate-400">filled</span>
+                  <span className="text-slate-400">available</span>
                 </div>
               </div>
+              ) : (
+                <div className="p-5 md:p-6">
+                  <p className="font-bold uppercase">No upcoming events yet.</p>
+                  <p className="mt-2 text-sm font-mono text-slate-500">Approved events will appear here.</p>
+                </div>
+              )}
             </BrutalCard>
           </div>
 
@@ -2719,7 +2891,12 @@ function DashboardPage() {
               <BrutalBadge color="bg-[#FB7185]">Live Feed</BrutalBadge>
             </div>
             <div className="space-y-3 md:space-y-4">
-              {announcements.map((announcement) => (
+              {announcements.length === 0 ? (
+                <BrutalCard color="bg-white">
+                  <p className="font-bold uppercase">No announcements yet.</p>
+                  <p className="mt-2 text-sm font-mono text-slate-500">Published blog posts will appear here.</p>
+                </BrutalCard>
+              ) : announcements.map((announcement) => (
                 <div 
                   key={announcement.id}
                   className={`border-2 border-[#171717] p-4 md:p-5 bg-white brutal-shadow hover:brutal-shadow-hover transition-all cursor-pointer ${announcement.important ? "border-l-4 md:border-l-8 border-l-[#FB7185]" : ""}`}
@@ -2752,53 +2929,50 @@ function DashboardPage() {
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Projects</h2>
             </div>
-            <BrutalCard color="bg-[#7C3AED]" className="text-white">
+            <BrutalCard color="bg-[#7C3AED]" className="text-white cursor-pointer" onClick={() => featuredProject && navigate(`/projects/${featuredProject.id}`)}>
               <div className="text-xs font-bold uppercase tracking-widest mb-3 md:mb-4 opacity-90">PROJECTS</div>
               <h3 className="text-2xl md:text-3xl uppercase mb-4 md:mb-5" style={fonts.display}>
-                Kathmandu Traffic CV
+                {featuredProject?.title || "No published projects yet"}
               </h3>
               <div className="flex flex-wrap gap-2">
-                <BrutalBadge color="bg-white/20 backdrop-blur" text="text-white" className="text-[10px] md:text-xs border-white/30">
-                  OPENCV
-                </BrutalBadge>
-                <BrutalBadge color="bg-white/20 backdrop-blur" text="text-white" className="text-[10px] md:text-xs border-white/30">
-                  YOLO
-                </BrutalBadge>
-                <BrutalBadge color="bg-white/20 backdrop-blur" text="text-white" className="text-[10px] md:text-xs border-white/30">
-                  PYTHON
-                </BrutalBadge>
+                {(featuredProject?.technologies?.length ? featuredProject.technologies : [featuredProject?.category || "Publish from admin"]).map((tag: string) => (
+                  <BrutalBadge key={tag} color="bg-white/20 backdrop-blur" text="text-white" className="text-[10px] md:text-xs border-white/30">
+                    {tag}
+                  </BrutalBadge>
+                ))}
               </div>
             </BrutalCard>
           </div>
 
-          {/* Leaderboard */}
+          {/* Club Activity */}
           <div>
             <div className="flex items-center justify-between mb-4 md:mb-6">
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Leaderboard</h2>
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Club Activity</h2>
               <Trophy size={20} className="text-[#FFE800]" />
             </div>
             <BrutalCard color="bg-white" className="p-0 overflow-hidden">
               <div className="divide-y-2 divide-[#171717]">
-                {leaderboard.map((member, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center justify-between p-3 md:p-4 ${member.highlight ? "bg-[#FFE800]" : i < 3 ? "bg-[#F4EFEB]" : "bg-white"} ${member.highlight ? "font-bold" : ""}`}
-                  >
-                    <div className="flex items-center gap-3 md:gap-4">
-                      <div className={`text-base md:text-lg font-bold ${member.highlight ? "text-xl md:text-2xl" : ""}`} style={fonts.display}>
-                        {member.badge || `#${member.rank}`}
-                      </div>
-                      <div>
-                        <div className="text-xs md:text-sm font-bold" style={fonts.sans}>{member.name}</div>
-                        <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Batch {member.batch}</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-base md:text-lg font-bold" style={fonts.display}>{member.points}</div>
-                      <div className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400">pts</div>
-                    </div>
+                <div className="flex items-center justify-between p-3 md:p-4 bg-[#F4EFEB]">
+                  <div>
+                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Published Events</div>
+                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Visible on events page</div>
                   </div>
-                ))}
+                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{dashboardEvents.length}</div>
+                </div>
+                <div className="flex items-center justify-between p-3 md:p-4 bg-white">
+                  <div>
+                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Latest Projects</div>
+                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Visible on projects page</div>
+                  </div>
+                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{dashboardProjects.length}</div>
+                </div>
+                <div className="flex items-center justify-between p-3 md:p-4 bg-white">
+                  <div>
+                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Latest Posts</div>
+                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Visible on blog page</div>
+                  </div>
+                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{dashboardPosts.length}</div>
+                </div>
               </div>
             </BrutalCard>
           </div>
@@ -2824,14 +2998,12 @@ function DashboardPage() {
           <BrutalCard color="bg-[#7C3AED]" className="text-white">
             <div className="flex items-start justify-between mb-3 md:mb-4">
               <Award size={24} className="md:w-8 md:h-8" />
-              <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]" className="text-[10px]">NEW</BrutalBadge>
+              <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]" className="text-[10px]">PROFILE</BrutalBadge>
             </div>
-            <h3 className="text-xl md:text-2xl uppercase mb-2" style={fonts.display}>Achievement Unlocked!</h3>
-            <p className="text-xs md:text-sm opacity-90 mb-3 md:mb-4">You've attended 5+ workshops this semester. Keep learning!</p>
+            <h3 className="text-xl md:text-2xl uppercase mb-2" style={fonts.display}>Certificates</h3>
+            <p className="text-xs md:text-sm opacity-90 mb-3 md:mb-4">Your issued certificates and verified records appear on the certificates page.</p>
             <div className="flex items-center gap-1 md:gap-2 text-xs font-mono opacity-80">
-              <Star size={12} fill="currentColor" />
-              <Star size={12} fill="currentColor" />
-              <Star size={12} fill="currentColor" />
+              <Star size={12} />
               <Star size={12} />
               <Star size={12} />
             </div>
@@ -2842,12 +3014,12 @@ function DashboardPage() {
       {/* Bottom CTA - Better responsive text */}
       <BrutalCard color="bg-[#2563EB]" className="text-white text-center border-4">
         <div className="max-w-2xl mx-auto px-4">
-          <h3 className="text-3xl md:text-4xl lg:text-5xl uppercase mb-3 md:mb-4" style={fonts.display}>Level Up Your Skills</h3>
+          <h3 className="text-3xl md:text-4xl lg:text-5xl uppercase mb-3 md:mb-4" style={fonts.display}>Find your next event</h3>
           <p className="text-sm md:text-lg opacity-90 mb-4 md:mb-6" style={fonts.serif}>
-            New workshop series starting next week. Limited spots available for premium hands-on sessions.
+            Browse approved events, reserve your spot, or propose something new for the club.
           </p>
           <BrutalButton color="bg-[#FFE800]" onClick={() => navigate("/events")} className="w-full sm:w-auto">
-            Explore Workshops
+            Explore Events
           </BrutalButton>
         </div>
       </BrutalCard>
