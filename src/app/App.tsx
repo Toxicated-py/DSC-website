@@ -2100,7 +2100,7 @@ function BlogEditorPage() {
     if (publishingPost) return;
     if (!requireLoginForAction(navigate, "/blog/write")) return;
     if (!form.title.trim() || !form.summary.trim() || !form.content.trim()) {
-      setStatus("Title, summary, and content are required before publishing.");
+      setStatus("Title, summary, and content are required before submitting.");
       return;
     }
     try {
@@ -2111,12 +2111,12 @@ function BlogEditorPage() {
         tags: form.tags.split(",").map((item: string) => item.trim()).filter(Boolean),
         cover_image_url: form.coverImage || null,
         content: form.content,
-        status: "published",
+        status: "submitted",
       });
       localStorage.removeItem("dsc-blog-draft");
-      setStatus(`Post published. ${getPersistenceLabel(result.mode)}`);
+      setStatus(`Post submitted for admin review. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not publish post.");
+      setStatus(error instanceof Error ? error.message : "Could not submit post.");
     } finally {
       setPublishingPost(false);
     }
@@ -2177,7 +2177,7 @@ function BlogEditorPage() {
 
           <div className="flex flex-col gap-3">
             <BrutalButton type="submit" color="bg-[#171717]" text="text-white" className="w-full" disabled={publishingPost}>
-              {publishingPost ? "Publishing..." : "Publish Post"}
+              {publishingPost ? "Submitting..." : "Submit for Review"}
             </BrutalButton>
             <BrutalButton
               type="button"

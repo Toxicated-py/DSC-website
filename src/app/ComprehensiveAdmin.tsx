@@ -610,6 +610,17 @@ export function ComprehensiveAdminPanel() {
     setEvents(events.map(e => e.id === id ? { ...e, status: "archived" } : e));
   };
 
+  const updateEventStatus = async (id: string, status: string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    const { error } = await supabase.from("events").update({ status }).eq("id", id);
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+    setEvents(events.map((event) => event.id === id ? { ...event, status, featured: status === "published" } : event));
+    setAdminStatus(status === "archived" ? "Event archived." : "Event restored.");
+  };
+
   const toggleEventRegistration = async (event: any) => {
     if (!isSupabaseConfigured || !supabase) return;
     const next = !event.registration_open;
@@ -792,23 +803,24 @@ export function ComprehensiveAdminPanel() {
     setBlogPosts(blogPosts.map((post) => post.id === id ? { ...post, status } : post));
   };
 
-  const openBlogModal = (post: any) => {
+  const openBlogModal = (post?: any) => {
     setAdminStatus("");
-    setEditingBlogId(post.id);
+    setEditingBlogId(post?.id || "");
     setBlogForm({
-      title: post.title || "",
-      summary: post.summary || "",
-      tags: (post.tags || []).join(", "),
-      content: post.content || "",
-      coverImageUrl: post.cover_image_url || "",
-      status: post.status || "draft",
+      title: post?.title || "",
+      summary: post?.summary || "",
+      tags: (post?.tags || []).join(", "),
+      content: post?.content || "",
+      coverImageUrl: post?.cover_image_url || "",
+      status: post?.status || "published",
     });
     setShowBlogModal(true);
   };
 
   const saveBlogPost = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!editingBlogId || !isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured || !supabase) return;
+    const { data: userData } = await supabase.auth.getUser();
     const tags = blogForm.tags
       .split(",")
       .map((tag) => tag.trim())
@@ -822,12 +834,18 @@ export function ComprehensiveAdminPanel() {
       status: blogForm.status,
       published_at: blogForm.status === "published" ? new Date().toISOString() : new Date().toISOString(),
     };
-    const { data, error } = await supabase
-      .from("blog_posts")
-      .update(payload)
-      .eq("id", editingBlogId)
-      .select("id,title,summary,tags,content,cover_image_url,status,published_at,author_id,profiles:author_id(full_name,email)")
-      .single();
+    const { data, error } = editingBlogId
+      ? await supabase
+          .from("blog_posts")
+          .update(payload)
+          .eq("id", editingBlogId)
+          .select("id,title,summary,tags,content,cover_image_url,status,published_at,author_id,profiles:author_id(full_name,email)")
+          .single()
+      : await supabase
+          .from("blog_posts")
+          .insert({ ...payload, author_id: userData.user?.id || null })
+          .select("id,title,summary,tags,content,cover_image_url,status,published_at,author_id,profiles:author_id(full_name,email)")
+          .single();
     if (error) {
       setAdminStatus(error.message);
       return;
@@ -839,10 +857,10 @@ export function ComprehensiveAdminPanel() {
       tags: data.tags || [],
       publishedDate: data.published_at ? new Date(data.published_at).toLocaleDateString() : "",
     };
-    setBlogPosts(blogPosts.map((post) => post.id === editingBlogId ? mapped : post));
+    setBlogPosts(editingBlogId ? blogPosts.map((post) => post.id === editingBlogId ? mapped : post) : [mapped, ...blogPosts]);
     resetBlogForm();
     setShowBlogModal(false);
-    setAdminStatus("Blog post updated.");
+    setAdminStatus(editingBlogId ? "Blog post updated." : "Blog post created.");
   };
 
   const updateSubmissionStatus = async (table: "gallery_submissions" | "partner_submissions", id: string, status: string) => {
@@ -1596,7 +1614,8 @@ export function ComprehensiveAdminPanel() {
                         <p className="font-bold uppercase">{event.title}</p>
                         <p className="text-xs font-mono text-slate-500">{event.date} - {event.location}</p>
                       </div>
-                      <button onClick={() => void openEventModal(event)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
+                    <button onClick={() => void openEventModal(event)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
+                    <button onClick={() => updateEventStatus(event.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 font-bold uppercase text-xs">Unarchive</button>
                     </div>
                   ))}
                 </div>
@@ -1774,7 +1793,7 @@ export function ComprehensiveAdminPanel() {
                   <div className="flex gap-2 flex-wrap">
                     <BrutalBadge color="bg-[#FB7185]">{project.status}</BrutalBadge>
                     <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
-                    <button onClick={() => updateProjectStatus(project.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs">Restore</button>
+                    <button onClick={() => updateProjectStatus(project.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs">Unarchive</button>
                   </div>
                 </div>
               </BrutalCard>
@@ -1789,7 +1808,12 @@ export function ComprehensiveAdminPanel() {
         <div className="space-y-6">
           {selectedTab === "blogs" && (
             <>
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Blog Posts</h2>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Blog Posts</h2>
+                <button onClick={() => openBlogModal()} className="px-5 py-3 bg-[#171717] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-xs brutal-shadow brutal-shadow-hover">
+                  Create Blog
+                </button>
+              </div>
               <div className="grid gap-4">
                 {pendingBlogs.map((post) => (
                   <BrutalCard key={post.id} color="bg-white">
@@ -1860,7 +1884,7 @@ export function ComprehensiveAdminPanel() {
                       <div className="flex gap-2 flex-wrap">
                         <BrutalBadge color="bg-[#FB7185]">{post.status}</BrutalBadge>
                         <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Restore</button>
+                        <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
                       </div>
                     </div>
                   </BrutalCard>
@@ -1921,7 +1945,7 @@ export function ComprehensiveAdminPanel() {
                   <BrutalCard key={item.id} color="bg-white">
                     <h3 className="font-bold uppercase">{item.title}</h3>
                     <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
-                    <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Restore</button>
+                    <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
                   </BrutalCard>
                 ))}
                 {rejectedGallery.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No rejected gallery submissions.</p></BrutalCard>}
@@ -1968,7 +1992,7 @@ export function ComprehensiveAdminPanel() {
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => openPartnerModal(partner)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Restore</button>
+                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
                         <button onClick={() => deletePartner(partner.id)} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Delete</button>
                       </div>
                     </div>
@@ -2509,7 +2533,9 @@ export function ComprehensiveAdminPanel() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <BrutalCard className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Edit Blog Post</h2>
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>
+                {editingBlogId ? "Edit Blog Post" : "Create Blog Post"}
+              </h2>
               <button onClick={() => { resetBlogForm(); setShowBlogModal(false); }} className="p-2 hover:bg-slate-100 transition-all">
                 <X size={20} />
               </button>
@@ -2526,13 +2552,14 @@ export function ComprehensiveAdminPanel() {
                 onChange={(event: any) => setBlogForm({ ...blogForm, status: event.target.value })}
                 options={[
                   { value: "draft", label: "Draft" },
+                  { value: "submitted", label: "Submitted" },
                   { value: "published", label: "Published" },
                   { value: "archived", label: "Archived" },
                 ]}
               />
               <div className="flex gap-3">
                 <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1">
-                  <Save size={16} className="inline mr-2" /> Save Post
+                  <Save size={16} className="inline mr-2" /> {editingBlogId ? "Save Post" : "Create Post"}
                 </BrutalButton>
                 <button
                   type="button"
