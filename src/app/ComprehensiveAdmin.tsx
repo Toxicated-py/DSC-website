@@ -121,6 +121,14 @@ export function ComprehensiveAdminPanel() {
     description: "",
     resourceUrl: "",
   });
+  const [partnerForm, setPartnerForm] = useState({
+    name: "",
+    websiteUrl: "",
+    logoUrl: "",
+    category: "",
+    description: "",
+    status: "published",
+  });
   const [eventForm, setEventForm] = useState({
     title: "",
     eventType: "WORKSHOP",
@@ -158,9 +166,11 @@ export function ComprehensiveAdminPanel() {
   const [showEventModal, setShowEventModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showBlogModal, setShowBlogModal] = useState(false);
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [editingProjectId, setEditingProjectId] = useState("");
   const [editingBlogId, setEditingBlogId] = useState("");
+  const [editingPartnerId, setEditingPartnerId] = useState("");
 
   const [users, setUsers] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -692,7 +702,25 @@ export function ComprehensiveAdminPanel() {
 
   const createEventFromProposal = async (proposal: any) => {
     if (!isSupabaseConfigured || !supabase) return;
+    if (proposal.status !== "pending") {
+      setAdminStatus("This proposal has already been reviewed.");
+      return;
+    }
     const { data: userData } = await supabase.auth.getUser();
+    const proposedStart = proposal.proposed_date ? new Date(proposal.proposed_date).toISOString() : null;
+    const duplicateQuery = supabase
+      .from("events")
+      .select("id")
+      .eq("title", proposal.title)
+      .maybeSingle();
+    const { data: existingEvent } = proposedStart
+      ? await duplicateQuery.eq("start_time", proposedStart)
+      : await duplicateQuery.is("start_time", null);
+    if (existingEvent?.id) {
+      await updateProposalStatus(proposal.id, "approved");
+      setAdminStatus("Proposal was already created as an event. Marked approved.");
+      return;
+    }
     const slug = `${proposal.title}-${Date.now()}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
     const { data: eventRow, error } = await supabase.from("events").insert({
       title: proposal.title,
@@ -700,7 +728,7 @@ export function ComprehensiveAdminPanel() {
       event_type: proposal.event_type,
       short_description: proposal.summary.slice(0, 160),
       description: proposal.summary,
-      start_time: proposal.proposed_date ? new Date(proposal.proposed_date).toISOString() : null,
+      start_time: proposedStart,
       venue: proposal.venue,
       capacity: proposal.capacity || 40,
       status: "approved",
@@ -735,6 +763,21 @@ export function ComprehensiveAdminPanel() {
       await supabase.from("event_staff").upsert(staffRows, { onConflict: "event_id,email" });
     }
     await updateProposalStatus(proposal.id, "approved");
+    const { data: createdEvent } = await supabase
+      .from("events")
+      .select("id,title,event_type,start_time,end_time,venue,capacity,status,registration_open,created_by,created_at")
+      .eq("id", eventRow.id)
+      .single();
+    if (createdEvent) {
+      setEvents([{
+        ...createdEvent,
+        date: createdEvent.start_time ? new Date(createdEvent.start_time).toLocaleDateString() : "Not scheduled",
+        location: createdEvent.venue || "TBA",
+        category: createdEvent.event_type,
+        attendees: 0,
+        featured: createdEvent.status === "published",
+      }, ...events]);
+    }
     setAdminStatus("Event created from proposal.");
   };
 
@@ -817,6 +860,74 @@ export function ComprehensiveAdminPanel() {
     } else {
       setPartnerSubmissions(partnerSubmissions.map((item) => item.id === id ? { ...item, status } : item));
     }
+  };
+
+  const resetPartnerForm = () => {
+    setEditingPartnerId("");
+    setPartnerForm({
+      name: "",
+      websiteUrl: "",
+      logoUrl: "",
+      category: "",
+      description: "",
+      status: "published",
+    });
+  };
+
+  const openPartnerModal = (partner?: any) => {
+    setAdminStatus("");
+    setEditingPartnerId(partner?.id || "");
+    setPartnerForm({
+      name: partner?.name || "",
+      websiteUrl: partner?.website_url || "",
+      logoUrl: partner?.logo_url || "",
+      category: partner?.category || "",
+      description: partner?.description || "",
+      status: partner?.status || "published",
+    });
+    setShowPartnerModal(true);
+  };
+
+  const savePartner = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!isSupabaseConfigured || !supabase) return;
+    const { data: userData } = await supabase.auth.getUser();
+    const payload = {
+      name: partnerForm.name.trim(),
+      website_url: partnerForm.websiteUrl.trim() || null,
+      logo_url: partnerForm.logoUrl.trim() || null,
+      category: partnerForm.category.trim() || "Partner",
+      description: partnerForm.description.trim(),
+      status: partnerForm.status,
+      submitted_by: userData.user?.id || null,
+      reviewed_by: userData.user?.id || null,
+      reviewed_at: new Date().toISOString(),
+    };
+    const { data, error } = editingPartnerId
+      ? await supabase.from("partner_submissions").update(payload).eq("id", editingPartnerId).select("id,name,website_url,logo_url,category,description,status,created_at").single()
+      : await supabase.from("partner_submissions").insert(payload).select("id,name,website_url,logo_url,category,description,status,created_at").single();
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+    setPartnerSubmissions(editingPartnerId
+      ? partnerSubmissions.map((partner) => partner.id === editingPartnerId ? data : partner)
+      : [data, ...partnerSubmissions]);
+    resetPartnerForm();
+    setShowPartnerModal(false);
+    setAdminStatus(editingPartnerId ? "Partner updated." : "Partner added.");
+  };
+
+  const deletePartner = async (id: string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    if (!window.confirm("Delete this partner?")) return;
+    const { error } = await supabase.from("partner_submissions").delete().eq("id", id);
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+    setPartnerSubmissions(partnerSubmissions.filter((partner) => partner.id !== id));
+    setAdminStatus("Partner deleted.");
   };
 
   const addLearningMaterial = async (event: React.FormEvent) => {
@@ -939,6 +1050,21 @@ export function ComprehensiveAdminPanel() {
     project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     project.author.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const activeEvents = filteredEvents.filter((event) => event.status !== "archived" && event.status !== "rejected");
+  const archivedEvents = filteredEvents.filter((event) => event.status === "archived" || event.status === "rejected");
+  const pendingEventProposals = eventProposals.filter((proposal) => proposal.status === "pending" || proposal.status === "submitted");
+  const rejectedEventProposals = eventProposals.filter((proposal) => proposal.status === "rejected");
+  const activeProjects = filteredProjects.filter((project) => project.status === "published" || project.status === "approved");
+  const pendingProjects = filteredProjects.filter((project) => project.status === "pending" || project.status === "submitted" || project.status === "draft");
+  const rejectedProjects = filteredProjects.filter((project) => project.status === "rejected" || project.status === "archived");
+  const activeBlogs = blogPosts.filter((post) => post.status === "published" || post.status === "approved");
+  const pendingBlogs = blogPosts.filter((post) => post.status === "pending" || post.status === "submitted" || post.status === "draft");
+  const archivedBlogs = blogPosts.filter((post) => post.status === "archived" || post.status === "rejected");
+  const pendingGallery = gallerySubmissions.filter((item) => item.status === "pending" || item.status === "submitted");
+  const approvedGallery = gallerySubmissions.filter((item) => item.status === "approved" || item.status === "published");
+  const rejectedGallery = gallerySubmissions.filter((item) => item.status === "rejected" || item.status === "archived");
+  const activePartners = partnerSubmissions.filter((partner) => partner.status === "approved" || partner.status === "published");
+  const archivedPartners = partnerSubmissions.filter((partner) => partner.status === "archived" || partner.status === "rejected");
 
   return (
     <div className="pt-32 pb-20 px-4 md:px-6 max-w-[1600px] mx-auto min-h-screen bg-[#F4EFEB]">
@@ -1312,7 +1438,7 @@ export function ComprehensiveAdminPanel() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEvents.map((event) => (
+            {activeEvents.map((event) => (
               <BrutalCard key={event.id} color="bg-white">
                 <div className="flex items-start justify-between mb-4">
                   <BrutalBadge color={event.status === "Upcoming" ? "bg-[#2563EB]" : "bg-slate-400"}>
@@ -1364,18 +1490,18 @@ export function ComprehensiveAdminPanel() {
 
           {isFullAdmin && <div className="mt-10">
             <div className="flex items-center justify-between gap-4 mb-5">
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Proposed Events</h2>
-              <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{eventProposals.length}</BrutalBadge>
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Event Proposals</h2>
+              <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{pendingEventProposals.length}</BrutalBadge>
             </div>
             <div className="grid gap-6">
-              {eventProposals.length === 0 ? (
+              {pendingEventProposals.length === 0 ? (
                 <BrutalCard color="bg-white" className="text-center">
                   <MessageSquare size={36} className="mx-auto mb-3 text-[#2563EB]" />
-                  <h3 className="text-2xl uppercase mb-2" style={fonts.display}>No Event Proposals</h3>
-                  <p className="text-sm text-slate-600">Submitted event ideas will appear here for review.</p>
+                  <h3 className="text-2xl uppercase mb-2" style={fonts.display}>No Pending Proposals</h3>
+                  <p className="text-sm text-slate-600">New event ideas will appear here for review.</p>
                 </BrutalCard>
               ) : (
-                eventProposals.map((proposal) => (
+                pendingEventProposals.map((proposal) => (
                   <BrutalCard key={proposal.id} color="bg-white">
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div className="flex-1">
@@ -1415,6 +1541,39 @@ export function ComprehensiveAdminPanel() {
                 ))
               )}
             </div>
+            <div className="mt-8">
+              <h3 className="text-xl uppercase mb-4" style={fonts.display}>Rejected Proposals</h3>
+              <div className="grid gap-3">
+                {rejectedEventProposals.map((proposal) => (
+                  <div key={proposal.id} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div>
+                      <p className="font-bold uppercase">{proposal.title}</p>
+                      <p className="text-xs font-mono text-slate-500">{proposal.proposer} - {proposal.submittedDate}</p>
+                    </div>
+                    <BrutalBadge color="bg-[#FB7185]">Rejected</BrutalBadge>
+                  </div>
+                ))}
+                {rejectedEventProposals.length === 0 && (
+                  <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No rejected proposals.</p></BrutalCard>
+                )}
+              </div>
+            </div>
+            {archivedEvents.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-xl uppercase mb-4" style={fonts.display}>Archived Events</h3>
+                <div className="grid gap-3">
+                  {archivedEvents.map((event) => (
+                    <div key={event.id} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div>
+                        <p className="font-bold uppercase">{event.title}</p>
+                        <p className="text-xs font-mono text-slate-500">{event.date} - {event.location}</p>
+                      </div>
+                      <button onClick={() => void openEventModal(event)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>}
         </>
       )}
@@ -1487,8 +1646,9 @@ export function ComprehensiveAdminPanel() {
             </div>
           </div>
 
-          <div className="grid gap-6">
-            {filteredProjects.map((project) => (
+          <h2 className="text-2xl uppercase mb-4" style={fonts.display}>Pending Projects</h2>
+          <div className="grid gap-6 mb-10">
+            {pendingProjects.map((project) => (
               <BrutalCard key={project.id} color="bg-white">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div className="flex-1">
@@ -1535,6 +1695,47 @@ export function ComprehensiveAdminPanel() {
                 </div>
               </BrutalCard>
             ))}
+            {pendingProjects.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No pending projects.</p></BrutalCard>}
+          </div>
+
+          <h2 className="text-2xl uppercase mb-4" style={fonts.display}>Published Projects</h2>
+          <div className="grid gap-6 mb-10">
+            {activeProjects.map((project) => (
+              <BrutalCard key={project.id} color="bg-white">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>{project.title}</h3>
+                    <p className="text-sm text-slate-600 mb-3">by <span className="font-bold">{project.author}</span> - {project.submittedDate}</p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <BrutalBadge color="bg-green-500">{project.status}</BrutalBadge>
+                    <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
+                    <button onClick={() => updateProjectStatus(project.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs">Archive</button>
+                  </div>
+                </div>
+              </BrutalCard>
+            ))}
+            {activeProjects.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No published projects.</p></BrutalCard>}
+          </div>
+
+          <h2 className="text-2xl uppercase mb-4" style={fonts.display}>Rejected / Archived Projects</h2>
+          <div className="grid gap-6">
+            {rejectedProjects.map((project) => (
+              <BrutalCard key={project.id} color="bg-white">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-bold uppercase mb-1" style={fonts.display}>{project.title}</h3>
+                    <p className="text-sm text-slate-600">by <span className="font-bold">{project.author}</span></p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <BrutalBadge color="bg-[#FB7185]">{project.status}</BrutalBadge>
+                    <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
+                    <button onClick={() => updateProjectStatus(project.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs">Restore</button>
+                  </div>
+                </div>
+              </BrutalCard>
+            ))}
+            {rejectedProjects.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No rejected or archived projects.</p></BrutalCard>}
           </div>
         </>
       )}
@@ -1544,9 +1745,9 @@ export function ComprehensiveAdminPanel() {
         <div className="space-y-6">
           {selectedTab === "blogs" && (
             <>
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Blog Management</h2>
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Blog Posts</h2>
               <div className="grid gap-4">
-                {blogPosts.map((post) => (
+                {pendingBlogs.map((post) => (
                   <BrutalCard key={post.id} color="bg-white">
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div>
@@ -1567,16 +1768,55 @@ export function ComprehensiveAdminPanel() {
                     </div>
                   </BrutalCard>
                 ))}
-                {blogPosts.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No blog posts yet.</p></BrutalCard>}
+                {pendingBlogs.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No pending blog posts.</p></BrutalCard>}
+              </div>
+              <h2 className="text-2xl md:text-3xl uppercase mt-10" style={fonts.display}>Published Blog Posts</h2>
+              <div className="grid gap-4">
+                {activeBlogs.map((post) => (
+                  <BrutalCard key={post.id} color="bg-white">
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold uppercase text-lg">{post.title}</h3>
+                        <p className="text-xs font-mono text-slate-500">By {post.author} - {post.publishedDate || "date pending"}</p>
+                        <p className="text-sm text-slate-600 mt-2">{post.summary}</p>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <BrutalBadge color="bg-green-500">{post.status}</BrutalBadge>
+                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
+                        <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>
+                      </div>
+                    </div>
+                  </BrutalCard>
+                ))}
+                {activeBlogs.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No published blog posts.</p></BrutalCard>}
+              </div>
+              <h2 className="text-2xl md:text-3xl uppercase mt-10" style={fonts.display}>Archived / Rejected Blog Posts</h2>
+              <div className="grid gap-4">
+                {archivedBlogs.map((post) => (
+                  <BrutalCard key={post.id} color="bg-white">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold uppercase text-lg">{post.title}</h3>
+                        <p className="text-xs font-mono text-slate-500">By {post.author}</p>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <BrutalBadge color="bg-[#FB7185]">{post.status}</BrutalBadge>
+                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
+                        <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Restore</button>
+                      </div>
+                    </div>
+                  </BrutalCard>
+                ))}
+                {archivedBlogs.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No archived or rejected blog posts.</p></BrutalCard>}
               </div>
             </>
           )}
 
           {selectedTab === "gallery" && (
             <>
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Gallery Submissions</h2>
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Gallery Submissions</h2>
               <div className="grid md:grid-cols-2 gap-4">
-                {gallerySubmissions.map((item) => (
+                {pendingGallery.map((item) => (
                   <BrutalCard key={item.id} color="bg-white">
                     <div className="aspect-video bg-slate-100 border-2 border-[#171717] mb-4 overflow-hidden">
                       <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
@@ -1589,16 +1829,46 @@ export function ComprehensiveAdminPanel() {
                     </div>
                   </BrutalCard>
                 ))}
-                {gallerySubmissions.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No gallery submissions yet.</p></BrutalCard>}
+                {pendingGallery.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No pending gallery submissions.</p></BrutalCard>}
+              </div>
+              <h2 className="text-2xl md:text-3xl uppercase mt-10" style={fonts.display}>Approved Gallery</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {approvedGallery.map((item) => (
+                  <BrutalCard key={item.id} color="bg-white">
+                    <div className="aspect-video bg-slate-100 border-2 border-[#171717] mb-4 overflow-hidden">
+                      <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                    </div>
+                    <h3 className="font-bold uppercase">{item.title}</h3>
+                    <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
+                    <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Move to Rejected</button>
+                  </BrutalCard>
+                ))}
+                {approvedGallery.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No approved gallery items.</p></BrutalCard>}
+              </div>
+              <h2 className="text-2xl md:text-3xl uppercase mt-10" style={fonts.display}>Rejected Gallery</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {rejectedGallery.map((item) => (
+                  <BrutalCard key={item.id} color="bg-white">
+                    <h3 className="font-bold uppercase">{item.title}</h3>
+                    <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
+                    <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Restore</button>
+                  </BrutalCard>
+                ))}
+                {rejectedGallery.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No rejected gallery submissions.</p></BrutalCard>}
               </div>
             </>
           )}
 
           {selectedTab === "partners" && (
             <>
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Partner Submissions</h2>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Partners</h2>
+                <button onClick={() => openPartnerModal()} className="px-5 py-3 bg-[#2563EB] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-xs brutal-shadow brutal-shadow-hover">
+                  Add Partner
+                </button>
+              </div>
               <div className="grid gap-4">
-                {partnerSubmissions.map((partner) => (
+                {activePartners.map((partner) => (
                   <BrutalCard key={partner.id} color="bg-white">
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div>
@@ -1608,13 +1878,33 @@ export function ComprehensiveAdminPanel() {
                         {partner.website_url && <a href={partner.website_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-[#2563EB]">Open website</a>}
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Approve</button>
-                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Reject</button>
+                        <button onClick={() => openPartnerModal(partner)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
+                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>
+                        <button onClick={() => deletePartner(partner.id)} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Delete</button>
                       </div>
                     </div>
                   </BrutalCard>
                 ))}
-                {partnerSubmissions.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No partner submissions yet.</p></BrutalCard>}
+                {activePartners.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No partners added yet.</p></BrutalCard>}
+              </div>
+              <h2 className="text-2xl md:text-3xl uppercase mt-10" style={fonts.display}>Archived Partners</h2>
+              <div className="grid gap-4">
+                {archivedPartners.map((partner) => (
+                  <BrutalCard key={partner.id} color="bg-white">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold uppercase text-lg">{partner.name}</h3>
+                        <p className="text-xs font-mono text-slate-500">{partner.category || "Partner"} - {partner.status}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => openPartnerModal(partner)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
+                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Restore</button>
+                        <button onClick={() => deletePartner(partner.id)} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Delete</button>
+                      </div>
+                    </div>
+                  </BrutalCard>
+                ))}
+                {archivedPartners.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No archived partners.</p></BrutalCard>}
               </div>
             </>
           )}
@@ -2145,6 +2435,50 @@ export function ComprehensiveAdminPanel() {
                 <button
                   type="button"
                   onClick={() => { resetBlogForm(); setShowBlogModal(false); }}
+                  className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </BrutalCard>
+        </div>
+      )}
+
+      {showPartnerModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <BrutalCard className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>
+                {editingPartnerId ? "Edit Partner" : "Add Partner"}
+              </h2>
+              <button onClick={() => { resetPartnerForm(); setShowPartnerModal(false); }} className="p-2 hover:bg-slate-100 transition-all">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={savePartner}>
+              <BrutalInput label="Partner Name" value={partnerForm.name} onChange={(event: any) => setPartnerForm({ ...partnerForm, name: event.target.value })} required />
+              <BrutalInput label="Website URL" type="url" value={partnerForm.websiteUrl} onChange={(event: any) => setPartnerForm({ ...partnerForm, websiteUrl: event.target.value })} />
+              <BrutalInput label="Logo URL" type="url" value={partnerForm.logoUrl} onChange={(event: any) => setPartnerForm({ ...partnerForm, logoUrl: event.target.value })} />
+              <BrutalInput label="Category" value={partnerForm.category} onChange={(event: any) => setPartnerForm({ ...partnerForm, category: event.target.value })} placeholder="Technology Partner" />
+              <BrutalTextarea label="Description" value={partnerForm.description} onChange={(event: any) => setPartnerForm({ ...partnerForm, description: event.target.value })} required />
+              <BrutalSelect
+                label="Status"
+                value={partnerForm.status}
+                onChange={(event: any) => setPartnerForm({ ...partnerForm, status: event.target.value })}
+                options={[
+                  { value: "published", label: "Published" },
+                  { value: "approved", label: "Approved" },
+                  { value: "archived", label: "Archived" },
+                ]}
+              />
+              <div className="flex gap-3">
+                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1">
+                  <Save size={16} className="inline mr-2" /> Save Partner
+                </BrutalButton>
+                <button
+                  type="button"
+                  onClick={() => { resetPartnerForm(); setShowPartnerModal(false); }}
                   className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
                 >
                   Cancel

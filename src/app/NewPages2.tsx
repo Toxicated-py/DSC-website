@@ -837,18 +837,7 @@ export function AchievementsPage() {
 // ─── 8. PARTNERS PAGE ──────────────────────────────────────────────────────────
 
 export function PartnersPage() {
-  const navigate = useNavigate();
-  const [submittedPartners, setSubmittedPartners] = useState<any[]>([]);
-  const [showPartnerForm, setShowPartnerForm] = useState(false);
-  const [partnerStatus, setPartnerStatus] = useState("");
-  const [partnerForm, setPartnerForm] = useState({
-    name: "",
-    websiteUrl: "",
-    logoUrl: "",
-    category: "",
-    description: "",
-  });
-
+  const [adminPartners, setAdminPartners] = useState<any[]>([]);
   const fallbackPartners = [
     {
       name: "Bisup",
@@ -889,10 +878,10 @@ export function PartnersPage() {
         .in("status", ["approved", "published"])
         .order("created_at", { ascending: false });
       if (!mounted) return;
-      setSubmittedPartners((data || []).map((partner) => ({
+      setAdminPartners((data || []).map((partner) => ({
         name: partner.name,
         logo: partner.logo_url,
-        category: partner.category || "Community Partner",
+        category: partner.category || "Partner",
         description: partner.description || "",
         website: partner.website_url,
         featured: false,
@@ -905,37 +894,7 @@ export function PartnersPage() {
     };
   }, []);
 
-  const partners = [...fallbackPartners, ...submittedPartners];
-
-  const submitPartner = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setPartnerStatus("");
-    if (!isSupabaseConfigured || !supabase) {
-      setPartnerStatus("Partner applications are unavailable right now.");
-      return;
-    }
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      navigate("/login?redirect=/partners");
-      return;
-    }
-    const { error } = await supabase.from("partner_submissions").insert({
-      name: partnerForm.name.trim(),
-      website_url: partnerForm.websiteUrl.trim() || null,
-      logo_url: partnerForm.logoUrl.trim() || null,
-      category: partnerForm.category.trim() || "Community Partner",
-      description: partnerForm.description.trim(),
-      submitted_by: userData.user.id,
-      status: "pending",
-    });
-    if (error) {
-      setPartnerStatus(error.message);
-      return;
-    }
-    setPartnerForm({ name: "", websiteUrl: "", logoUrl: "", category: "", description: "" });
-    setPartnerStatus("Partner application submitted for admin approval.");
-    setShowPartnerForm(false);
-  };
+  const partners = adminPartners.length ? adminPartners : fallbackPartners;
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto">
@@ -1015,51 +974,9 @@ export function PartnersPage() {
         <p className="mb-6 max-w-2xl mx-auto">
           Interested in supporting our mission? We're always looking for partners who share our passion for empowering students through data science education.
         </p>
-        <BrutalButton color="bg-white" text="text-[#2563EB]" onClick={() => setShowPartnerForm(!showPartnerForm)}>
-          <Mail size={16} className="inline mr-2" /> Contact Us
-        </BrutalButton>
-        {showPartnerForm && (
-          <form onSubmit={submitPartner} className="mt-6 max-w-2xl mx-auto text-left text-[#171717]">
-            <div className="bg-white border-2 border-[#171717] p-5">
-              <BrutalInput
-                label="Organization Name"
-                value={partnerForm.name}
-                onChange={(event: any) => setPartnerForm({ ...partnerForm, name: event.target.value })}
-                required
-              />
-              <BrutalInput
-                label="Website URL"
-                type="url"
-                value={partnerForm.websiteUrl}
-                onChange={(event: any) => setPartnerForm({ ...partnerForm, websiteUrl: event.target.value })}
-                placeholder="https://..."
-              />
-              <BrutalInput
-                label="Logo URL"
-                type="url"
-                value={partnerForm.logoUrl}
-                onChange={(event: any) => setPartnerForm({ ...partnerForm, logoUrl: event.target.value })}
-                placeholder="https://..."
-              />
-              <BrutalInput
-                label="Category"
-                value={partnerForm.category}
-                onChange={(event: any) => setPartnerForm({ ...partnerForm, category: event.target.value })}
-                placeholder="Technology Partner"
-              />
-              <BrutalTextarea
-                label="Description"
-                value={partnerForm.description}
-                onChange={(event: any) => setPartnerForm({ ...partnerForm, description: event.target.value })}
-                required
-              />
-              <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full">
-                Submit for Review
-              </BrutalButton>
-            </div>
-          </form>
-        )}
-        {partnerStatus && <p className="mt-4 text-sm font-bold">{partnerStatus}</p>}
+        <a href="/contact" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#2563EB] border-2 border-[#171717] font-bold uppercase tracking-widest text-sm brutal-shadow brutal-shadow-hover transition-all">
+          <Mail size={16} /> Contact Us
+        </a>
       </BrutalCard>
     </div>
   );
