@@ -71,6 +71,6 @@ export async function publishBlogPost(payload: JsonRecord) {
 
 export function getPersistenceLabel(mode: "mock" | "supabase") {
   return mode === "supabase"
-    ? "Saved to Supabase."
-    : "Saved locally for now. Add Supabase keys to save across users.";
+    ? "You'll see its status in your profile."
+    : "Saved on this device for now.";
 }

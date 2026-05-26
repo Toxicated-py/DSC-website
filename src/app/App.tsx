@@ -2570,7 +2570,7 @@ function DashboardPage() {
   }, []);
 
   const userStats = [
-    { label: "Event Proposals", value: String(counts.eventProposals), icon: <Calendar size={20} />, color: "bg-[#2563EB]", trend: "Saved in Supabase" },
+    { label: "Event Proposals", value: String(counts.eventProposals), icon: <Calendar size={20} />, color: "bg-[#2563EB]", trend: "Awaiting review" },
     { label: "Projects Submitted", value: String(counts.projects), icon: <Code size={20} />, color: "bg-[#FB7185]", trend: "Your submissions" },
     { label: "Blog Posts", value: String(counts.blogPosts), icon: <FileText size={20} />, color: "bg-[#FFE800]", trend: "Published by you" },
     { label: "Member Since", value: member.memberSince, icon: <Zap size={20} />, color: "bg-[#7C3AED]", trend: "Account created" },

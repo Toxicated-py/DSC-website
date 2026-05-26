@@ -1002,7 +1002,7 @@ export function ComprehensiveAdminPanel() {
     setCertificateStatus("");
 
     if (!isSupabaseConfigured || !supabase) {
-      setCertificateStatus("Supabase is not configured.");
+      setCertificateStatus("The certificate system is not connected yet.");
       return;
     }
 
