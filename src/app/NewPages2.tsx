@@ -804,6 +804,7 @@ export function AchievementsPage() {
 
 export function PartnersPage() {
   const [adminPartners, setAdminPartners] = useState<any[]>([]);
+  const [failedLogos, setFailedLogos] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -833,6 +834,34 @@ export function PartnersPage() {
   }, []);
 
   const partners = adminPartners;
+  const renderPartnerLogo = (partner: any, className = "") => {
+    const initials = partner.name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part: string) => part[0])
+      .join("")
+      .toUpperCase();
+
+    if (partner.logo && !failedLogos[partner.name]) {
+      return (
+        <img
+          src={partner.logo}
+          alt={`${partner.name} logo`}
+          className={`max-w-full max-h-full object-contain ${className}`}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setFailedLogos((current) => ({ ...current, [partner.name]: true }))}
+        />
+      );
+    }
+
+    return (
+      <div className="w-20 h-20 bg-[#7C3AED] text-white border-2 border-[#171717] flex items-center justify-center text-2xl font-bold" style={fonts.display}>
+        {initials || partner.name[0] || "P"}
+      </div>
+    );
+  };
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto">
@@ -859,11 +888,7 @@ export function PartnersPage() {
           <div className="md:flex md:items-center md:gap-8">
             <div className="md:w-1/3 mb-6 md:mb-0">
               <div className="bg-white border-2 border-[#171717] p-8 flex items-center justify-center h-48">
-                {partner.logo ? (
-                  <img src={partner.logo} alt={partner.name} className="max-w-full max-h-full object-contain" />
-                ) : (
-                  <div className="text-4xl font-bold" style={fonts.display}>{partner.name}</div>
-                )}
+                {renderPartnerLogo(partner)}
               </div>
             </div>
             <div className="md:w-2/3">
@@ -895,6 +920,9 @@ export function PartnersPage() {
       <div className="grid md:grid-cols-2 gap-6 mb-12">
         {partners.filter(p => !p.featured).map((partner, idx) => (
           <BrutalCard key={idx}>
+            <div className="h-28 bg-white border-2 border-[#171717] mb-4 p-5 flex items-center justify-center">
+              {renderPartnerLogo(partner)}
+            </div>
             <BrutalBadge color="bg-[#7C3AED]" className="mb-3">{partner.category}</BrutalBadge>
             <h3 className="text-2xl font-bold uppercase mb-2" style={fonts.display}>{partner.name}</h3>
             <p className="text-sm text-slate-600 mb-4">{partner.description}</p>
