@@ -125,6 +125,7 @@ export function ComprehensiveAdminPanel() {
     certificateUrl: "",
   });
   const [editingCertificateId, setEditingCertificateId] = useState("");
+  const [issuingBulkCertificates, setIssuingBulkCertificates] = useState(false);
   const [adminStatus, setAdminStatus] = useState("");
   const [eventProposals, setEventProposals] = useState<any[]>([]);
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
@@ -276,7 +277,7 @@ export function ComprehensiveAdminPanel() {
               .eq("id", userData.user.id),
         supabase
           .from("certificates")
-          .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),events:event_id(title)")
+          .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
           .order("created_at", { ascending: false }),
         projectQuery,
         supabase
@@ -304,7 +305,7 @@ export function ComprehensiveAdminPanel() {
           .order("created_at", { ascending: false }),
         supabase
           .from("event_registrations")
-          .select("id,event_id,status,registered_at,checked_in_at"),
+          .select("id,event_id,user_id,status,registered_at,checked_in_at,profiles:user_id(id,full_name,email)"),
         supabase
           .from("site_settings")
           .select("value")
@@ -512,6 +513,24 @@ export function ComprehensiveAdminPanel() {
       issuerName: "Data Science Club",
       issuedAt: "",
       certificateUrl: "",
+    });
+  };
+
+  const applyCertificateEvent = (eventId: string) => {
+    const selectedEvent = events.find((event) => event.id === eventId);
+    const eventCertificateType = selectedEvent?.category === "COMPETITION"
+      ? "Competition"
+      : selectedEvent?.category === "SEMINAR"
+        ? "Participation"
+        : "Workshop";
+    setCertificateForm({
+      ...certificateForm,
+      eventId,
+      title: selectedEvent && !editingCertificateId
+        ? `${selectedEvent.title} Certificate of Participation`
+        : certificateForm.title,
+      certificateType: selectedEvent ? eventCertificateType : certificateForm.certificateType,
+      issuedAt: certificateForm.issuedAt || new Date().toISOString().slice(0, 10),
     });
   };
 
@@ -1075,6 +1094,25 @@ export function ComprehensiveAdminPanel() {
       certificate_url: certificateForm.certificateUrl || null,
       status: "approved",
     };
+
+    if (!editingCertificateId && certificateForm.eventId) {
+      const { data: duplicate, error: duplicateError } = await supabase
+        .from("certificates")
+        .select("id")
+        .eq("recipient_id", certificateForm.recipientId)
+        .eq("event_id", certificateForm.eventId)
+        .neq("status", "archived")
+        .maybeSingle();
+      if (duplicateError) {
+        setCertificateStatus(duplicateError.message);
+        return;
+      }
+      if (duplicate) {
+        setCertificateStatus("This member already has this certificate for the selected event.");
+        return;
+      }
+    }
+
     const { error } = editingCertificateId
       ? await supabase.from("certificates").update(payload).eq("id", editingCertificateId)
       : await supabase.from("certificates").insert(payload);
@@ -1089,9 +1127,98 @@ export function ComprehensiveAdminPanel() {
 
     const { data: certs } = await supabase
       .from("certificates")
-      .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),events:event_id(title)")
+      .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
       .order("created_at", { ascending: false });
     setIssuedCertificates(certs || []);
+  };
+
+  const issueEventCertificates = async () => {
+    setCertificateStatus("");
+    if (!isSupabaseConfigured || !supabase) {
+      setCertificateStatus("The certificate system is unavailable right now.");
+      return;
+    }
+    if (!certificateForm.eventId) {
+      setCertificateStatus("Select an event before issuing bulk certificates.");
+      return;
+    }
+    if (!certificateForm.title.trim() || !certificateForm.issuerName.trim()) {
+      setCertificateStatus("Certificate title and issuer are required.");
+      return;
+    }
+
+    const attendeesForEvent = eventRegistrations.filter((registration) =>
+      registration.event_id === certificateForm.eventId &&
+      (registration.status === "checked_in" || registration.checked_in_at)
+    );
+    if (!attendeesForEvent.length) {
+      setCertificateStatus("No checked-in attendees found for this event.");
+      return;
+    }
+
+    setIssuingBulkCertificates(true);
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      setIssuingBulkCertificates(false);
+      navigate("/login?redirect=/admin");
+      return;
+    }
+
+    const recipientIds = attendeesForEvent.map((registration) => registration.user_id).filter(Boolean);
+    const { data: existingCerts, error: existingError } = await supabase
+      .from("certificates")
+      .select("recipient_id")
+      .eq("event_id", certificateForm.eventId)
+      .in("recipient_id", recipientIds)
+      .neq("status", "archived");
+
+    if (existingError) {
+      setIssuingBulkCertificates(false);
+      setCertificateStatus(existingError.message);
+      return;
+    }
+
+    const existingRecipients = new Set((existingCerts || []).map((certificate) => certificate.recipient_id));
+    const rows = attendeesForEvent
+      .filter((registration) => registration.user_id && !existingRecipients.has(registration.user_id))
+      .map((registration) => {
+        const recipient = Array.isArray(registration.profiles) ? registration.profiles[0] : registration.profiles;
+        return {
+          recipient_id: registration.user_id,
+          event_id: certificateForm.eventId,
+          issued_by: userData.user.id,
+          title: certificateForm.title,
+          certificate_type: certificateForm.certificateType,
+          issuer_name: certificateForm.issuerName,
+          description: `This certifies that ${recipient?.full_name || recipient?.email || "the participant"} participated in ${events.find((event) => event.id === certificateForm.eventId)?.title || "the event"}.`,
+          issued_at: certificateForm.issuedAt || new Date().toISOString().slice(0, 10),
+          certificate_url: certificateForm.certificateUrl || null,
+          status: "approved",
+        };
+      });
+
+    if (!rows.length) {
+      setIssuingBulkCertificates(false);
+      setCertificateStatus("Certificates were already issued for all checked-in attendees.");
+      return;
+    }
+
+    const { error } = await supabase.from("certificates").insert(rows);
+    if (error) {
+      setIssuingBulkCertificates(false);
+      setCertificateStatus(error.message);
+      return;
+    }
+
+    const { data: certs } = await supabase
+      .from("certificates")
+      .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
+      .order("created_at", { ascending: false });
+
+    setIssuedCertificates(certs || []);
+    setIssuingBulkCertificates(false);
+    const skipped = attendeesForEvent.length - rows.length;
+    setCertificateStatus(`Issued ${rows.length} certificate${rows.length === 1 ? "" : "s"}${skipped ? `, skipped ${skipped} duplicate${skipped === 1 ? "" : "s"}` : ""}.`);
   };
 
   const editCertificate = (certificate: any) => {
@@ -1174,6 +1301,17 @@ export function ComprehensiveAdminPanel() {
     .filter((event) => event.status === "approved" || event.status === "published")
     .sort((a, b) => (b.attendees || 0) - (a.attendees || 0))
     .slice(0, 5);
+  const selectedCertificateEvent = events.find((event) => event.id === certificateForm.eventId);
+  const certificateEventAttendees = eventRegistrations.filter((registration) =>
+    registration.event_id === certificateForm.eventId &&
+    (registration.status === "checked_in" || registration.checked_in_at)
+  );
+  const certificatePreviewRecipient = certificateForm.recipientId
+    ? profileOptions.find((profile) => profile.id === certificateForm.recipientId)
+    : (certificateEventAttendees.length
+        ? (Array.isArray(certificateEventAttendees[0].profiles) ? certificateEventAttendees[0].profiles[0] : certificateEventAttendees[0].profiles)
+        : null);
+  const certificatePreviewName = certificatePreviewRecipient?.full_name || certificatePreviewRecipient?.email || "Participant Name";
 
   return (
     <div className="pt-32 pb-20 px-4 md:px-6 max-w-[1600px] mx-auto min-h-screen bg-[#F4EFEB]">
@@ -2148,10 +2286,10 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {selectedTab === "certificates" && (
-        <div className="grid lg:grid-cols-[420px_1fr] gap-6">
+        <div className="grid xl:grid-cols-[480px_1fr] gap-6">
           <BrutalCard color="bg-white">
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>
-              {editingCertificateId ? "Edit Certificate" : "Issue Certificate"}
+              {editingCertificateId ? "Edit Certificate" : "Certificate Studio"}
             </h2>
             {!isCertificateAdmin ? (
               <div className="border-2 border-[#171717] bg-[#FFE800] p-4">
@@ -2162,15 +2300,14 @@ export function ComprehensiveAdminPanel() {
             ) : (
               <form onSubmit={handleIssueCertificate}>
                 <BrutalSelect
-                  label="Member"
-                  value={certificateForm.recipientId}
-                  onChange={(event: any) => setCertificateForm({ ...certificateForm, recipientId: event.target.value })}
-                  required
+                  label="Related Event"
+                  value={certificateForm.eventId}
+                  onChange={(event: any) => applyCertificateEvent(event.target.value)}
                   options={[
-                    { value: "", label: "Select member" },
-                    ...profileOptions.map((profile) => ({
-                      value: profile.id,
-                      label: `${profile.full_name || "Member"} (${profile.email})`,
+                    { value: "", label: "Select event" },
+                    ...events.map((event) => ({
+                      value: event.id,
+                      label: event.title,
                     })),
                   ]}
                 />
@@ -2178,20 +2315,8 @@ export function ComprehensiveAdminPanel() {
                   label="Certificate Title"
                   value={certificateForm.title}
                   onChange={(event: any) => setCertificateForm({ ...certificateForm, title: event.target.value })}
-                  placeholder="Machine Learning Fundamentals"
+                  placeholder="Certificate of Participation"
                   required
-                />
-                <BrutalSelect
-                  label="Related Event"
-                  value={certificateForm.eventId}
-                  onChange={(event: any) => setCertificateForm({ ...certificateForm, eventId: event.target.value })}
-                  options={[
-                    { value: "", label: "No event" },
-                    ...events.map((event) => ({
-                      value: event.id,
-                      label: event.title,
-                    })),
-                  ]}
                 />
                 <BrutalSelect
                   label="Type"
@@ -2202,6 +2327,19 @@ export function ComprehensiveAdminPanel() {
                     { value: "Competition", label: "Competition" },
                     { value: "Course", label: "Course" },
                     { value: "Participation", label: "Participation" },
+                  ]}
+                />
+                <BrutalSelect
+                  label="Single Member"
+                  value={certificateForm.recipientId}
+                  onChange={(event: any) => setCertificateForm({ ...certificateForm, recipientId: event.target.value })}
+                  required={Boolean(editingCertificateId)}
+                  options={[
+                    { value: "", label: "Select only for single issue" },
+                    ...profileOptions.map((profile) => ({
+                      value: profile.id,
+                      label: `${profile.full_name || "Member"} (${profile.email})`,
+                    })),
                   ]}
                 />
                 <BrutalInput
@@ -2222,12 +2360,47 @@ export function ComprehensiveAdminPanel() {
                   onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateUrl: event.target.value })}
                   placeholder="https://..."
                 />
+                <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-5 brutal-shadow">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Certificate Draft</p>
+                  <div className="border-4 border-[#171717] bg-white p-6 text-center">
+                    <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#2563EB]">Data Science Club</p>
+                    <h3 className="mt-3 text-3xl uppercase leading-tight" style={fonts.display}>
+                      {certificateForm.title || "Certificate of Participation"}
+                    </h3>
+                    <p className="mt-5 text-sm uppercase tracking-widest font-bold">Presented to</p>
+                    <p className="mt-2 text-4xl leading-none" style={fonts.serif}>{certificatePreviewName}</p>
+                    <p className="mt-5 text-sm leading-6 text-slate-600">
+                      For participating in <b>{selectedCertificateEvent?.title || "the selected event"}</b>
+                      {selectedCertificateEvent?.date ? ` on ${selectedCertificateEvent.date}` : ""}.
+                    </p>
+                    <div className="mt-6 flex items-end justify-between gap-4 text-left">
+                      <div>
+                        <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase">{certificateForm.issuerName || "Issuer"}</p>
+                        <p className="text-[10px] font-mono text-slate-500">Issuer</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase">{certificateForm.issuedAt || "Issue date"}</p>
+                        <p className="text-[10px] font-mono text-slate-500">Issued Date</p>
+                      </div>
+                    </div>
+                  </div>
+                  {certificateForm.eventId && (
+                    <p className="mt-4 text-xs font-mono text-slate-500">
+                      Bulk issue will send this same certificate to {certificateEventAttendees.length} checked-in attendee{certificateEventAttendees.length === 1 ? "" : "s"} with each member's own name.
+                    </p>
+                  )}
+                </div>
                 {certificateStatus && (
                   <p className="mb-4 text-xs font-bold text-[#2563EB]">{certificateStatus}</p>
                 )}
-                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full">
-                  <Award size={16} className="inline mr-2" /> {editingCertificateId ? "Update Certificate" : "Issue Certificate"}
-                </BrutalButton>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full text-xs" disabled={!certificateForm.recipientId}>
+                    <Award size={16} className="inline mr-2" /> {editingCertificateId ? "Update Single" : "Issue Single"}
+                  </BrutalButton>
+                  <BrutalButton type="button" color="bg-[#FFE800]" className="w-full text-xs" onClick={issueEventCertificates} disabled={issuingBulkCertificates || !certificateForm.eventId}>
+                    <Users size={16} className="inline mr-2" /> {issuingBulkCertificates ? "Issuing..." : "Issue Checked-In"}
+                  </BrutalButton>
+                </div>
                 {editingCertificateId && (
                   <button
                     type="button"
@@ -2255,6 +2428,7 @@ export function ComprehensiveAdminPanel() {
               <div className="space-y-3">
                 {issuedCertificates.map((certificate) => {
                   const recipient = Array.isArray(certificate.profiles) ? certificate.profiles[0] : certificate.profiles;
+                  const issuer = Array.isArray(certificate.issuer) ? certificate.issuer[0] : certificate.issuer;
                   return (
                     <div key={certificate.id} className="border-2 border-[#171717] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                       <div>
@@ -2264,6 +2438,9 @@ export function ComprehensiveAdminPanel() {
                         </p>
                         <p className="text-xs font-mono text-slate-500">
                           Issuer: {certificate.issuer_name || "Data Science Club"} - Created: {certificate.created_at ? new Date(certificate.created_at).toLocaleString() : "unknown"}
+                        </p>
+                        <p className="text-xs font-mono text-slate-500">
+                          Issued by: {issuer?.full_name || issuer?.email || "Unknown admin"} - Issued time: {certificate.created_at ? new Date(certificate.created_at).toLocaleString() : "unknown"}
                         </p>
                         {certificate.events && (
                           <p className="text-xs font-mono text-slate-500">

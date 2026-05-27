@@ -395,6 +395,9 @@ create index if not exists blog_posts_author_id_idx on public.blog_posts(author_
 create index if not exists certificates_recipient_id_idx on public.certificates(recipient_id);
 create index if not exists certificates_issued_by_idx on public.certificates(issued_by);
 create index if not exists certificates_event_id_idx on public.certificates(event_id);
+create unique index if not exists certificates_unique_event_recipient
+  on public.certificates(event_id, recipient_id)
+  where event_id is not null and status <> 'archived';
 create index if not exists gallery_submissions_submitted_by_idx on public.gallery_submissions(submitted_by);
 create index if not exists gallery_submissions_reviewed_by_idx on public.gallery_submissions(reviewed_by);
 create index if not exists partner_submissions_submitted_by_idx on public.partner_submissions(submitted_by);

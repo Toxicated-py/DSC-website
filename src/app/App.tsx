@@ -1373,12 +1373,31 @@ function EventDetailPage() {
       setManagerStatus("Could not find attendee profile IDs for certificates.");
       return;
     }
-    const { error } = await supabase.from("certificates").insert(rows);
+    const recipientIds = rows.map((row) => row.recipient_id);
+    const { data: existingCerts, error: existingError } = await supabase
+      .from("certificates")
+      .select("recipient_id")
+      .eq("event_id", id)
+      .in("recipient_id", recipientIds)
+      .neq("status", "archived");
+    if (existingError) {
+      setManagerStatus(existingError.message);
+      return;
+    }
+    const existingRecipients = new Set((existingCerts || []).map((certificate) => certificate.recipient_id));
+    const newRows = rows.filter((row) => !existingRecipients.has(row.recipient_id));
+    if (!newRows.length) {
+      setManagerStatus("Certificates were already issued for all checked-in attendees.");
+      return;
+    }
+
+    const { error } = await supabase.from("certificates").insert(newRows);
     if (error) {
       setManagerStatus(error.message);
       return;
     }
-    setManagerStatus(`Issued ${rows.length} certificate${rows.length === 1 ? "" : "s"}.`);
+    const skipped = rows.length - newRows.length;
+    setManagerStatus(`Issued ${newRows.length} certificate${newRows.length === 1 ? "" : "s"}${skipped ? `, skipped ${skipped} duplicate${skipped === 1 ? "" : "s"}` : ""}.`);
   };
 
   const reserveSpot = async () => {
