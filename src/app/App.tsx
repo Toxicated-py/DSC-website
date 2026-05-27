@@ -842,7 +842,7 @@ function HomePage() {
             {/* Projects teaser */}
             <Link
               to={homeProject ? `/projects/${homeProject.id}` : "/projects"}
-              className="block bg-[#7C3AED] border-2 border-[#171717] p-5 brutal-shadow brutal-shadow-hover rotate-1 transition-all"
+              className="block bg-[#7C3AED] border-2 border-[#171717] p-5 brutal-shadow brutal-shadow-hover rotate-1 transition-all group cursor-pointer"
               aria-label={homeProject ? `Open project ${homeProject.title}` : "Open projects"}
             >
               <span className="text-[10px] font-bold uppercase tracking-widest text-white/70" style={fonts.sans}>Projects</span>
@@ -851,6 +851,9 @@ function HomePage() {
                 {(homeProject?.technologies?.length ? homeProject.technologies : [homeProject?.category || "Admin approved"]).map((t: string) => (
                   <span key={t} className="px-2 py-0.5 bg-white/20 text-white text-[10px] font-bold uppercase border border-white/30">{t}</span>
                 ))}
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/80">
+                View Project <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>
           </div>
