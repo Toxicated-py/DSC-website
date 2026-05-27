@@ -3010,20 +3010,6 @@ function DashboardPage() {
             </div>
           </div>
 
-          {/* Achievement Card */}
-          <BrutalCard color="bg-[#7C3AED]" className="text-white">
-            <div className="flex items-start justify-between mb-3 md:mb-4">
-              <Award size={24} className="md:w-8 md:h-8" />
-              <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]" className="text-[10px]">PROFILE</BrutalBadge>
-            </div>
-            <h3 className="text-xl md:text-2xl uppercase mb-2" style={fonts.display}>Certificates</h3>
-            <p className="text-xs md:text-sm opacity-90 mb-3 md:mb-4">Your issued certificates and verified records appear on the certificates page.</p>
-            <div className="flex items-center gap-1 md:gap-2 text-xs font-mono opacity-80">
-              <Star size={12} />
-              <Star size={12} />
-              <Star size={12} />
-            </div>
-          </BrutalCard>
         </div>
       </div>
 
