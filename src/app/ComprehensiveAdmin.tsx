@@ -121,6 +121,9 @@ const certificateTemplateOptions = [
   { value: "participation", label: "Participation", accent: "bg-[#FFE800]", surface: "bg-white", text: "text-[#171717]" },
 ];
 
+const certificateCredentialSelect = "id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)";
+const certificateLegacySelect = "id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),events:event_id(title)";
+
 export function ComprehensiveAdminPanel() {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState("overview");
@@ -283,7 +286,7 @@ export function ComprehensiveAdminPanel() {
         eventQuery = eventQuery.eq("created_by", userData.user.id);
       }
 
-      const [{ data: profiles }, { data: certs }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }, { data: blogRows }, { data: galleryRows }, { data: partnerRows }, { data: resourceRows }, { data: registrationRows }, { data: settingsRow }] = await Promise.all([
+      const [{ data: profiles }, { data: certs, error: certsError }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }, { data: blogRows }, { data: galleryRows }, { data: partnerRows }, { data: resourceRows }, { data: registrationRows }, { data: settingsRow }] = await Promise.all([
         isAdmin
           ? supabase
               .from("profiles")
@@ -295,7 +298,7 @@ export function ComprehensiveAdminPanel() {
               .eq("id", userData.user.id),
         supabase
           .from("certificates")
-          .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
+          .select(certificateCredentialSelect)
           .order("created_at", { ascending: false }),
         projectQuery,
         supabase
@@ -332,6 +335,16 @@ export function ComprehensiveAdminPanel() {
       ]);
 
       if (!mounted) return;
+      let certificateRows = certs || [];
+      if (certsError) {
+        setCertificateStatus(formatCertificateError(certsError.message));
+        const { data: legacyCerts } = await supabase
+          .from("certificates")
+          .select(certificateLegacySelect)
+          .order("created_at", { ascending: false });
+        if (!mounted) return;
+        certificateRows = legacyCerts || [];
+      }
       const mappedProfiles = (profiles || []).map((profile) => ({
         id: profile.id,
         name: profile.full_name || profile.email || "Member",
@@ -347,7 +360,7 @@ export function ComprehensiveAdminPanel() {
       setUsers(mappedProfiles);
       setProfileOptions(profiles || []);
       setDesignationOptions(designationRows || []);
-      setIssuedCertificates(certs || []);
+      setIssuedCertificates(certificateRows);
       setProjects((projectRows || []).map((project) => {
         const author = Array.isArray(project.profiles) ? project.profiles[0] : project.profiles;
         return {
@@ -1156,7 +1169,7 @@ export function ComprehensiveAdminPanel() {
 
     const { data: certs } = await supabase
       .from("certificates")
-      .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
+      .select(certificateCredentialSelect)
       .order("created_at", { ascending: false });
     setIssuedCertificates(certs || []);
   };
@@ -1245,7 +1258,7 @@ export function ComprehensiveAdminPanel() {
 
     const { data: certs } = await supabase
       .from("certificates")
-      .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
+      .select(certificateCredentialSelect)
       .order("created_at", { ascending: false });
 
     setIssuedCertificates(certs || []);
@@ -1279,6 +1292,31 @@ export function ComprehensiveAdminPanel() {
     }
     setIssuedCertificates(issuedCertificates.filter((certificate) => certificate.id !== id));
     setCertificateStatus("Certificate deleted.");
+  };
+
+  const setCertificateRevoked = async (certificate: any, revoked: boolean) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    setCertificateStatus("");
+    const patch = revoked
+      ? { revoked_at: new Date().toISOString(), status: "archived" }
+      : { revoked_at: null, status: "approved" };
+    const { error } = await supabase.from("certificates").update(patch).eq("id", certificate.id);
+    if (error) {
+      setCertificateStatus(formatCertificateError(error.message));
+      return;
+    }
+    setIssuedCertificates(issuedCertificates.map((row) => row.id === certificate.id ? { ...row, ...patch } : row));
+    setCertificateStatus(revoked ? "Certificate revoked. The verify page will no longer validate it." : "Certificate restored and active again.");
+  };
+
+  const copyCertificateLink = async (certificate: any) => {
+    if (!certificate.verification_code) {
+      setCertificateStatus("Run the certificate migration before verification links are available.");
+      return;
+    }
+    const url = `${window.location.origin}/verify/${certificate.verification_code}`;
+    await navigator.clipboard.writeText(url);
+    setCertificateStatus("Verification link copied.");
   };
 
   const filteredUsers = users.filter(user =>
@@ -1347,6 +1385,8 @@ export function ComprehensiveAdminPanel() {
         : null);
   const certificatePreviewName = certificatePreviewRecipient?.full_name || certificatePreviewRecipient?.email || "Participant Name";
   const selectedCertificateTemplate = certificateTemplateOptions.find((template) => template.value === certificateForm.templateStyle) || certificateTemplateOptions[0];
+  const activeCredentialCount = issuedCertificates.filter((certificate) => !certificate.revoked_at && certificate.status !== "archived").length;
+  const revokedCredentialCount = issuedCertificates.filter((certificate) => certificate.revoked_at || certificate.status === "archived").length;
 
   return (
     <div className="pt-32 pb-20 px-4 md:px-6 max-w-[1600px] mx-auto min-h-screen bg-[#F4EFEB]">
@@ -2463,10 +2503,23 @@ export function ComprehensiveAdminPanel() {
           </BrutalCard>
 
           <BrutalCard color="bg-white">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Issued Certificates</h2>
-              <BrutalBadge color="bg-[#2563EB]">{issuedCertificates.length}</BrutalBadge>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+              <div>
+                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Credential Registry</h2>
+                <p className="text-xs font-mono text-slate-500 mt-1">
+                  {activeCredentialCount} active - {revokedCredentialCount} revoked
+                </p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <BrutalBadge color="bg-[#2563EB]">{issuedCertificates.length} total</BrutalBadge>
+                <BrutalBadge color="bg-green-500">{activeCredentialCount} active</BrutalBadge>
+              </div>
             </div>
+            {certificateStatus && (
+              <div className="mb-4 border-2 border-[#171717] bg-[#FFE800] p-3 text-xs font-bold uppercase tracking-widest">
+                {certificateStatus}
+              </div>
+            )}
             {issuedCertificates.length === 0 ? (
               <div className="border-2 border-dashed border-[#171717] p-8 text-center">
                 <Award size={32} className="mx-auto mb-3 text-[#2563EB]" />
@@ -2477,12 +2530,19 @@ export function ComprehensiveAdminPanel() {
                 {issuedCertificates.map((certificate) => {
                   const recipient = Array.isArray(certificate.profiles) ? certificate.profiles[0] : certificate.profiles;
                   const issuer = Array.isArray(certificate.issuer) ? certificate.issuer[0] : certificate.issuer;
+                  const isRevoked = Boolean(certificate.revoked_at || certificate.status === "archived");
+                  const verifyUrl = certificate.verification_code ? `${window.location.origin}/verify/${certificate.verification_code}` : "";
                   return (
-                    <div key={certificate.id} className="border-2 border-[#171717] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div>
-                        <h3 className="font-bold uppercase">{certificate.title}</h3>
+                    <div key={certificate.id} className={`border-2 border-[#171717] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 ${isRevoked ? "bg-slate-100 opacity-80" : "bg-white"}`}>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <h3 className="font-bold uppercase">{certificate.title}</h3>
+                          <BrutalBadge color={isRevoked ? "bg-slate-500" : "bg-green-500"}>
+                            {isRevoked ? "Revoked" : "Verified"}
+                          </BrutalBadge>
+                        </div>
                         <p className="text-xs font-mono text-slate-500">
-                          {recipient?.full_name || recipient?.email || "Member"} - issued {certificate.issued_at || "date pending"}
+                          Recipient: {certificate.recipient_name_snapshot || recipient?.full_name || recipient?.email || "Member"} - issued {certificate.issued_at || "date pending"}
                         </p>
                         <p className="text-xs font-mono text-slate-500">
                           Issuer: {certificate.issuer_name || "Data Science Club"} - Created: {certificate.created_at ? new Date(certificate.created_at).toLocaleString() : "unknown"}
@@ -2492,16 +2552,17 @@ export function ComprehensiveAdminPanel() {
                         </p>
                         {certificate.events && (
                           <p className="text-xs font-mono text-slate-500">
-                            Event: {Array.isArray(certificate.events) ? certificate.events[0]?.title : certificate.events.title}
+                            Event: {certificate.event_title_snapshot || (Array.isArray(certificate.events) ? certificate.events[0]?.title : certificate.events.title)}
                           </p>
                         )}
                         <p className="text-xs font-mono text-slate-500">
                           Verify code: {certificate.verification_code || "Pending migration"}
                         </p>
+                        {verifyUrl && <p className="text-xs font-mono text-slate-500 break-all">Verify URL: {verifyUrl}</p>}
                       </div>
                       <div className="flex gap-2 flex-wrap">
                         <BrutalBadge color="bg-[#7C3AED]">{certificate.certificate_type}</BrutalBadge>
-                        <BrutalBadge color="bg-green-500">{certificate.status}</BrutalBadge>
+                        <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{certificate.template_style || "legacy"}</BrutalBadge>
                         {certificate.verification_code && (
                           <button
                             type="button"
@@ -2511,12 +2572,28 @@ export function ComprehensiveAdminPanel() {
                             View
                           </button>
                         )}
+                        {certificate.verification_code && (
+                          <button
+                            type="button"
+                            onClick={() => copyCertificateLink(certificate)}
+                            className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
+                          >
+                            Copy Link
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => editCertificate(certificate)}
                           className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
                         >
                           Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCertificateRevoked(certificate, !isRevoked)}
+                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#7C3AED] hover:text-white transition-all font-bold uppercase text-xs"
+                        >
+                          {isRevoked ? "Restore" : "Revoke"}
                         </button>
                         <button
                           type="button"
