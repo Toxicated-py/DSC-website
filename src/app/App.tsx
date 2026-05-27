@@ -364,11 +364,8 @@ function Nav() {
       ? [
           {
             label: "Resources",
-            dropdown: [
-              { label: "Learning Materials", path: "/resources", icon: <BookOpen size={14} /> },
-              { label: "Certificates", path: "/certificates", icon: <Award size={14} /> },
-              { label: "Achievements", path: "/achievements", icon: <Trophy size={14} /> },
-            ],
+            path: "/resources",
+            icon: <BookOpen size={13} />,
           } as NavItem,
         ]
       : [{ label: "Resources", path: "/resources", icon: <BookOpen size={13} /> } as NavItem]),
@@ -412,7 +409,7 @@ function Nav() {
   const canOpenAdmin = currentUser.role === "admin" || currentUser.role === "organizer";
 
   const dropdownActivePaths: Record<string, string[]> = {
-    Resources: ["/resources", "/certificates", "/achievements"],
+    Resources: ["/resources"],
     Community: ["/about", "/team", "/gallery", "/partners", "/contact"],
   };
 
@@ -691,10 +688,80 @@ function Layout() {
 
 // ─── Pages ─────────────────────────────────────────────────────────────────────
 
-const heroEvents: any[] = [
-];
-
 function HomePage() {
+  const [homeEvents, setHomeEvents] = useState<any[]>([]);
+  const [homeProject, setHomeProject] = useState<any>(null);
+  const [homeStats, setHomeStats] = useState({
+    members: 0,
+    events: 0,
+    projects: 0,
+  });
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadHomePageData() {
+      if (!isSupabaseConfigured || !supabase) return;
+
+      const [eventsList, eventCount, projectCount, memberCount, latestProject] = await Promise.all([
+        supabase
+          .from("events")
+          .select("id,title,event_type,start_time,capacity")
+          .in("status", ["approved", "published"])
+          .order("start_time", { ascending: true })
+          .limit(4),
+        supabase
+          .from("events")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["approved", "published"]),
+        supabase
+          .from("projects")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["approved", "published"]),
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .in("membership_status", ["approved", "published"]),
+        supabase
+          .from("projects")
+          .select("id,title,category,technologies")
+          .in("status", ["approved", "published"])
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(1),
+      ]);
+
+      if (!mounted) return;
+
+      const colors = ["bg-[#2563EB]", "bg-[#FB7185]", "bg-[#171717]", "bg-[#7C3AED]"];
+      setHomeEvents((eventsList.data || []).map((event, index) => {
+        const start = event.start_time ? new Date(event.start_time) : null;
+        return {
+          id: event.id,
+          num: start ? start.toLocaleDateString(undefined, { day: "2-digit" }) : "--",
+          month: start ? start.toLocaleDateString(undefined, { month: "short", year: "numeric" }).toUpperCase() : "DATE TBD",
+          label: event.title,
+          type: (event.event_type || "EVENT").toUpperCase(),
+          capacity: event.capacity,
+          color: colors[index % colors.length],
+        };
+      }));
+      setHomeProject(latestProject.data?.[0] || null);
+      setHomeStats({
+        members: memberCount.count || 0,
+        events: eventCount.count || 0,
+        projects: projectCount.count || 0,
+      });
+    }
+
+    loadHomePageData();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const nextEvent = homeEvents[0];
+
   return (
     <>
       {/* ── Hero ── */}
@@ -757,23 +824,23 @@ function HomePage() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400" style={fonts.sans}>Next Up</span>
               <div className="mt-2 flex items-end justify-between">
                 <div>
-                  <p className="text-4xl font-bold text-[#2563EB] leading-none" style={fonts.display}>--</p>
-                  <p className="text-xs font-bold uppercase text-slate-500 mt-1">No event yet</p>
+                  <p className="text-4xl font-bold text-[#2563EB] leading-none" style={fonts.display}>{nextEvent?.num || "--"}</p>
+                  <p className="text-xs font-bold uppercase text-slate-500 mt-1">{nextEvent?.month || "No event yet"}</p>
                 </div>
-                <BrutalBadge color="bg-[#2563EB]">Event</BrutalBadge>
+                <BrutalBadge color="bg-[#2563EB]">{nextEvent?.type || "Event"}</BrutalBadge>
               </div>
-              <p className="text-sm font-bold mt-3 text-[#171717] uppercase" style={fonts.display}>Approved events will appear here</p>
+              <p className="text-sm font-bold mt-3 text-[#171717] uppercase" style={fonts.display}>{nextEvent?.label || "Approved events will appear here"}</p>
               <div className="flex items-center gap-1 text-xs font-mono text-slate-400 mt-1">
-                <Users size={12} /> Club event
+                <Users size={12} /> {nextEvent?.capacity ? `${nextEvent.capacity} spots` : "Club event"}
               </div>
             </div>
 
             {/* Projects teaser */}
             <div className="bg-[#7C3AED] border-2 border-[#171717] p-5 brutal-shadow rotate-1">
               <span className="text-[10px] font-bold uppercase tracking-widest text-white/70" style={fonts.sans}>Projects</span>
-              <p className="text-white font-bold text-xl leading-tight mt-2" style={fonts.display}>PUBLISHED PROJECTS</p>
+              <p className="text-white font-bold text-xl leading-tight mt-2" style={fonts.display}>{homeProject?.title || "PUBLISHED PROJECTS"}</p>
               <div className="flex gap-2 mt-3 flex-wrap">
-                {["Admin approved"].map(t => (
+                {(homeProject?.technologies?.length ? homeProject.technologies : [homeProject?.category || "Admin approved"]).map((t: string) => (
                   <span key={t} className="px-2 py-0.5 bg-white/20 text-white text-[10px] font-bold uppercase border border-white/30">{t}</span>
                 ))}
               </div>
@@ -785,9 +852,14 @@ function HomePage() {
         <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-10 w-full mt-12 md:mt-16">
           <div className="border-t-2 border-[#171717] pt-1">
             <div className="grid grid-cols-2 md:grid-cols-4">
-              {heroEvents.map((ev, i) => (
+              {homeEvents.length === 0 ? (
+                <div className="col-span-2 md:col-span-4 bg-white p-6 text-center">
+                  <p className="font-bold uppercase">No published events yet.</p>
+                  <p className="mt-1 text-xs font-mono text-slate-500">Approved events will appear here automatically.</p>
+                </div>
+              ) : homeEvents.map((ev, i) => (
                 <Link
-                  to="/events"
+                  to={`/events/${ev.id}`}
                   key={i}
                   className={`relative ${ev.color} border-r-2 border-[#171717] last:border-r-0 p-5 md:p-6 flex flex-col text-white hover:opacity-90 transition-opacity group`}
                   style={{ borderBottomWidth: 0 }}
@@ -796,6 +868,7 @@ function HomePage() {
                     <span className="absolute top-3 right-3 bg-[#FFE800] text-[#171717] text-[9px] font-bold uppercase px-1.5 py-0.5 border border-[#171717]">HOT</span>
                   )}
                   <span className="text-5xl font-bold leading-none mb-1" style={fonts.display}>{ev.num}</span>
+                  <span className="text-[10px] font-bold tracking-widest opacity-70 mb-1" style={fonts.sans}>{ev.month}</span>
                   <span className="text-[10px] font-bold tracking-widest opacity-70 mb-3" style={fonts.sans}>{ev.type}</span>
                   <span className="text-sm font-bold leading-tight uppercase mt-auto" style={fonts.sans}>{ev.label}</span>
                   <ArrowRight size={14} className="mt-2 opacity-60 group-hover:translate-x-1 transition-transform" />
@@ -823,21 +896,21 @@ function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-0 border-2 border-[#171717]">
             <div className="p-8 border-b-2 md:border-b-0 md:border-r-2 border-[#171717] bg-white">
-              <p className="text-4xl font-bold text-[#2563EB] mb-2" style={fonts.display}>Live</p>
+              <p className="text-4xl font-bold text-[#2563EB] mb-2" style={fonts.display}>{homeStats.members}</p>
               <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4" style={fonts.sans}>Active Members</p>
               <p className="text-sm text-slate-600 leading-relaxed" style={fonts.sans}>
                 Members added through the connected account system will make up the active club community.
               </p>
             </div>
             <div className="p-8 border-b-2 md:border-b-0 md:border-r-2 border-[#171717] bg-[#2563EB] text-white">
-              <p className="text-4xl font-bold mb-2" style={fonts.display}>Live</p>
+              <p className="text-4xl font-bold mb-2" style={fonts.display}>{homeStats.events}</p>
               <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-4" style={fonts.sans}>Events Run</p>
               <p className="text-sm opacity-80 leading-relaxed" style={fonts.sans}>
                 Approved events added by admins will power the public events page and member dashboard.
               </p>
             </div>
             <div className="p-8 bg-[#F4EFEB]">
-              <p className="text-4xl font-bold text-[#FB7185] mb-2" style={fonts.display}>Live</p>
+              <p className="text-4xl font-bold text-[#FB7185] mb-2" style={fonts.display}>{homeStats.projects}</p>
               <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4" style={fonts.sans}>Student Projects</p>
               <p className="text-sm text-slate-600 leading-relaxed" style={fonts.sans}>
                 Published student projects will appear in the showcase after admin review.
