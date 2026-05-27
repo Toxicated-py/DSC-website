@@ -2407,6 +2407,9 @@ export function ComprehensiveAdminPanel() {
                 <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-5 brutal-shadow">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Certificate Draft</p>
                   <div className={`border-4 border-[#171717] p-6 text-center ${selectedCertificateTemplate.surface} ${selectedCertificateTemplate.text}`}>
+                    <div className="mx-auto mb-4 w-24 h-24 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                      <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-cover" />
+                    </div>
                     <div className={`mx-auto mb-4 h-2 w-28 border-2 border-[#171717] ${selectedCertificateTemplate.accent}`} />
                     <p className="text-xs font-bold uppercase tracking-[0.3em]">Data Science Club</p>
                     <h3 className="mt-3 text-3xl uppercase leading-tight" style={fonts.display}>

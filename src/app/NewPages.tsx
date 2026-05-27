@@ -345,6 +345,9 @@ export function CertificatePage() {
           <BrutalCard key={cert.id} color="bg-white">
             <div className="aspect-video bg-white border-2 border-[#171717] mb-4 overflow-hidden p-4">
               <div className="w-full h-full border-4 border-[#171717] bg-[#F4EFEB] flex flex-col items-center justify-center text-center px-5">
+                <div className="mb-3 w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                  <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-cover" />
+                </div>
                 <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#2563EB]">Verified Certificate</p>
                 <p className="mt-2 text-2xl uppercase leading-none" style={fonts.display}>{cert.recipient_name_snapshot || "Member"}</p>
                 <p className="mt-2 text-xs text-slate-600">{cert.event_title_snapshot || cert.title}</p>
@@ -489,6 +492,9 @@ export function VerifyCertificatePage() {
                 <p className="text-xs font-mono uppercase tracking-widest">{certificate.verification_code}</p>
               </div>
               <div className="flex-1 flex flex-col items-center justify-center py-10">
+                <div className="mb-6 w-28 h-28 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                  <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-cover" />
+                </div>
                 <div className={`mb-6 h-2 w-36 border-2 border-[#171717] ${template.accent}`} />
                 <p className="text-xs md:text-sm font-bold uppercase tracking-[0.4em]">Data Science Club</p>
                 <h1 className="mt-6 text-5xl md:text-7xl uppercase leading-none" style={fonts.display}>Certificate</h1>

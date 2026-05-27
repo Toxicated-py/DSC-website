@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Database, Github, Linkedin, Twitter, Facebook, Instagram, Mail } from "lucide-react";
+import { Github, Linkedin, Twitter, Facebook, Instagram, Mail } from "lucide-react";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -31,8 +31,8 @@ export function UpdatedFooter() {
           {/* Brand + Socials */}
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4 w-max hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 bg-[#171717] flex items-center justify-center">
-                <Database size={16} className="text-white" />
+              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-cover" />
               </div>
               <span className="font-bold text-lg uppercase tracking-widest text-[#171717]" style={fonts.display}>
                 Data Science Club
