@@ -32,6 +32,13 @@ const fonts = {
   sans: { fontFamily: "'Inter', sans-serif" },
 };
 
+const certificateTemplates: Record<string, { accent: string; surface: string; text: string; label: string }> = {
+  workshop: { accent: "bg-[#2563EB]", surface: "bg-[#F4EFEB]", text: "text-[#171717]", label: "Workshop" },
+  competition: { accent: "bg-[#FB7185]", surface: "bg-[#171717]", text: "text-white", label: "Competition" },
+  participation: { accent: "bg-[#FFE800]", surface: "bg-white", text: "text-[#171717]", label: "Participation" },
+  event: { accent: "bg-[#2563EB]", surface: "bg-[#F4EFEB]", text: "text-[#171717]", label: "Event" },
+};
+
 // ─── Shared Components ─────────────────────────────────────────────────────────
 
 const BrutalButton = ({ children, color = "bg-[#FFE800]", text = "text-[#171717]", className = "", ...props }: any) => (
@@ -447,6 +454,8 @@ export function VerifyCertificatePage() {
   const issuedDate = certificate?.issued_at
     ? new Date(certificate.issued_at).toLocaleDateString(undefined, { month: "long", day: "2-digit", year: "numeric" })
     : "Date pending";
+  const template = certificateTemplates[certificate?.template_style || "workshop"] || certificateTemplates.workshop;
+  const mutedText = template.text === "text-white" ? "text-white/80" : "text-slate-700";
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto min-h-screen">
@@ -472,7 +481,7 @@ export function VerifyCertificatePage() {
       ) : (
         <div className="grid lg:grid-cols-[1fr_340px] gap-8">
           <div className="border-4 border-[#171717] bg-white p-6 md:p-10 brutal-shadow-lg">
-            <div className="min-h-[560px] border-4 border-[#171717] bg-[#F4EFEB] p-8 md:p-12 flex flex-col text-center">
+            <div className={`min-h-[560px] border-4 border-[#171717] ${template.surface} ${template.text} p-8 md:p-12 flex flex-col text-center`}>
               <div className="flex items-center justify-between gap-4">
                 <BrutalBadge color={isVerified ? "bg-green-500" : "bg-[#FB7185]"}>
                   {isVerified ? "Verified" : "Not Active"}
@@ -480,11 +489,12 @@ export function VerifyCertificatePage() {
                 <p className="text-xs font-mono uppercase tracking-widest">{certificate.verification_code}</p>
               </div>
               <div className="flex-1 flex flex-col items-center justify-center py-10">
-                <p className="text-xs md:text-sm font-bold uppercase tracking-[0.4em] text-[#2563EB]">Data Science Club</p>
+                <div className={`mb-6 h-2 w-36 border-2 border-[#171717] ${template.accent}`} />
+                <p className="text-xs md:text-sm font-bold uppercase tracking-[0.4em]">Data Science Club</p>
                 <h1 className="mt-6 text-5xl md:text-7xl uppercase leading-none" style={fonts.display}>Certificate</h1>
                 <p className="mt-3 text-lg md:text-xl" style={fonts.serif}>This verifies that</p>
                 <p className="mt-5 text-4xl md:text-6xl leading-tight" style={fonts.serif}>{recipientName}</p>
-                <p className="mt-6 max-w-2xl text-lg md:text-xl leading-8 text-slate-700" style={fonts.serif}>
+                <p className={`mt-6 max-w-2xl text-lg md:text-xl leading-8 ${mutedText}`} style={fonts.serif}>
                   successfully participated in <b>{eventTitle}</b>.
                 </p>
                 <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]" className="mt-6">{certificate.certificate_type}</BrutalBadge>

@@ -115,6 +115,12 @@ const formatCertificateError = (message: string) =>
     ? "Certificate verification is not installed in Supabase yet. Run the latest certificate migration, then try again."
     : message;
 
+const certificateTemplateOptions = [
+  { value: "workshop", label: "Workshop", accent: "bg-[#2563EB]", surface: "bg-[#F4EFEB]", text: "text-[#171717]" },
+  { value: "competition", label: "Competition", accent: "bg-[#FB7185]", surface: "bg-[#171717]", text: "text-white" },
+  { value: "participation", label: "Participation", accent: "bg-[#FFE800]", surface: "bg-white", text: "text-[#171717]" },
+];
+
 export function ComprehensiveAdminPanel() {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState("overview");
@@ -134,6 +140,7 @@ export function ComprehensiveAdminPanel() {
     issuerName: "Data Science Club",
     issuedAt: "",
     certificateUrl: "",
+    templateStyle: "workshop",
   });
   const [editingCertificateId, setEditingCertificateId] = useState("");
   const [issuingBulkCertificates, setIssuingBulkCertificates] = useState(false);
@@ -524,6 +531,7 @@ export function ComprehensiveAdminPanel() {
       issuerName: "Data Science Club",
       issuedAt: "",
       certificateUrl: "",
+      templateStyle: "workshop",
     });
   };
 
@@ -541,6 +549,11 @@ export function ComprehensiveAdminPanel() {
         ? `${selectedEvent.title} Certificate of Participation`
         : certificateForm.title,
       certificateType: selectedEvent ? eventCertificateType : certificateForm.certificateType,
+      templateStyle: selectedEvent?.category === "COMPETITION"
+        ? "competition"
+        : selectedEvent?.category === "SEMINAR"
+          ? "participation"
+          : "workshop",
       issuedAt: certificateForm.issuedAt || new Date().toISOString().slice(0, 10),
     });
   };
@@ -1106,7 +1119,7 @@ export function ComprehensiveAdminPanel() {
       verification_code: editingCertificateId ? undefined : createCertificateCode(),
       recipient_name_snapshot: profileOptions.find((profile) => profile.id === certificateForm.recipientId)?.full_name || profileOptions.find((profile) => profile.id === certificateForm.recipientId)?.email || "Participant",
       event_title_snapshot: events.find((event) => event.id === certificateForm.eventId)?.title || certificateForm.title,
-      template_style: "event",
+      template_style: certificateForm.templateStyle,
       description: `This certifies participation in ${events.find((event) => event.id === certificateForm.eventId)?.title || certificateForm.title}.`,
       status: "approved",
     };
@@ -1211,7 +1224,7 @@ export function ComprehensiveAdminPanel() {
           verification_code: createCertificateCode(),
           recipient_name_snapshot: recipient?.full_name || recipient?.email || "Participant",
           event_title_snapshot: events.find((event) => event.id === certificateForm.eventId)?.title || certificateForm.title,
-          template_style: "event",
+          template_style: certificateForm.templateStyle,
           certificate_url: certificateForm.certificateUrl || null,
           status: "approved",
         };
@@ -1251,6 +1264,7 @@ export function ComprehensiveAdminPanel() {
       issuerName: certificate.issuer_name || "Data Science Club",
       issuedAt: certificate.issued_at || "",
       certificateUrl: certificate.certificate_url || "",
+      templateStyle: certificate.template_style || "workshop",
     });
     setCertificateStatus("");
   };
@@ -1332,6 +1346,7 @@ export function ComprehensiveAdminPanel() {
         ? (Array.isArray(certificateEventAttendees[0].profiles) ? certificateEventAttendees[0].profiles[0] : certificateEventAttendees[0].profiles)
         : null);
   const certificatePreviewName = certificatePreviewRecipient?.full_name || certificatePreviewRecipient?.email || "Participant Name";
+  const selectedCertificateTemplate = certificateTemplateOptions.find((template) => template.value === certificateForm.templateStyle) || certificateTemplateOptions[0];
 
   return (
     <div className="pt-32 pb-20 px-4 md:px-6 max-w-[1600px] mx-auto min-h-screen bg-[#F4EFEB]">
@@ -2350,6 +2365,15 @@ export function ComprehensiveAdminPanel() {
                   ]}
                 />
                 <BrutalSelect
+                  label="Template"
+                  value={certificateForm.templateStyle}
+                  onChange={(event: any) => setCertificateForm({ ...certificateForm, templateStyle: event.target.value })}
+                  options={certificateTemplateOptions.map((template) => ({
+                    value: template.value,
+                    label: template.label,
+                  }))}
+                />
+                <BrutalSelect
                   label="Single Member"
                   value={certificateForm.recipientId}
                   onChange={(event: any) => setCertificateForm({ ...certificateForm, recipientId: event.target.value })}
@@ -2382,14 +2406,15 @@ export function ComprehensiveAdminPanel() {
                 />
                 <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-5 brutal-shadow">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Certificate Draft</p>
-                  <div className="border-4 border-[#171717] bg-white p-6 text-center">
-                    <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#2563EB]">Data Science Club</p>
+                  <div className={`border-4 border-[#171717] p-6 text-center ${selectedCertificateTemplate.surface} ${selectedCertificateTemplate.text}`}>
+                    <div className={`mx-auto mb-4 h-2 w-28 border-2 border-[#171717] ${selectedCertificateTemplate.accent}`} />
+                    <p className="text-xs font-bold uppercase tracking-[0.3em]">Data Science Club</p>
                     <h3 className="mt-3 text-3xl uppercase leading-tight" style={fonts.display}>
                       {certificateForm.title || "Certificate of Participation"}
                     </h3>
                     <p className="mt-5 text-sm uppercase tracking-widest font-bold">Presented to</p>
                     <p className="mt-2 text-4xl leading-none" style={fonts.serif}>{certificatePreviewName}</p>
-                    <p className="mt-5 text-sm leading-6 text-slate-600">
+                    <p className={`mt-5 text-sm leading-6 ${certificateForm.templateStyle === "competition" ? "text-white/80" : "text-slate-600"}`}>
                       For participating in <b>{selectedCertificateEvent?.title || "the selected event"}</b>
                       {selectedCertificateEvent?.date ? ` on ${selectedCertificateEvent.date}` : ""}.
                     </p>
