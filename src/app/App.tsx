@@ -820,7 +820,11 @@ function HomePage() {
             </div>
 
             {/* Upcoming event card */}
-            <div className="bg-white border-2 border-[#171717] p-5 brutal-shadow -rotate-1">
+            <Link
+              to={nextEvent ? `/events/${nextEvent.id}` : "/events"}
+              className="block bg-white border-2 border-[#171717] p-5 brutal-shadow brutal-shadow-hover -rotate-1 transition-all group"
+              aria-label={nextEvent ? `Open event ${nextEvent.label}` : "Open events"}
+            >
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400" style={fonts.sans}>Next Up</span>
               <div className="mt-2 flex items-end justify-between">
                 <div>
@@ -833,10 +837,14 @@ function HomePage() {
               <div className="flex items-center gap-1 text-xs font-mono text-slate-400 mt-1">
                 <Users size={12} /> {nextEvent?.capacity ? `${nextEvent.capacity} spots` : "Club event"}
               </div>
-            </div>
+            </Link>
 
             {/* Projects teaser */}
-            <div className="bg-[#7C3AED] border-2 border-[#171717] p-5 brutal-shadow rotate-1">
+            <Link
+              to={homeProject ? `/projects/${homeProject.id}` : "/projects"}
+              className="block bg-[#7C3AED] border-2 border-[#171717] p-5 brutal-shadow brutal-shadow-hover rotate-1 transition-all"
+              aria-label={homeProject ? `Open project ${homeProject.title}` : "Open projects"}
+            >
               <span className="text-[10px] font-bold uppercase tracking-widest text-white/70" style={fonts.sans}>Projects</span>
               <p className="text-white font-bold text-xl leading-tight mt-2" style={fonts.display}>{homeProject?.title || "PUBLISHED PROJECTS"}</p>
               <div className="flex gap-2 mt-3 flex-wrap">
@@ -844,7 +852,7 @@ function HomePage() {
                   <span key={t} className="px-2 py-0.5 bg-white/20 text-white text-[10px] font-bold uppercase border border-white/30">{t}</span>
                 ))}
               </div>
-            </div>
+            </Link>
           </div>
         </div>
 
