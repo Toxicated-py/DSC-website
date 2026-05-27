@@ -2203,7 +2203,7 @@ function BlogPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between border-b-4 border-[#171717] pb-8 mb-10 gap-6">
         <div>
           <BrutalBadge color="bg-[#171717]" className="mb-4 inline-block">Blog</BrutalBadge>
-          <h1 className="text-6xl md:text-8xl uppercase leading-none" style={fonts.display}>Dev Log</h1>
+          <h1 className="text-6xl md:text-8xl uppercase leading-none" style={fonts.display}>Club Blog</h1>
           <p className="mt-2 text-sm font-mono text-slate-500">{filtered.length} post{filtered.length !== 1 ? "s" : ""}</p>
         </div>
         <BrutalButton
