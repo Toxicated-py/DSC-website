@@ -2462,7 +2462,7 @@ function BlogEditorPage() {
       content: "## Introduction\n\nWrite your post here...\n",
     };
   });
-  const [preview, setPreview] = useState(false);
+  const [preview, setPreview] = useState(true);
   const [status, setStatus] = useState("");
   const [publishingPost, setPublishingPost] = useState(false);
 
@@ -2499,6 +2499,15 @@ function BlogEditorPage() {
     }
   };
 
+  const previewTags = form.tags.split(",").map((tag: string) => tag.trim()).filter(Boolean);
+  const previewBlocks = String(form.content || "")
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+  const previewWords = `${form.summary || ""} ${form.content || ""}`.trim().split(/\s+/).filter(Boolean).length;
+  const previewReadTime = `${Math.max(1, Math.ceil(previewWords / 220))} min read`;
+  const previewDate = new Date().toLocaleDateString(undefined, { month: "long", day: "2-digit", year: "numeric" });
+
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1200px] mx-auto min-h-screen">
       <button onClick={() => navigate("/blog")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
@@ -2523,9 +2532,9 @@ function BlogEditorPage() {
         </BrutalCard>
 
         <div className="space-y-6">
-          <BrutalCard color={preview ? "bg-[#171717] text-white" : "bg-[#FFE800]"}>
+          <BrutalCard color="bg-white">
             <div className="flex items-center justify-between gap-4 mb-4">
-              <h2 className="text-3xl uppercase" style={fonts.display}>Preview</h2>
+              <h2 className="text-3xl uppercase" style={fonts.display}>{preview ? "Final Preview" : "Preview"}</h2>
               <button
                 type="button"
                 onClick={() => setPreview(!preview)}
@@ -2535,11 +2544,43 @@ function BlogEditorPage() {
               </button>
             </div>
             {preview ? (
-              <article className="space-y-3">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#FFE800]">{form.tags || "Tags"}</p>
-                <h3 className="text-3xl uppercase leading-tight" style={fonts.display}>{form.title || "Post title"}</h3>
-                <p className="text-sm opacity-80">{form.summary || "Post summary preview."}</p>
-                <pre className="whitespace-pre-wrap border-2 border-white/40 p-3 text-xs font-mono">{form.content}</pre>
+              <article className="space-y-5">
+                <div className="border-b-4 border-[#171717] pb-5">
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {(previewTags.length ? previewTags : ["Blog"]).map((tag: string) => (
+                      <BrutalBadge key={tag} color="bg-[#2563EB]">{tag}</BrutalBadge>
+                    ))}
+                  </div>
+                  <h3 className="text-4xl md:text-5xl uppercase leading-none mb-4" style={fonts.display}>
+                    {form.title || "Post Title"}
+                  </h3>
+                  <p className="text-lg text-slate-700" style={fonts.serif}>
+                    {form.summary || "Post summary preview."}
+                  </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-slate-500">
+                    <span>Data Science Club</span>
+                    <span>{previewDate}</span>
+                    <span>{previewReadTime}</span>
+                  </div>
+                </div>
+
+                {form.coverImage && (
+                  <div className="border-2 border-[#171717] brutal-shadow overflow-hidden bg-[#2563EB]">
+                    <img src={form.coverImage} alt={form.title || "Blog cover"} className="w-full max-h-56 object-cover" />
+                  </div>
+                )}
+
+                <div className="space-y-4 text-base leading-7 text-[#171717]" style={fonts.serif}>
+                  {(previewBlocks.length ? previewBlocks : ["Write your post here..."]).map((block: string, index: number) => {
+                    if (block.startsWith("## ")) {
+                      return <h4 key={index} className="pt-2 text-2xl md:text-3xl uppercase leading-tight" style={fonts.display}>{block.replace(/^##\s+/, "")}</h4>;
+                    }
+                    if (block.startsWith("# ")) {
+                      return <h4 key={index} className="pt-2 text-3xl md:text-4xl uppercase leading-tight" style={fonts.display}>{block.replace(/^#\s+/, "")}</h4>;
+                    }
+                    return <p key={index} className="whitespace-pre-line">{block}</p>;
+                  })}
+                </div>
               </article>
             ) : (
               <p className="text-sm font-mono text-slate-700">Use preview to inspect your title, summary, tags, and markdown before publishing.</p>
