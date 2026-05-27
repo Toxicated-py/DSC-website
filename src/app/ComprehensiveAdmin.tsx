@@ -1120,9 +1120,38 @@ export function ComprehensiveAdminPanel() {
       return;
     }
 
+    if (!certificateForm.eventId) {
+      setCertificateStatus("Select an event before issuing a certificate.");
+      return;
+    }
+    if (!certificateForm.recipientId) {
+      setCertificateStatus("Select a checked-in attendee before issuing a certificate.");
+      return;
+    }
+    if (!certificateForm.title.trim() || !certificateForm.issuerName.trim()) {
+      setCertificateStatus("Certificate title and issuer are required.");
+      return;
+    }
+
+    const selectedRegistration = eventRegistrations.find((registration) =>
+      registration.event_id === certificateForm.eventId &&
+      registration.user_id === certificateForm.recipientId
+    );
+    if (!selectedRegistration) {
+      setCertificateStatus("This member is not registered for the selected event.");
+      return;
+    }
+    if (!(selectedRegistration.status === "checked_in" || selectedRegistration.checked_in_at)) {
+      setCertificateStatus("Only checked-in attendees can receive event certificates.");
+      return;
+    }
+
+    const registrationProfile = Array.isArray(selectedRegistration.profiles) ? selectedRegistration.profiles[0] : selectedRegistration.profiles;
+    const recipientProfile = profileOptions.find((profile) => profile.id === certificateForm.recipientId) || registrationProfile;
+    const certificateEvent = events.find((event) => event.id === certificateForm.eventId);
     const payload = {
       recipient_id: certificateForm.recipientId,
-      event_id: certificateForm.eventId || null,
+      event_id: certificateForm.eventId,
       issued_by: userData.user.id,
       title: certificateForm.title,
       certificate_type: certificateForm.certificateType,
@@ -1130,14 +1159,14 @@ export function ComprehensiveAdminPanel() {
       issued_at: certificateForm.issuedAt || null,
       certificate_url: certificateForm.certificateUrl || null,
       verification_code: editingCertificateId ? undefined : createCertificateCode(),
-      recipient_name_snapshot: profileOptions.find((profile) => profile.id === certificateForm.recipientId)?.full_name || profileOptions.find((profile) => profile.id === certificateForm.recipientId)?.email || "Participant",
-      event_title_snapshot: events.find((event) => event.id === certificateForm.eventId)?.title || certificateForm.title,
+      recipient_name_snapshot: recipientProfile?.full_name || recipientProfile?.email || "Participant",
+      event_title_snapshot: certificateEvent?.title || certificateForm.title,
       template_style: certificateForm.templateStyle,
-      description: `This certifies participation in ${events.find((event) => event.id === certificateForm.eventId)?.title || certificateForm.title}.`,
+      description: `This certifies participation in ${certificateEvent?.title || certificateForm.title}.`,
       status: "approved",
     };
 
-    if (!editingCertificateId && certificateForm.eventId) {
+    if (!editingCertificateId) {
       const { data: duplicate, error: duplicateError } = await supabase
         .from("certificates")
         .select("id")
@@ -1207,6 +1236,12 @@ export function ComprehensiveAdminPanel() {
     }
 
     const recipientIds = attendeesForEvent.map((registration) => registration.user_id).filter(Boolean);
+    if (!recipientIds.length) {
+      setIssuingBulkCertificates(false);
+      setCertificateStatus("Checked-in attendees must be linked to member accounts before certificates can be issued.");
+      return;
+    }
+
     const { data: existingCerts, error: existingError } = await supabase
       .from("certificates")
       .select("recipient_id")
@@ -1374,9 +1409,49 @@ export function ComprehensiveAdminPanel() {
     .sort((a, b) => (b.attendees || 0) - (a.attendees || 0))
     .slice(0, 5);
   const selectedCertificateEvent = events.find((event) => event.id === certificateForm.eventId);
+  const certificateEventRegistrations = eventRegistrations.filter((registration) =>
+    registration.event_id === certificateForm.eventId
+  );
+  const issuedRecipientIdsForEvent = new Set(
+    issuedCertificates
+      .filter((certificate) =>
+        certificate.event_id === certificateForm.eventId &&
+        certificate.recipient_id &&
+        !certificate.revoked_at &&
+        certificate.status !== "archived"
+      )
+      .map((certificate) => certificate.recipient_id)
+  );
   const certificateEventAttendees = eventRegistrations.filter((registration) =>
     registration.event_id === certificateForm.eventId &&
     (registration.status === "checked_in" || registration.checked_in_at)
+  );
+  const eligibleCertificateAttendees = certificateEventAttendees.filter((registration) =>
+    registration.user_id && !issuedRecipientIdsForEvent.has(registration.user_id)
+  );
+  const alreadyIssuedCertificateAttendees = certificateEventRegistrations.filter((registration) =>
+    registration.user_id && issuedRecipientIdsForEvent.has(registration.user_id)
+  );
+  const uncheckedCertificateAttendees = certificateEventRegistrations.filter((registration) =>
+    !(registration.status === "checked_in" || registration.checked_in_at)
+  );
+  const certificateMemberOptions = certificateForm.eventId
+    ? certificateEventRegistrations.filter((registration) => registration.user_id).map((registration) => {
+        const profile = Array.isArray(registration.profiles) ? registration.profiles[0] : registration.profiles;
+        const isCheckedIn = registration.status === "checked_in" || registration.checked_in_at;
+        const isIssued = registration.user_id && issuedRecipientIdsForEvent.has(registration.user_id);
+        const statusLabel = isIssued ? "issued" : isCheckedIn ? "ready" : "not checked in";
+        return {
+          value: registration.user_id,
+          label: `${profile?.full_name || profile?.email || "Member"} (${statusLabel})`,
+        };
+      })
+    : [];
+  const isSelectedRecipientAlreadyIssued = Boolean(
+    certificateForm.recipientId && issuedRecipientIdsForEvent.has(certificateForm.recipientId)
+  );
+  const isSelectedRecipientCheckedIn = Boolean(
+    certificateEventAttendees.some((registration) => registration.user_id === certificateForm.recipientId)
   );
   const certificatePreviewRecipient = certificateForm.recipientId
     ? profileOptions.find((profile) => profile.id === certificateForm.recipientId)
@@ -2374,8 +2449,15 @@ export function ComprehensiveAdminPanel() {
               </div>
             ) : (
               <form onSubmit={handleIssueCertificate}>
+                <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Step 1</p>
+                  <h3 className="font-bold uppercase tracking-widest text-sm">Select the event</h3>
+                  <p className="mt-1 text-xs font-mono text-slate-500">
+                    Certificates are issued from an event attendance list. Check-in must happen first, then the certificate can be sent.
+                  </p>
+                </div>
                 <BrutalSelect
-                  label="Related Event"
+                  label="Certificate Event"
                   value={certificateForm.eventId}
                   onChange={(event: any) => applyCertificateEvent(event.target.value)}
                   options={[
@@ -2386,6 +2468,30 @@ export function ComprehensiveAdminPanel() {
                     })),
                   ]}
                 />
+                {selectedCertificateEvent && (
+                  <div className="mb-5 grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="border-2 border-[#171717] bg-white p-3">
+                      <p className="text-xl font-bold">{certificateEventRegistrations.length}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Registered</p>
+                    </div>
+                    <div className="border-2 border-[#171717] bg-[#DBEAFE] p-3">
+                      <p className="text-xl font-bold">{certificateEventAttendees.length}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Checked In</p>
+                    </div>
+                    <div className="border-2 border-[#171717] bg-[#DCFCE7] p-3">
+                      <p className="text-xl font-bold">{eligibleCertificateAttendees.length}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Ready</p>
+                    </div>
+                    <div className="border-2 border-[#171717] bg-[#FFE800] p-3">
+                      <p className="text-xl font-bold">{alreadyIssuedCertificateAttendees.length}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Issued</p>
+                    </div>
+                  </div>
+                )}
+                <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Step 2</p>
+                  <h3 className="font-bold uppercase tracking-widest text-sm">Configure the credential</h3>
+                </div>
                 <BrutalInput
                   label="Certificate Title"
                   value={certificateForm.title}
@@ -2414,18 +2520,25 @@ export function ComprehensiveAdminPanel() {
                   }))}
                 />
                 <BrutalSelect
-                  label="Single Member"
+                  label="Single Attendee"
                   value={certificateForm.recipientId}
                   onChange={(event: any) => setCertificateForm({ ...certificateForm, recipientId: event.target.value })}
-                  required={Boolean(editingCertificateId)}
+                  disabled={!certificateForm.eventId}
                   options={[
-                    { value: "", label: "Select only for single issue" },
-                    ...profileOptions.map((profile) => ({
-                      value: profile.id,
-                      label: `${profile.full_name || "Member"} (${profile.email})`,
-                    })),
+                    { value: "", label: certificateForm.eventId ? "Select one attendee for single issue" : "Select event first" },
+                    ...certificateMemberOptions,
                   ]}
                 />
+                {certificateForm.recipientId && !isSelectedRecipientCheckedIn && (
+                  <p className="mb-4 text-xs font-bold text-[#FB7185]">
+                    This attendee has not checked in yet. Check-in is required before issuing.
+                  </p>
+                )}
+                {certificateForm.recipientId && isSelectedRecipientAlreadyIssued && !editingCertificateId && (
+                  <p className="mb-4 text-xs font-bold text-[#FB7185]">
+                    This attendee already has an active certificate for this event.
+                  </p>
+                )}
                 <BrutalInput
                   label="Issuer"
                   value={certificateForm.issuerName}
@@ -2439,11 +2552,15 @@ export function ComprehensiveAdminPanel() {
                   onChange={(event: any) => setCertificateForm({ ...certificateForm, issuedAt: event.target.value })}
                 />
                 <BrutalInput
-                  label="PDF Link"
+                  label="Optional External PDF Link"
                   value={certificateForm.certificateUrl}
                   onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateUrl: event.target.value })}
                   placeholder="https://..."
                 />
+                <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Step 3</p>
+                  <h3 className="font-bold uppercase tracking-widest text-sm">Preview and issue</h3>
+                </div>
                 <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-5 brutal-shadow">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Certificate Draft</p>
                   <div className={`border-4 border-[#171717] p-6 text-center ${selectedCertificateTemplate.surface} ${selectedCertificateTemplate.text}`}>
@@ -2474,18 +2591,68 @@ export function ComprehensiveAdminPanel() {
                   </div>
                   {certificateForm.eventId && (
                     <p className="mt-4 text-xs font-mono text-slate-500">
-                      Bulk issue will send this same certificate to {certificateEventAttendees.length} checked-in attendee{certificateEventAttendees.length === 1 ? "" : "s"} with each member's own name.
+                      Bulk issue will send this same certificate to {eligibleCertificateAttendees.length} checked-in attendee{eligibleCertificateAttendees.length === 1 ? "" : "s"} who {eligibleCertificateAttendees.length === 1 ? "does" : "do"} not already have one.
                     </p>
                   )}
                 </div>
+                {selectedCertificateEvent && (
+                  <div className="mb-5 border-2 border-[#171717] bg-white p-4">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Issuing Queue</p>
+                        <h3 className="font-bold uppercase tracking-widest text-sm">{selectedCertificateEvent.title}</h3>
+                      </div>
+                      <BrutalBadge color="bg-[#DCFCE7]">{eligibleCertificateAttendees.length} ready</BrutalBadge>
+                    </div>
+                    {certificateEventRegistrations.length === 0 ? (
+                      <p className="text-xs font-mono text-slate-500">No registrations found for this event yet.</p>
+                    ) : (
+                      <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                        {certificateEventRegistrations.map((registration) => {
+                          const profile = Array.isArray(registration.profiles) ? registration.profiles[0] : registration.profiles;
+                          const isCheckedIn = registration.status === "checked_in" || registration.checked_in_at;
+                          const isIssued = registration.user_id && issuedRecipientIdsForEvent.has(registration.user_id);
+                          const statusColor = isIssued ? "bg-[#FFE800]" : isCheckedIn ? "bg-[#DCFCE7]" : "bg-slate-200";
+                          const statusText = isIssued ? "Issued" : isCheckedIn ? "Ready" : "Not checked in";
+                          return (
+                            <div key={registration.id || registration.user_id} className="flex items-center justify-between gap-3 border-2 border-[#171717] p-2">
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold uppercase truncate">{profile?.full_name || profile?.email || "Member"}</p>
+                                <p className="text-[10px] font-mono text-slate-500 truncate">{profile?.email || registration.user_id}</p>
+                              </div>
+                              <BrutalBadge color={statusColor} text="text-[#171717]">{statusText}</BrutalBadge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {uncheckedCertificateAttendees.length > 0 && (
+                      <p className="mt-3 text-[10px] font-mono text-slate-500">
+                        {uncheckedCertificateAttendees.length} registered attendee{uncheckedCertificateAttendees.length === 1 ? "" : "s"} still need check-in before certificate issuing.
+                      </p>
+                    )}
+                  </div>
+                )}
                 {certificateStatus && (
                   <p className="mb-4 text-xs font-bold text-[#2563EB]">{certificateStatus}</p>
                 )}
                 <div className="grid sm:grid-cols-2 gap-3">
-                  <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full text-xs" disabled={!certificateForm.recipientId}>
+                  <BrutalButton
+                    type="submit"
+                    color="bg-[#2563EB]"
+                    text="text-white"
+                    className="w-full text-xs"
+                    disabled={!certificateForm.eventId || !certificateForm.recipientId || !isSelectedRecipientCheckedIn || (isSelectedRecipientAlreadyIssued && !editingCertificateId)}
+                  >
                     <Award size={16} className="inline mr-2" /> {editingCertificateId ? "Update Single" : "Issue Single"}
                   </BrutalButton>
-                  <BrutalButton type="button" color="bg-[#FFE800]" className="w-full text-xs" onClick={issueEventCertificates} disabled={issuingBulkCertificates || !certificateForm.eventId}>
+                  <BrutalButton
+                    type="button"
+                    color="bg-[#FFE800]"
+                    className="w-full text-xs"
+                    onClick={issueEventCertificates}
+                    disabled={issuingBulkCertificates || !certificateForm.eventId || eligibleCertificateAttendees.length === 0}
+                  >
                     <Users size={16} className="inline mr-2" /> {issuingBulkCertificates ? "Issuing..." : "Issue Checked-In"}
                   </BrutalButton>
                 </div>
