@@ -110,8 +110,13 @@ const createCertificateCode = () => {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 12).toUpperCase();
 };
 
+const isCertificateSchemaError = (message = "") =>
+  ["verification_code", "recipient_name_snapshot", "event_title_snapshot", "template_style", "revoked_at"].some((field) =>
+    message.includes(field)
+  );
+
 const formatCertificateError = (message: string) =>
-  message.includes("verification_code") || message.includes("recipient_name_snapshot")
+  isCertificateSchemaError(message)
     ? "Certificate verification is not installed in Supabase yet. Run the latest certificate migration, then try again."
     : message;
 
@@ -1165,6 +1170,18 @@ export function ComprehensiveAdminPanel() {
       description: `This certifies participation in ${certificateEvent?.title || certificateForm.title}.`,
       status: "approved",
     };
+    const legacyPayload = {
+      recipient_id: payload.recipient_id,
+      event_id: payload.event_id,
+      issued_by: payload.issued_by,
+      title: payload.title,
+      certificate_type: payload.certificate_type,
+      issuer_name: payload.issuer_name,
+      issued_at: payload.issued_at,
+      certificate_url: payload.certificate_url,
+      description: payload.description,
+      status: payload.status,
+    };
 
     if (!editingCertificateId) {
       const { data: duplicate, error: duplicateError } = await supabase
@@ -1189,17 +1206,37 @@ export function ComprehensiveAdminPanel() {
       : await supabase.from("certificates").insert(payload);
 
     if (error) {
-      setCertificateStatus(formatCertificateError(error.message));
-      return;
+      if (isCertificateSchemaError(error.message)) {
+        const { error: legacyError } = editingCertificateId
+          ? await supabase.from("certificates").update(legacyPayload).eq("id", editingCertificateId)
+          : await supabase.from("certificates").insert(legacyPayload);
+        if (legacyError) {
+          setCertificateStatus(formatCertificateError(legacyError.message));
+          return;
+        }
+        setCertificateStatus("Certificate saved in legacy mode. Run the certificate migration to enable verification links and public certificate pages.");
+      } else {
+        setCertificateStatus(formatCertificateError(error.message));
+        return;
+      }
+    } else {
+      setCertificateStatus(editingCertificateId ? "Certificate updated." : "Certificate issued.");
     }
 
-    setCertificateStatus(editingCertificateId ? "Certificate updated." : "Certificate issued.");
     resetCertificateForm();
 
-    const { data: certs } = await supabase
+    const { data: certs, error: certsError } = await supabase
       .from("certificates")
       .select(certificateCredentialSelect)
       .order("created_at", { ascending: false });
+    if (certsError && isCertificateSchemaError(certsError.message)) {
+      const { data: legacyCerts } = await supabase
+        .from("certificates")
+        .select(certificateLegacySelect)
+        .order("created_at", { ascending: false });
+      setIssuedCertificates(legacyCerts || []);
+      return;
+    }
     setIssuedCertificates(certs || []);
   };
 
@@ -1277,6 +1314,18 @@ export function ComprehensiveAdminPanel() {
           status: "approved",
         };
       });
+    const legacyRows = rows.map((row) => ({
+      recipient_id: row.recipient_id,
+      event_id: row.event_id,
+      issued_by: row.issued_by,
+      title: row.title,
+      certificate_type: row.certificate_type,
+      issuer_name: row.issuer_name,
+      description: row.description,
+      issued_at: row.issued_at,
+      certificate_url: row.certificate_url,
+      status: row.status,
+    }));
 
     if (!rows.length) {
       setIssuingBulkCertificates(false);
@@ -1286,20 +1335,37 @@ export function ComprehensiveAdminPanel() {
 
     const { error } = await supabase.from("certificates").insert(rows);
     if (error) {
-      setIssuingBulkCertificates(false);
-      setCertificateStatus(formatCertificateError(error.message));
-      return;
+      if (isCertificateSchemaError(error.message)) {
+        const { error: legacyError } = await supabase.from("certificates").insert(legacyRows);
+        if (legacyError) {
+          setIssuingBulkCertificates(false);
+          setCertificateStatus(formatCertificateError(legacyError.message));
+          return;
+        }
+      } else {
+        setIssuingBulkCertificates(false);
+        setCertificateStatus(formatCertificateError(error.message));
+        return;
+      }
     }
 
-    const { data: certs } = await supabase
+    const { data: certs, error: certsError } = await supabase
       .from("certificates")
       .select(certificateCredentialSelect)
       .order("created_at", { ascending: false });
 
-    setIssuedCertificates(certs || []);
+    if (certsError && isCertificateSchemaError(certsError.message)) {
+      const { data: legacyCerts } = await supabase
+        .from("certificates")
+        .select(certificateLegacySelect)
+        .order("created_at", { ascending: false });
+      setIssuedCertificates(legacyCerts || []);
+    } else {
+      setIssuedCertificates(certs || []);
+    }
     setIssuingBulkCertificates(false);
     const skipped = attendeesForEvent.length - rows.length;
-    setCertificateStatus(`Issued ${rows.length} certificate${rows.length === 1 ? "" : "s"}${skipped ? `, skipped ${skipped} duplicate${skipped === 1 ? "" : "s"}` : ""}.`);
+    setCertificateStatus(`${error ? "Saved in legacy mode. Run the certificate migration to enable verification links. " : ""}Issued ${rows.length} certificate${rows.length === 1 ? "" : "s"}${skipped ? `, skipped ${skipped} duplicate${skipped === 1 ? "" : "s"}` : ""}.`);
   };
 
   const editCertificate = (certificate: any) => {
@@ -1337,6 +1403,17 @@ export function ComprehensiveAdminPanel() {
       : { revoked_at: null, status: "approved" };
     const { error } = await supabase.from("certificates").update(patch).eq("id", certificate.id);
     if (error) {
+      if (isCertificateSchemaError(error.message)) {
+        const legacyPatch = { status: revoked ? "archived" : "approved" };
+        const { error: legacyError } = await supabase.from("certificates").update(legacyPatch).eq("id", certificate.id);
+        if (legacyError) {
+          setCertificateStatus(formatCertificateError(legacyError.message));
+          return;
+        }
+        setIssuedCertificates(issuedCertificates.map((row) => row.id === certificate.id ? { ...row, ...legacyPatch } : row));
+        setCertificateStatus(revoked ? "Certificate archived. Run the certificate migration to enable full revoke metadata." : "Certificate restored.");
+        return;
+      }
       setCertificateStatus(formatCertificateError(error.message));
       return;
     }
