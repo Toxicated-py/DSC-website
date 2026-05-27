@@ -88,6 +88,22 @@ const BrutalSelect = ({ label, options, ...props }: any) => (
 
 // ─── Main Admin Panel ──────────────────────────────────────────────────────────
 
+const defaultSiteSettings = {
+  siteName: "Data Science Club - SMS TU",
+  tagline: "Empowering Students Through Data",
+  contactEmail: "contact@datascienceclub.sms.tu.edu.np",
+  contactPhone: "+977-1-4331976",
+  address: "School of Mathematical Sciences, Tribhuvan University, Kathmandu, Nepal",
+  socialLinks: {
+    github: "https://github.com/datascienceclub",
+    linkedin: "https://linkedin.com/company/datascienceclub",
+    twitter: "https://twitter.com/datascienceclub",
+    facebook: "https://facebook.com/datascienceclub",
+    instagram: "https://instagram.com/datascienceclub",
+    discord: "https://discord.gg/datascienceclub",
+  },
+};
+
 export function ComprehensiveAdminPanel() {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState("overview");
@@ -176,22 +192,11 @@ export function ComprehensiveAdminPanel() {
   const [users, setUsers] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [eventRegistrations, setEventRegistrations] = useState<any[]>([]);
 
-  const [siteSettings, setSiteSettings] = useState({
-    siteName: "Data Science Club – SMS TU",
-    tagline: "Empowering Students Through Data",
-    contactEmail: "contact@datascienceclub.sms.tu.edu.np",
-    contactPhone: "+977-1-4331976",
-    address: "School of Mathematical Sciences, Tribhuvan University, Kathmandu, Nepal",
-    socialLinks: {
-      github: "https://github.com/datascienceclub",
-      linkedin: "https://linkedin.com/company/datascienceclub",
-      twitter: "https://twitter.com/datascienceclub",
-      facebook: "https://facebook.com/datascienceclub",
-      instagram: "https://instagram.com/datascienceclub",
-      discord: "https://discord.gg/datascienceclub",
-    }
-  });
+  const [siteSettings, setSiteSettings] = useState(defaultSiteSettings);
+  const [settingsStatus, setSettingsStatus] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // Tab configuration
   const tabs = [
@@ -259,7 +264,7 @@ export function ComprehensiveAdminPanel() {
         eventQuery = eventQuery.eq("created_by", userData.user.id);
       }
 
-      const [{ data: profiles }, { data: certs }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }, { data: blogRows }, { data: galleryRows }, { data: partnerRows }, { data: resourceRows }] = await Promise.all([
+      const [{ data: profiles }, { data: certs }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }, { data: blogRows }, { data: galleryRows }, { data: partnerRows }, { data: resourceRows }, { data: registrationRows }, { data: settingsRow }] = await Promise.all([
         isAdmin
           ? supabase
               .from("profiles")
@@ -297,6 +302,14 @@ export function ComprehensiveAdminPanel() {
           .from("learning_materials")
           .select("id,title,description,resource_url,category,status,created_at")
           .order("created_at", { ascending: false }),
+        supabase
+          .from("event_registrations")
+          .select("id,event_id,status,registered_at,checked_in_at"),
+        supabase
+          .from("site_settings")
+          .select("value")
+          .eq("key", "site")
+          .maybeSingle(),
       ]);
 
       if (!mounted) return;
@@ -309,6 +322,7 @@ export function ComprehensiveAdminPanel() {
         designationStatus: profile.designation_status,
         verified: profile.membership_status === "approved" || profile.role === "member" || profile.role === "organizer" || profile.role === "admin",
         designation: profile.designation || "",
+        createdAt: profile.created_at,
         joinedDate: profile.created_at ? new Date(profile.created_at).toLocaleDateString() : "",
       }));
       setUsers(mappedProfiles);
@@ -336,6 +350,18 @@ export function ComprehensiveAdminPanel() {
       setGallerySubmissions(galleryRows || []);
       setPartnerSubmissions(partnerRows || []);
       setLearningMaterials(resourceRows || []);
+      setEventRegistrations(registrationRows || []);
+      if (settingsRow?.value) {
+        const savedSettings = settingsRow.value as typeof defaultSiteSettings;
+        setSiteSettings({
+          ...defaultSiteSettings,
+          ...savedSettings,
+          socialLinks: {
+            ...defaultSiteSettings.socialLinks,
+            ...(savedSettings.socialLinks || {}),
+          },
+        });
+      }
       setEventProposals((proposalRows || []).map((proposal) => {
         const author = Array.isArray(proposal.profiles) ? proposal.profiles[0] : proposal.profiles;
         return {
@@ -344,14 +370,18 @@ export function ComprehensiveAdminPanel() {
           submittedDate: proposal.submitted_at ? new Date(proposal.submitted_at).toLocaleDateString() : "",
         };
       }));
-      setEvents((eventRows || []).map((event) => ({
-        ...event,
-        date: event.start_time ? new Date(event.start_time).toLocaleDateString() : "Not scheduled",
-        location: event.venue || "TBA",
-        category: event.event_type,
-        attendees: 0,
-        featured: event.status === "published",
-      })));
+      setEvents((eventRows || []).map((event) => {
+        const eventRegistrations = (registrationRows || []).filter((registration) => registration.event_id === event.id);
+        return {
+          ...event,
+          date: event.start_time ? new Date(event.start_time).toLocaleDateString() : "Not scheduled",
+          location: event.venue || "TBA",
+          category: event.event_type,
+          attendees: eventRegistrations.filter((registration) => registration.status === "registered" || registration.status === "checked_in").length,
+          checkedIn: eventRegistrations.filter((registration) => registration.status === "checked_in" || registration.checked_in_at).length,
+          featured: event.status === "published" || event.status === "approved",
+        };
+      }));
     }
 
     loadAdminData();
@@ -360,6 +390,28 @@ export function ComprehensiveAdminPanel() {
       mounted = false;
     };
   }, []);
+
+  const saveSiteSettings = async () => {
+    setSettingsStatus("");
+    if (!isSupabaseConfigured || !supabase) {
+      setSettingsStatus("Settings cannot be saved until Supabase is configured.");
+      return;
+    }
+
+    setSavingSettings(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("site_settings")
+      .upsert({
+        key: "site",
+        value: siteSettings,
+        updated_by: userData.user?.id || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "key" });
+
+    setSavingSettings(false);
+    setSettingsStatus(error ? error.message : "Settings saved.");
+  };
 
   // Helper functions
   const getRoleBadge = (role: string, verified: boolean) => {
@@ -1096,6 +1148,32 @@ export function ComprehensiveAdminPanel() {
   const rejectedGallery = gallerySubmissions.filter((item) => item.status === "rejected" || item.status === "archived");
   const activePartners = partnerSubmissions.filter((partner) => partner.status === "approved" || partner.status === "published");
   const archivedPartners = partnerSubmissions.filter((partner) => partner.status === "archived" || partner.status === "rejected");
+  const now = new Date();
+  const thisMonth = now.toISOString().slice(0, 7);
+  const registrationsCount = eventRegistrations.filter((registration) => registration.status !== "cancelled").length;
+  const checkedInCount = eventRegistrations.filter((registration) => registration.status === "checked_in" || registration.checked_in_at).length;
+  const attendanceRate = registrationsCount ? Math.round((checkedInCount / registrationsCount) * 100) : 0;
+  const projectsThisMonth = projects.filter((project) => {
+    const date = project.published_at || project.submitted_at;
+    return date && new Date(date).toISOString().slice(0, 7) === thisMonth;
+  }).length;
+  const postsThisMonth = blogPosts.filter((post) => post.published_at && new Date(post.published_at).toISOString().slice(0, 7) === thisMonth).length;
+  const monthLabels = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    return {
+      key: date.toISOString().slice(0, 7),
+      label: date.toLocaleDateString(undefined, { month: "short" }),
+    };
+  });
+  const memberGrowth = monthLabels.map((month) => ({
+    ...month,
+    count: users.filter((user) => user.createdAt && new Date(user.createdAt).toISOString().slice(0, 7) === month.key).length,
+  }));
+  const maxGrowth = Math.max(1, ...memberGrowth.map((month) => month.count));
+  const popularEvents = [...events]
+    .filter((event) => event.status === "approved" || event.status === "published")
+    .sort((a, b) => (b.attendees || 0) - (a.attendees || 0))
+    .slice(0, 5);
 
   return (
     <div className="pt-32 pb-20 px-4 md:px-6 max-w-[1600px] mx-auto min-h-screen bg-[#F4EFEB]">
@@ -2253,12 +2331,17 @@ export function ComprehensiveAdminPanel() {
       {/* ─── SETTINGS TAB ──────────────────────────────────────────────────────── */}
       {selectedTab === "settings" && (
         <div className="space-y-6">
+          {settingsStatus && (
+            <div className="border-2 border-[#171717] bg-[#FFE800] p-3 font-bold text-sm uppercase tracking-widest brutal-shadow">
+              {settingsStatus}
+            </div>
+          )}
           <BrutalCard>
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Site Settings</h2>
             <BrutalInput label="Site Name" value={siteSettings.siteName} onChange={(e: any) => setSiteSettings({...siteSettings, siteName: e.target.value})} />
             <BrutalInput label="Tagline" value={siteSettings.tagline} onChange={(e: any) => setSiteSettings({...siteSettings, tagline: e.target.value})} />
-            <BrutalButton color="bg-[#2563EB]" text="text-white">
-              <Save size={16} className="inline mr-2" /> Save Settings
+            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
+              <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Settings"}
             </BrutalButton>
           </BrutalCard>
 
@@ -2267,8 +2350,8 @@ export function ComprehensiveAdminPanel() {
             <BrutalInput label="Email" type="email" value={siteSettings.contactEmail} onChange={(e: any) => setSiteSettings({...siteSettings, contactEmail: e.target.value})} />
             <BrutalInput label="Phone" value={siteSettings.contactPhone} onChange={(e: any) => setSiteSettings({...siteSettings, contactPhone: e.target.value})} />
             <BrutalTextarea label="Address" value={siteSettings.address} onChange={(e: any) => setSiteSettings({...siteSettings, address: e.target.value})} />
-            <BrutalButton color="bg-[#2563EB]" text="text-white">
-              <Save size={16} className="inline mr-2" /> Save Contact Info
+            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
+              <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Contact Info"}
             </BrutalButton>
           </BrutalCard>
 
@@ -2280,8 +2363,8 @@ export function ComprehensiveAdminPanel() {
             <BrutalInput label="Facebook" value={siteSettings.socialLinks.facebook} onChange={(e: any) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, facebook: e.target.value}})} />
             <BrutalInput label="Instagram" value={siteSettings.socialLinks.instagram} onChange={(e: any) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, instagram: e.target.value}})} />
             <BrutalInput label="Discord" value={siteSettings.socialLinks.discord} onChange={(e: any) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, discord: e.target.value}})} />
-            <BrutalButton color="bg-[#2563EB]" text="text-white">
-              <Save size={16} className="inline mr-2" /> Save Social Links
+            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
+              <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Social Links"}
             </BrutalButton>
           </BrutalCard>
         </div>
@@ -2296,15 +2379,15 @@ export function ComprehensiveAdminPanel() {
                 <Activity size={24} />
                 <TrendingUp size={16} />
               </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>+24%</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">User Growth</div>
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{users.length}</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Members</div>
             </BrutalCard>
             <BrutalCard color="bg-[#7C3AED]" className="text-white">
               <div className="flex items-center justify-between mb-2">
                 <Calendar size={24} />
                 <TrendingUp size={16} />
               </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>85%</div>
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{attendanceRate}%</div>
               <div className="text-xs font-bold uppercase tracking-widest opacity-80">Event Attendance</div>
             </BrutalCard>
             <BrutalCard color="bg-[#FB7185]" className="text-white">
@@ -2312,30 +2395,41 @@ export function ComprehensiveAdminPanel() {
                 <Trophy size={24} />
                 <TrendingUp size={16} />
               </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>12</div>
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{projectsThisMonth}</div>
               <div className="text-xs font-bold uppercase tracking-widest opacity-80">Projects This Month</div>
             </BrutalCard>
             <BrutalCard color="bg-[#FFE800]">
               <div className="flex items-center justify-between mb-2">
-                <Clock size={24} />
+                <FileText size={24} />
                 <Activity size={16} />
               </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>2.5h</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">Avg. Session</div>
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{postsThisMonth}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">Blog Posts This Month</div>
             </BrutalCard>
           </div>
 
           <BrutalCard className="mb-6">
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>User Growth Chart</h2>
-            <div className="h-64 flex items-center justify-center border-2 border-dashed border-slate-300">
-              <p className="text-slate-400 font-mono text-sm">Chart visualization would go here</p>
+            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Member Growth</h2>
+            <div className="space-y-4">
+              {memberGrowth.map((month) => (
+                <div key={month.key} className="grid grid-cols-[64px_1fr_48px] items-center gap-3">
+                  <span className="text-xs font-bold uppercase tracking-widest">{month.label}</span>
+                  <div className="h-8 border-2 border-[#171717] bg-[#F4EFEB]">
+                    <div
+                      className="h-full bg-[#2563EB]"
+                      style={{ width: `${Math.max(6, (month.count / maxGrowth) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-right text-sm font-bold font-mono">{month.count}</span>
+                </div>
+              ))}
             </div>
           </BrutalCard>
 
           <BrutalCard>
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Popular Events</h2>
             <div className="space-y-4">
-              {events.filter(e => e.featured).map(event => (
+              {popularEvents.map(event => (
                 <div key={event.id} className="flex items-center justify-between p-4 border-2 border-slate-200">
                   <div>
                     <p className="font-bold text-sm">{event.title}</p>
@@ -2347,6 +2441,9 @@ export function ComprehensiveAdminPanel() {
                   </div>
                 </div>
               ))}
+              {popularEvents.length === 0 && (
+                <p className="text-sm font-mono text-slate-500">Approved events will appear here after registrations start.</p>
+              )}
             </div>
           </BrutalCard>
         </>

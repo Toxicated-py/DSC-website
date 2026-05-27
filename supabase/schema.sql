@@ -194,6 +194,13 @@ create table public.learning_materials (
   updated_at timestamptz not null default now()
 );
 
+create table public.site_settings (
+  key text primary key,
+  value jsonb not null,
+  updated_by uuid references public.profiles(id),
+  updated_at timestamptz not null default now()
+);
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -373,6 +380,7 @@ alter table public.certificates enable row level security;
 alter table public.gallery_submissions enable row level security;
 alter table public.partner_submissions enable row level security;
 alter table public.learning_materials enable row level security;
+alter table public.site_settings enable row level security;
 
 create index if not exists membership_applications_applicant_id_idx on public.membership_applications(applicant_id);
 create index if not exists membership_applications_reviewed_by_idx on public.membership_applications(reviewed_by);
@@ -559,5 +567,12 @@ create policy "Public can read learning materials" on public.learning_materials
   for select using (status in ('approved', 'published'));
 
 create policy "Admins manage learning materials" on public.learning_materials
+  for all using ((select private.current_user_is_admin()))
+  with check ((select private.current_user_is_admin()));
+
+create policy "Public can read site settings" on public.site_settings
+  for select using (true);
+
+create policy "Admins manage site settings" on public.site_settings
   for all using ((select private.current_user_is_admin()))
   with check ((select private.current_user_is_admin()));
