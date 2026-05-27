@@ -111,7 +111,7 @@ const createCertificateCode = () => {
 };
 
 const isCertificateSchemaError = (message = "") =>
-  ["verification_code", "recipient_name_snapshot", "event_title_snapshot", "template_style", "revoked_at"].some((field) =>
+  ["verification_code", "recipient_name_snapshot", "event_title_snapshot", "template_style", "revoked_at", "signature_data"].some((field) =>
     message.includes(field)
   );
 
@@ -126,8 +126,8 @@ const certificateTemplateOptions = [
   { value: "participation", label: "Participation", accent: "bg-[#FFE800]", surface: "bg-white", text: "text-[#171717]" },
 ];
 
-const certificateCredentialSelect = "id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)";
-const certificateLegacySelect = "id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),events:event_id(title)";
+const certificateCredentialSelect = "id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,signature_data,revoked_at,certificate_url,description,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)";
+const certificateLegacySelect = "id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,description,created_at,profiles:recipient_id(full_name,email),events:event_id(title)";
 
 export function ComprehensiveAdminPanel() {
   const navigate = useNavigate();
@@ -149,6 +149,12 @@ export function ComprehensiveAdminPanel() {
     issuedAt: "",
     certificateUrl: "",
     templateStyle: "workshop",
+    description: "For actively participating in this program and demonstrating commitment and enthusiasm.",
+    signatures: [
+      { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR" },
+      { name: "DIRECTOR_NAME", title: "DIRECTOR" },
+      { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT" },
+    ],
   });
   const [editingCertificateId, setEditingCertificateId] = useState("");
   const [issuingBulkCertificates, setIssuingBulkCertificates] = useState(false);
@@ -550,6 +556,12 @@ export function ComprehensiveAdminPanel() {
       issuedAt: "",
       certificateUrl: "",
       templateStyle: "workshop",
+      description: "For actively participating in this program and demonstrating commitment and enthusiasm.",
+      signatures: [
+        { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR" },
+        { name: "DIRECTOR_NAME", title: "DIRECTOR" },
+        { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT" },
+      ],
     });
   };
 
@@ -573,6 +585,29 @@ export function ComprehensiveAdminPanel() {
           ? "participation"
           : "workshop",
       issuedAt: certificateForm.issuedAt || new Date().toISOString().slice(0, 10),
+    });
+  };
+
+  const updateCertificateSignature = (index: number, field: "name" | "title", value: string) => {
+    setCertificateForm({
+      ...certificateForm,
+      signatures: certificateForm.signatures.map((signature, signatureIndex) =>
+        signatureIndex === index ? { ...signature, [field]: value } : signature
+      ),
+    });
+  };
+
+  const addCertificateSignature = () => {
+    setCertificateForm({
+      ...certificateForm,
+      signatures: [...certificateForm.signatures, { name: "", title: "" }],
+    });
+  };
+
+  const removeCertificateSignature = (index: number) => {
+    setCertificateForm({
+      ...certificateForm,
+      signatures: certificateForm.signatures.filter((_, signatureIndex) => signatureIndex !== index),
     });
   };
 
@@ -1154,6 +1189,9 @@ export function ComprehensiveAdminPanel() {
     const registrationProfile = Array.isArray(selectedRegistration.profiles) ? selectedRegistration.profiles[0] : selectedRegistration.profiles;
     const recipientProfile = profileOptions.find((profile) => profile.id === certificateForm.recipientId) || registrationProfile;
     const certificateEvent = events.find((event) => event.id === certificateForm.eventId);
+    const signatureData = certificateForm.signatures
+      .map((signature) => ({ name: signature.name.trim(), title: signature.title.trim() }))
+      .filter((signature) => signature.name || signature.title);
     const payload = {
       recipient_id: certificateForm.recipientId,
       event_id: certificateForm.eventId,
@@ -1167,7 +1205,8 @@ export function ComprehensiveAdminPanel() {
       recipient_name_snapshot: recipientProfile?.full_name || recipientProfile?.email || "Participant",
       event_title_snapshot: certificateEvent?.title || certificateForm.title,
       template_style: certificateForm.templateStyle,
-      description: `This certifies participation in ${certificateEvent?.title || certificateForm.title}.`,
+      signature_data: signatureData,
+      description: certificateForm.description.trim() || `For actively participating in ${certificateEvent?.title || certificateForm.title}.`,
       status: "approved",
     };
     const legacyPayload = {
@@ -1293,6 +1332,9 @@ export function ComprehensiveAdminPanel() {
     }
 
     const existingRecipients = new Set((existingCerts || []).map((certificate) => certificate.recipient_id));
+    const signatureData = certificateForm.signatures
+      .map((signature) => ({ name: signature.name.trim(), title: signature.title.trim() }))
+      .filter((signature) => signature.name || signature.title);
     const rows = attendeesForEvent
       .filter((registration) => registration.user_id && !existingRecipients.has(registration.user_id))
       .map((registration) => {
@@ -1304,12 +1346,13 @@ export function ComprehensiveAdminPanel() {
           title: certificateForm.title,
           certificate_type: certificateForm.certificateType,
           issuer_name: certificateForm.issuerName,
-          description: `This certifies that ${recipient?.full_name || recipient?.email || "the participant"} participated in ${events.find((event) => event.id === certificateForm.eventId)?.title || "the event"}.`,
+          description: certificateForm.description.trim() || `For actively participating in ${events.find((event) => event.id === certificateForm.eventId)?.title || "the event"}.`,
           issued_at: certificateForm.issuedAt || new Date().toISOString().slice(0, 10),
           verification_code: createCertificateCode(),
           recipient_name_snapshot: recipient?.full_name || recipient?.email || "Participant",
           event_title_snapshot: events.find((event) => event.id === certificateForm.eventId)?.title || certificateForm.title,
           template_style: certificateForm.templateStyle,
+          signature_data: signatureData,
           certificate_url: certificateForm.certificateUrl || null,
           status: "approved",
         };
@@ -1379,6 +1422,17 @@ export function ComprehensiveAdminPanel() {
       issuedAt: certificate.issued_at || "",
       certificateUrl: certificate.certificate_url || "",
       templateStyle: certificate.template_style || "workshop",
+      description: certificate.description || "For actively participating in this program and demonstrating commitment and enthusiasm.",
+      signatures: Array.isArray(certificate.signature_data) && certificate.signature_data.length
+        ? certificate.signature_data.map((signature: any) => ({
+            name: signature.name || "",
+            title: signature.title || "",
+          }))
+        : [
+            { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR" },
+            { name: "DIRECTOR_NAME", title: "DIRECTOR" },
+            { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT" },
+          ],
     });
     setCertificateStatus("");
   };
@@ -1427,8 +1481,12 @@ export function ComprehensiveAdminPanel() {
       return;
     }
     const url = `${window.location.origin}/verify/${certificate.verification_code}`;
-    await navigator.clipboard.writeText(url);
-    setCertificateStatus("Verification link copied.");
+    try {
+      await navigator.clipboard.writeText(url);
+      setCertificateStatus("Verification link copied.");
+    } catch {
+      setCertificateStatus(`Copy this verification link: ${url}`);
+    }
   };
 
   const filteredUsers = users.filter(user =>
@@ -2628,6 +2686,53 @@ export function ComprehensiveAdminPanel() {
                   value={certificateForm.issuedAt}
                   onChange={(event: any) => setCertificateForm({ ...certificateForm, issuedAt: event.target.value })}
                 />
+                <BrutalTextarea
+                  label="Certificate Description"
+                  value={certificateForm.description}
+                  onChange={(event: any) => setCertificateForm({ ...certificateForm, description: event.target.value })}
+                  placeholder="For actively participating in this program..."
+                />
+                <div className="mb-5 border-2 border-[#171717] bg-white p-4">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Signatures</p>
+                      <h3 className="font-bold uppercase tracking-widest text-sm">Certificate signers</h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addCertificateSignature}
+                      className="px-3 py-2 border-2 border-[#171717] bg-[#FFE800] font-bold uppercase tracking-widest text-[10px]"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {certificateForm.signatures.map((signature, index) => (
+                      <div key={index} className="grid md:grid-cols-[1fr_1fr_auto] gap-2">
+                        <input
+                          className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
+                          value={signature.name}
+                          onChange={(event) => updateCertificateSignature(index, "name", event.target.value)}
+                          placeholder="Signer name"
+                        />
+                        <input
+                          className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
+                          value={signature.title}
+                          onChange={(event) => updateCertificateSignature(index, "title", event.target.value)}
+                          placeholder="Role / title"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeCertificateSignature(index)}
+                          className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase tracking-widest text-[10px]"
+                          disabled={certificateForm.signatures.length === 1}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <BrutalInput
                   label="Optional External PDF Link"
                   value={certificateForm.certificateUrl}
@@ -2652,18 +2757,15 @@ export function ComprehensiveAdminPanel() {
                     <p className="mt-5 text-sm uppercase tracking-widest font-bold">Presented to</p>
                     <p className="mt-2 text-4xl leading-none" style={fonts.serif}>{certificatePreviewName}</p>
                     <p className={`mt-5 text-sm leading-6 ${certificateForm.templateStyle === "competition" ? "text-white/80" : "text-slate-600"}`}>
-                      For participating in <b>{selectedCertificateEvent?.title || "the selected event"}</b>
-                      {selectedCertificateEvent?.date ? ` on ${selectedCertificateEvent.date}` : ""}.
+                      {certificateForm.description || "For actively participating in this program and demonstrating commitment and enthusiasm."}
                     </p>
-                    <div className="mt-6 flex items-end justify-between gap-4 text-left">
-                      <div>
-                        <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase">{certificateForm.issuerName || "Issuer"}</p>
-                        <p className="text-[10px] font-mono text-slate-500">Issuer</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase">{certificateForm.issuedAt || "Issue date"}</p>
-                        <p className="text-[10px] font-mono text-slate-500">Issued Date</p>
-                      </div>
+                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                      {certificateForm.signatures.slice(0, 3).map((signature, index) => (
+                        <div key={index}>
+                          <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase">{signature.name || "Signer"}</p>
+                          <p className="text-[10px] font-mono text-slate-500 uppercase">{signature.title || "Title"}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                   {certificateForm.eventId && (
@@ -2807,15 +2909,13 @@ export function ComprehensiveAdminPanel() {
                       <div className="flex gap-2 flex-wrap">
                         <BrutalBadge color="bg-[#7C3AED]">{certificate.certificate_type}</BrutalBadge>
                         <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{certificate.template_style || "legacy"}</BrutalBadge>
-                        {certificate.verification_code && (
-                          <button
-                            type="button"
-                            onClick={() => window.open(`/verify/${certificate.verification_code}`, "_blank", "noopener,noreferrer")}
-                            className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
-                          >
-                            View
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => window.open(`/certificates/${certificate.id}`, "_blank", "noopener,noreferrer")}
+                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
+                        >
+                          View
+                        </button>
                         {certificate.verification_code && (
                           <button
                             type="button"

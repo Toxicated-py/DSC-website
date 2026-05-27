@@ -4,7 +4,7 @@ import { Database, Menu, X, Users, ArrowRight, ArrowLeft, Search, Camera, Check,
 import { NewLoginPage, AdminPanelPage, UserBadge } from "./AuthAndAdmin";
 import { ComprehensiveAdminPanel } from "./ComprehensiveAdmin";
 // New Pages
-import { CertificatePage, VerifyCertificatePage, TeamPage, ContactPage, ResourcesPage, CommentSection } from "./NewPages";
+import { CertificatePage, CertificateDetailPage, VerifyCertificatePage, TeamPage, ContactPage, ResourcesPage, CommentSection } from "./NewPages";
 import { GalleryPage, UserProfilePage, AchievementsPage, PartnersPage } from "./NewPages2";
 import { UpdatedAboutPage } from "./UpdatedAbout";
 import { UpdatedFooter } from "./UpdatedFooter";
@@ -82,7 +82,7 @@ const createCertificateCode = () => {
 };
 
 const formatCertificateError = (message: string) =>
-  message.includes("verification_code") || message.includes("recipient_name_snapshot")
+  ["verification_code", "recipient_name_snapshot", "event_title_snapshot", "template_style", "revoked_at", "signature_data"].some((field) => message.includes(field))
     ? "Certificate verification is not installed in Supabase yet. Run the latest certificate migration, then try again."
     : message;
 
@@ -1382,6 +1382,11 @@ function EventDetailPage() {
       recipient_name_snapshot: attendee.profiles?.full_name || attendee.profiles?.email || "Participant",
       event_title_snapshot: eventInfo?.title || "Event",
       template_style: "event",
+      signature_data: [
+        { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR" },
+        { name: "DIRECTOR_NAME", title: "DIRECTOR" },
+        { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT" },
+      ],
       description: `This certifies participation in ${eventInfo?.title || "the event"}.`,
       status: "approved",
     })).filter((row) => row.recipient_id);
@@ -3352,6 +3357,7 @@ export default function App() {
           
           {/* New Pages */}
           <Route path="certificates" element={<ProtectedRoute><CertificatePage /></ProtectedRoute>} />
+          <Route path="certificates/:id" element={<ProtectedRoute><CertificateDetailPage /></ProtectedRoute>} />
           <Route path="verify/:code" element={<VerifyCertificatePage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="contact" element={<ContactPage />} />

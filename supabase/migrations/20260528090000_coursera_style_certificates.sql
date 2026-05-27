@@ -3,6 +3,7 @@ alter table public.certificates
   add column if not exists recipient_name_snapshot text,
   add column if not exists event_title_snapshot text,
   add column if not exists template_style text not null default 'event',
+  add column if not exists signature_data jsonb not null default '[]'::jsonb,
   add column if not exists revoked_at timestamptz;
 
 update public.certificates
@@ -28,3 +29,5 @@ create unique index if not exists certificates_verification_code_key
 drop policy if exists "Public can verify active certificates" on public.certificates;
 create policy "Public can verify active certificates" on public.certificates
   for select using (verification_code is not null and revoked_at is null and status in ('approved', 'published'));
+
+notify pgrst, 'reload schema';

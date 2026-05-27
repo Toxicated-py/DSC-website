@@ -83,6 +83,117 @@ const BrutalTextarea = ({ label, ...props }: any) => (
   </div>
 );
 
+const certificateSelect =
+  "id,recipient_id,title,certificate_type,issuer_name,status,issued_at,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,signature_data,revoked_at,certificate_url,thumbnail_url,description,events:event_id(title,start_time)";
+
+const certificateLegacySelect =
+  "id,recipient_id,title,certificate_type,issuer_name,status,issued_at,certificate_url,thumbnail_url,description,events:event_id(title,start_time)";
+
+const isCertificateSchemaError = (message = "") =>
+  ["verification_code", "recipient_name_snapshot", "event_title_snapshot", "template_style", "revoked_at", "signature_data"].some((field) =>
+    message.includes(field)
+  );
+
+const certificateSchemaMessage = "Certificate verification is not installed in the database yet. Ask an admin to run the latest Supabase migration.";
+
+const defaultCertificateSignatures = [
+  { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR" },
+  { name: "DIRECTOR_NAME", title: "DIRECTOR" },
+  { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT" },
+];
+
+const getCertificateDetails = (certificate: any) => {
+  const event = certificate ? (Array.isArray(certificate.events) ? certificate.events[0] : certificate.events) : null;
+  const recipientName = certificate?.recipient_name_snapshot || "Certificate Holder";
+  const eventTitle = certificate?.event_title_snapshot || event?.title || certificate?.title || "Program";
+  const issuedDate = certificate?.issued_at
+    ? new Date(certificate.issued_at).toLocaleDateString(undefined, { month: "long", day: "2-digit", year: "numeric" })
+    : "Date pending";
+  const description = certificate?.description || "For actively participating in this program and demonstrating commitment and enthusiasm.";
+  const template = certificateTemplates[certificate?.template_style || "participation"] || certificateTemplates.participation;
+  const signatures = Array.isArray(certificate?.signature_data) && certificate.signature_data.length
+    ? certificate.signature_data
+    : defaultCertificateSignatures;
+
+  return { event, recipientName, eventTitle, issuedDate, description, template, signatures };
+};
+
+const CertificateCanvas = ({ certificate, compact = false }: { certificate: any; compact?: boolean }) => {
+  const { recipientName, eventTitle, issuedDate, description, signatures } = getCertificateDetails(certificate);
+  const certificateType = certificate?.certificate_type || "Participation";
+
+  return (
+    <div className={`certificate-print-area relative mx-auto overflow-hidden bg-white text-[#073B91] ${compact ? "aspect-video w-full" : "aspect-[16/9] w-full max-w-6xl"}`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-[#F8FCFF] to-[#EAF6FF]" />
+      <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-[#9FC4E2]" />
+      <div className="absolute -bottom-36 -left-28 h-72 w-72 rotate-45 bg-[#0066B3]" />
+      <div className="absolute -bottom-40 left-10 h-80 w-80 rotate-45 bg-[#0B85C8]" />
+      <div className="absolute -top-40 -right-20 h-80 w-80 rotate-45 bg-[#0783C2]" />
+      <div className="absolute -right-28 top-28 h-64 w-64 rounded-full bg-[#9FC4E2]" />
+      <div className="absolute right-20 top-24 h-[120%] w-20 rotate-45 bg-[#E2F2FD]" />
+      <div className="absolute right-64 -bottom-28 h-[95%] w-16 rotate-45 bg-white/80" />
+      <div className="relative z-10 flex h-full flex-col px-[8%] py-[6%]">
+        <div className="flex items-start justify-between">
+          <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className={`${compact ? "h-14 w-14" : "h-32 w-32"} rounded-full object-cover`} />
+          <div className="text-center">
+            <h1 className={`${compact ? "text-3xl" : "text-7xl"} font-black uppercase tracking-[0.12em] text-[#073B91]`} style={fonts.sans}>Certificate</h1>
+            <p className={`${compact ? "text-base" : "text-4xl"} mt-2 italic uppercase text-[#0B65AE]`} style={fonts.sans}>of {certificateType}</p>
+          </div>
+          <div className={`${compact ? "h-14 w-14 text-[8px]" : "h-28 w-28 text-xs"} flex items-center justify-center rounded-full border-4 border-[#0B65AE] bg-white text-center font-bold uppercase text-[#0B65AE]`}>
+            TU
+          </div>
+        </div>
+
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <p className={`${compact ? "text-sm" : "text-3xl"} text-[#073B91]`}>This certificate is proudly presented to</p>
+          <p className={`${compact ? "mt-3 text-4xl" : "mt-8 text-8xl"} leading-none text-[#0066B3]`} style={fonts.serif}>{recipientName}</p>
+          <p className={`${compact ? "mt-4 max-w-xl text-sm" : "mt-10 max-w-4xl text-3xl"} leading-snug text-[#073B91]`}>
+            {description.replace("DATE", issuedDate).replace("PROGRAM", eventTitle)}
+          </p>
+          <p className={`${compact ? "mt-2 text-xs" : "mt-5 text-lg"} font-bold uppercase tracking-widest text-[#0B65AE]`}>{eventTitle} - {issuedDate}</p>
+        </div>
+
+        <div className={`grid gap-8 ${signatures.length > 3 ? "grid-cols-4" : "grid-cols-3"}`}>
+          {signatures.slice(0, 4).map((signature: any, index: number) => (
+            <div key={index} className="text-center">
+              <div className="mx-auto mb-3 h-0.5 w-[80%] bg-[#0B65AE]" />
+              <p className={`${compact ? "text-xs" : "text-2xl"} font-semibold uppercase tracking-wider text-[#0066B3]`}>{signature.name || "SIGNER_NAME"}</p>
+              <p className={`${compact ? "text-[10px]" : "text-xl"} mt-1 uppercase text-[#073B91]`}>{signature.title || "SIGNER"}</p>
+            </div>
+          ))}
+        </div>
+        {certificate?.verification_code && (
+          <p className="absolute bottom-4 right-6 font-mono text-[10px] uppercase tracking-widest text-[#073B91]">
+            Verify: {window.location.origin}/verify/{certificate.verification_code}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const CertificatePrintStyles = () => (
+  <style>{`
+    @media print {
+      @page { size: landscape; margin: 0; }
+      body * { visibility: hidden !important; }
+      .certificate-print-area, .certificate-print-area * { visibility: visible !important; }
+      .certificate-print-area {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: none !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .no-print { display: none !important; }
+    }
+  `}</style>
+);
+
 // ─── COMMENT SYSTEM COMPONENT ──────────────────────────────────────────────────
 
 export function CommentSection({ itemId, itemType }: { itemId: string, itemType: "blog" | "project" }) {
@@ -234,7 +345,7 @@ export function CertificatePage() {
 
       const { data, error } = await supabase
         .from("certificates")
-        .select("id,title,certificate_type,issuer_name,status,issued_at,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,certificate_url,thumbnail_url,description")
+        .select(certificateSelect)
         .eq("recipient_id", userData.user.id)
         .order("issued_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
@@ -242,10 +353,19 @@ export function CertificatePage() {
       if (!mounted) return;
 
       if (error) {
-        setLoadError(error.message.includes("verification_code")
-          ? "Certificate verification is not installed in the database yet. Ask an admin to run the latest Supabase migration."
-          : error.message);
-        setCertificates([]);
+        if (isCertificateSchemaError(error.message)) {
+          const { data: legacyData, error: legacyError } = await supabase
+            .from("certificates")
+            .select(certificateLegacySelect)
+            .eq("recipient_id", userData.user.id)
+            .order("issued_at", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false });
+          setCertificates(legacyData || []);
+          setLoadError(legacyError ? legacyError.message : "");
+        } else {
+          setLoadError(error.message);
+          setCertificates([]);
+        }
       } else {
         setCertificates(data || []);
       }
@@ -260,15 +380,7 @@ export function CertificatePage() {
   }, [navigate]);
 
   const handleOpenCertificate = (cert: any) => {
-    if (cert.verification_code) {
-      navigate(`/verify/${cert.verification_code}`);
-      return;
-    }
-    if (cert.certificate_url) {
-      window.open(cert.certificate_url, "_blank", "noopener,noreferrer");
-      return;
-    }
-    alert("Certificate verification is not ready yet. Ask an admin to run the certificate migration.");
+    navigate(`/certificates/${cert.id}`);
   };
 
   const availableCertificates = certificates.filter(c => c.status === "approved" || c.status === "published");
@@ -344,15 +456,7 @@ export function CertificatePage() {
           return (
           <BrutalCard key={cert.id} color="bg-white">
             <div className="aspect-video bg-white border-2 border-[#171717] mb-4 overflow-hidden p-4">
-              <div className="w-full h-full border-4 border-[#171717] bg-[#F4EFEB] flex flex-col items-center justify-center text-center px-5">
-                <div className="mb-3 w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden">
-                  <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-cover" />
-                </div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#2563EB]">Verified Certificate</p>
-                <p className="mt-2 text-2xl uppercase leading-none" style={fonts.display}>{cert.recipient_name_snapshot || "Member"}</p>
-                <p className="mt-2 text-xs text-slate-600">{cert.event_title_snapshot || cert.title}</p>
-                <p className="mt-3 text-[10px] font-mono uppercase">{cert.verification_code || "Code pending"}</p>
-              </div>
+              <CertificateCanvas certificate={cert} compact />
             </div>
             <div className="flex items-start justify-between mb-3">
               <BrutalBadge color={isAvailable ? "bg-green-500" : "bg-[#FFE800]"} text={isAvailable ? "text-white" : "text-[#171717]"}>
@@ -379,7 +483,7 @@ export function CertificatePage() {
               disabled={!isAvailable}
             >
               <Download size={14} className="inline mr-2" />
-              {isAvailable ? "View / Print Certificate" : "Not Available Yet"}
+              {isAvailable ? "View / Download Certificate" : "Not Available Yet"}
             </BrutalButton>
           </BrutalCard>
           );
@@ -416,6 +520,122 @@ export function CertificatePage() {
 
 // ─── 2. TEAM PAGE ──────────────────────────────────────────────────────────────
 
+export function CertificateDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [certificate, setCertificate] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadCertificate() {
+      if (!id || !isSupabaseConfigured || !supabase) {
+        setLoading(false);
+        return;
+      }
+      const { data: userData } = await supabase.auth.getUser();
+      if (!mounted) return;
+      if (!userData.user) {
+        navigate(`/login?redirect=/certificates/${id}`);
+        return;
+      }
+
+      const { data, error: loadError } = await supabase
+        .from("certificates")
+        .select(certificateSelect)
+        .eq("id", id)
+        .maybeSingle();
+      if (!mounted) return;
+      if (loadError) {
+        if (isCertificateSchemaError(loadError.message)) {
+          const { data: legacyData, error: legacyError } = await supabase
+            .from("certificates")
+            .select(certificateLegacySelect)
+            .eq("id", id)
+            .maybeSingle();
+          setCertificate(legacyData);
+          setError(legacyError ? legacyError.message : "");
+        } else {
+          setError(loadError.message);
+        }
+      } else {
+        setCertificate(data);
+      }
+      setLoading(false);
+    }
+    loadCertificate();
+    return () => {
+      mounted = false;
+    };
+  }, [id, navigate]);
+
+  const isAvailable = certificate && ["approved", "published"].includes(certificate.status) && !certificate.revoked_at;
+  const verifyUrl = certificate?.verification_code ? `${window.location.origin}/verify/${certificate.verification_code}` : "";
+
+  const copyVerifyUrl = async () => {
+    if (!verifyUrl) return;
+    try {
+      await navigator.clipboard.writeText(verifyUrl);
+      alert("Verification link copied.");
+    } catch {
+      alert(verifyUrl);
+    }
+  };
+
+  return (
+    <div className="pt-16 pb-20 px-6 max-w-7xl mx-auto min-h-screen">
+      <CertificatePrintStyles />
+      <div className="no-print mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <button onClick={() => navigate("/certificates")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-4 hover:text-[#2563EB]">
+            Back to certificates
+          </button>
+          <h1 className="text-4xl md:text-6xl uppercase leading-none" style={fonts.display}>Your Certificate</h1>
+          <p className="mt-2 text-slate-600">This page renders the exact certificate. Print saves only the certificate area.</p>
+        </div>
+        {certificate && (
+          <div className="flex gap-3 flex-wrap">
+            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={() => window.print()} disabled={!isAvailable}>
+              <Download size={14} className="inline mr-2" /> Download PDF
+            </BrutalButton>
+            {verifyUrl && (
+              <BrutalButton color="bg-[#FFE800]" onClick={copyVerifyUrl}>
+                <Shield size={14} className="inline mr-2" /> Copy Verify Link
+              </BrutalButton>
+            )}
+          </div>
+        )}
+      </div>
+
+      {loading ? (
+        <BrutalCard color="bg-white">
+          <p className="font-mono text-sm text-slate-500">Loading certificate...</p>
+        </BrutalCard>
+      ) : error ? (
+        <BrutalCard color="bg-[#FB7185]" className="text-white">
+          <h2 className="text-3xl uppercase mb-2" style={fonts.display}>Could not load certificate</h2>
+          <p className="font-mono text-sm">{error}</p>
+        </BrutalCard>
+      ) : !certificate ? (
+        <BrutalCard color="bg-white">
+          <h2 className="text-3xl uppercase mb-2" style={fonts.display}>Certificate not found</h2>
+          <p className="text-slate-600">This certificate is unavailable or you do not have access to it.</p>
+        </BrutalCard>
+      ) : !isAvailable ? (
+        <BrutalCard color="bg-[#FFE800]">
+          <h2 className="text-3xl uppercase mb-2" style={fonts.display}>Certificate inactive</h2>
+          <p className="text-slate-700">This certificate is not active, so it cannot be downloaded.</p>
+        </BrutalCard>
+      ) : (
+        <div className="border-2 border-[#171717] bg-white p-3 md:p-6 brutal-shadow-lg">
+          <CertificateCanvas certificate={certificate} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function VerifyCertificatePage() {
   const { code } = useParams();
   const navigate = useNavigate();
@@ -432,13 +652,13 @@ export function VerifyCertificatePage() {
       }
       const { data, error: loadError } = await supabase
         .from("certificates")
-        .select("id,title,certificate_type,issuer_name,status,issued_at,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,description,events:event_id(title,start_time)")
+        .select(certificateSelect)
         .eq("verification_code", code.toUpperCase())
         .maybeSingle();
       if (!mounted) return;
       if (loadError) {
-        setError(loadError.message.includes("verification_code")
-          ? "Certificate verification is not installed in the database yet. Run the latest Supabase migration, then reload this page."
+        setError(isCertificateSchemaError(loadError.message)
+          ? certificateSchemaMessage
           : loadError.message);
       }
       else setCertificate(data);
@@ -451,17 +671,10 @@ export function VerifyCertificatePage() {
   }, [code]);
 
   const isVerified = certificate && ["approved", "published"].includes(certificate.status) && !certificate.revoked_at;
-  const event = certificate ? (Array.isArray(certificate.events) ? certificate.events[0] : certificate.events) : null;
-  const recipientName = certificate?.recipient_name_snapshot || "Certificate Holder";
-  const eventTitle = certificate?.event_title_snapshot || event?.title || certificate?.title || "Program";
-  const issuedDate = certificate?.issued_at
-    ? new Date(certificate.issued_at).toLocaleDateString(undefined, { month: "long", day: "2-digit", year: "numeric" })
-    : "Date pending";
-  const template = certificateTemplates[certificate?.template_style || "workshop"] || certificateTemplates.workshop;
-  const mutedText = template.text === "text-white" ? "text-white/80" : "text-slate-700";
+  const { recipientName, eventTitle, issuedDate } = getCertificateDetails(certificate);
 
   return (
-    <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto min-h-screen">
+    <div className="pt-16 pb-20 px-6 max-w-5xl mx-auto min-h-screen">
       <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
         Back
       </button>
@@ -482,64 +695,27 @@ export function VerifyCertificatePage() {
           <p className="text-slate-600">No active credential exists for this verification code.</p>
         </BrutalCard>
       ) : (
-        <div className="grid lg:grid-cols-[1fr_340px] gap-8">
-          <div className="border-4 border-[#171717] bg-white p-6 md:p-10 brutal-shadow-lg">
-            <div className={`min-h-[560px] border-4 border-[#171717] ${template.surface} ${template.text} p-8 md:p-12 flex flex-col text-center`}>
-              <div className="flex items-center justify-between gap-4">
-                <BrutalBadge color={isVerified ? "bg-green-500" : "bg-[#FB7185]"}>
-                  {isVerified ? "Verified" : "Not Active"}
-                </BrutalBadge>
-                <p className="text-xs font-mono uppercase tracking-widest">{certificate.verification_code}</p>
-              </div>
-              <div className="flex-1 flex flex-col items-center justify-center py-10">
-                <div className="mb-6 w-28 h-28 bg-white rounded-full flex items-center justify-center overflow-hidden">
-                  <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-cover" />
-                </div>
-                <div className={`mb-6 h-2 w-36 border-2 border-[#171717] ${template.accent}`} />
-                <p className="text-xs md:text-sm font-bold uppercase tracking-[0.4em]">Data Science Club</p>
-                <h1 className="mt-6 text-5xl md:text-7xl uppercase leading-none" style={fonts.display}>Certificate</h1>
-                <p className="mt-3 text-lg md:text-xl" style={fonts.serif}>This verifies that</p>
-                <p className="mt-5 text-4xl md:text-6xl leading-tight" style={fonts.serif}>{recipientName}</p>
-                <p className={`mt-6 max-w-2xl text-lg md:text-xl leading-8 ${mutedText}`} style={fonts.serif}>
-                  successfully participated in <b>{eventTitle}</b>.
-                </p>
-                <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]" className="mt-6">{certificate.certificate_type}</BrutalBadge>
-              </div>
-              <div className="grid sm:grid-cols-3 gap-5 text-left">
-                <div>
-                  <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase">{certificate.issuer_name || "Data Science Club"}</p>
-                  <p className="text-[10px] font-mono text-slate-500">Issuer</p>
-                </div>
-                <div>
-                  <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase">{issuedDate}</p>
-                  <p className="text-[10px] font-mono text-slate-500">Issue Date</p>
-                </div>
-                <div>
-                  <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase break-all">{window.location.origin}/verify/{certificate.verification_code}</p>
-                  <p className="text-[10px] font-mono text-slate-500">Verify URL</p>
-                </div>
-              </div>
+        <div className="grid lg:grid-cols-[1fr_320px] gap-8">
+          <BrutalCard color={isVerified ? "bg-green-500" : "bg-[#FB7185]"} className="text-white">
+            <Shield size={44} className="mb-5" />
+            <h1 className="text-5xl md:text-7xl uppercase leading-none mb-4" style={fonts.display}>
+              {isVerified ? "Verified" : "Not Active"}
+            </h1>
+            <p className="text-lg opacity-90">
+              {isVerified
+                ? "This credential was issued by Data Science Club and is currently valid."
+                : "This credential exists, but it is not currently valid."}
+            </p>
+          </BrutalCard>
+          <BrutalCard color="bg-white">
+            <div className="space-y-4 text-sm">
+              <p><b>Recipient:</b><br />{recipientName}</p>
+              <p><b>Program:</b><br />{eventTitle}</p>
+              <p><b>Issued:</b><br />{issuedDate}</p>
+              <p><b>Certificate Type:</b><br />{certificate.certificate_type}</p>
+              <p><b>Verification Code:</b><br /><span className="font-mono break-all">{certificate.verification_code}</span></p>
             </div>
-          </div>
-          <div className="space-y-4">
-            <BrutalCard color={isVerified ? "bg-green-500" : "bg-[#FB7185]"} className="text-white">
-              <h2 className="text-3xl uppercase mb-3" style={fonts.display}>{isVerified ? "Verified Credential" : "Credential Inactive"}</h2>
-              <p className="text-sm opacity-90">
-                {isVerified ? "This certificate is active and can be shared publicly." : "This certificate is not currently valid."}
-              </p>
-            </BrutalCard>
-            <BrutalCard color="bg-white">
-              <div className="space-y-3 text-sm">
-                <p><b>Recipient:</b> {recipientName}</p>
-                <p><b>Program:</b> {eventTitle}</p>
-                <p><b>Issued:</b> {issuedDate}</p>
-                <p><b>Code:</b> {certificate.verification_code}</p>
-              </div>
-              <BrutalButton color="bg-[#2563EB]" text="text-white" className="w-full mt-5" onClick={() => window.print()}>
-                <Download size={14} className="inline mr-2" /> Print / Save PDF
-              </BrutalButton>
-            </BrutalCard>
-          </div>
+          </BrutalCard>
         </div>
       )}
     </div>

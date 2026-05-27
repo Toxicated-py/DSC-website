@@ -154,6 +154,7 @@ create table public.certificates (
   recipient_name_snapshot text,
   event_title_snapshot text,
   template_style text not null default 'event',
+  signature_data jsonb not null default '[]'::jsonb,
   revoked_at timestamptz,
   certificate_url text,
   thumbnail_url text,
