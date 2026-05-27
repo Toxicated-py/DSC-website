@@ -292,6 +292,14 @@ function Nav() {
 
   useEffect(() => {
     let mounted = true;
+    const clearStaleSession = () => {
+      Object.keys(localStorage)
+        .filter((key) => key.startsWith("sb-") && key.includes("auth-token"))
+        .forEach((key) => localStorage.removeItem(key));
+      localStorage.setItem("dsc-auth-state", "logged-out");
+      setIsLoggedIn(false);
+      setCurrentUser({ name: "Member", role: "student", verified: false, designation: "" });
+    };
     const syncSession = async (session: Awaited<ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>>["data"]["session"]) => {
       if (!mounted) return;
       if (!isSupabaseConfigured) {
@@ -312,12 +320,16 @@ function Nav() {
         "Member";
       localStorage.setItem("dsc-auth-state", "logged-in");
       setIsLoggedIn(true);
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("full_name,email,role,membership_status,designation,designation_status")
         .eq("id", session.user.id)
         .maybeSingle();
       if (!mounted) return;
+      if (profileError) {
+        clearStaleSession();
+        return;
+      }
       setCurrentUser({
         name: profile?.full_name || profile?.email || displayName,
         role: profile?.role || "student",
@@ -326,9 +338,14 @@ function Nav() {
       });
     };
 
-    supabase?.auth.getSession().then(({ data }) => {
-      void syncSession(data.session);
-    });
+    supabase?.auth
+      .getSession()
+      .then(({ data }) => {
+        void syncSession(data.session);
+      })
+      .catch(() => {
+        if (mounted) clearStaleSession();
+      });
     const subscription = supabase?.auth.onAuthStateChange((_event, session) => {
       void syncSession(session);
     });
@@ -633,7 +650,6 @@ function Footer() {
           <Link to="/events" className="hover:text-[#2563EB] w-max">Events</Link>
           <Link to="/projects" className="hover:text-[#FB7185] w-max">Projects Gallery</Link>
           <Link to="/blog" className="hover:text-[#2563EB] w-max">Blog</Link>
-          <Link to="/scanner" className="hover:text-[#FB7185] w-max text-slate-400">Scanner Demo</Link>
         </div>
         
         <div className="md:text-right text-[#171717]">
@@ -2538,8 +2554,8 @@ function ScannerPage() {
         return;
       }
       if (!isSupabaseConfigured || !supabase) {
-        setScannerReady(true);
-        setScannerStatus("Demo scanner active.");
+        setScannerReady(false);
+        setScannerStatus("Scanner is unavailable right now.");
         return;
       }
 
@@ -2588,7 +2604,7 @@ function ScannerPage() {
   const scanTicket = async () => {
     if (!scannerReady || !eventId || !ticketCode.trim()) return;
     if (!isSupabaseConfigured || !supabase) {
-      setScannerStatus("Demo ticket accepted.");
+      setScannerStatus("Scanner is unavailable right now.");
       return;
     }
     const { data, error } = await supabase

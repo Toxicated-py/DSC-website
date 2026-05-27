@@ -2,10 +2,10 @@ import { isSupabaseConfigured, supabase } from "./supabase";
 
 type JsonRecord = Record<string, unknown>;
 
-async function insertOrMock(table: string, payload: JsonRecord, mockKey: string) {
+async function insertContent(table: string, payload: JsonRecord, draftKey: string) {
   if (!isSupabaseConfigured || !supabase) {
-    localStorage.setItem(mockKey, JSON.stringify(payload));
-    return { mode: "mock" as const };
+    localStorage.setItem(draftKey, JSON.stringify(payload));
+    return { mode: "local" as const };
   }
 
   const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -50,27 +50,27 @@ async function insertOrMock(table: string, payload: JsonRecord, mockKey: string)
       throw new Error("This item was already submitted. Please wait for review or edit the existing one.");
     }
     if (error.code === "42P01" || error.message.toLowerCase().includes("could not find the table")) {
-      throw new Error(`Supabase table "${table}" does not exist yet. Run supabase/schema.sql in the Supabase SQL Editor.`);
+      throw new Error("This feature is not available yet. Please contact the admin team.");
     }
     throw error;
   }
-  return { mode: "supabase" as const };
+  return { mode: "remote" as const };
 }
 
 export async function submitEventProposal(payload: JsonRecord) {
-  return insertOrMock("event_proposals", payload, "dsc-event-proposal");
+  return insertContent("event_proposals", payload, "dsc-event-proposal");
 }
 
 export async function submitProject(payload: JsonRecord) {
-  return insertOrMock("projects", payload, "dsc-project-submission");
+  return insertContent("projects", payload, "dsc-project-submission");
 }
 
 export async function publishBlogPost(payload: JsonRecord) {
-  return insertOrMock("blog_posts", payload, "dsc-blog-post");
+  return insertContent("blog_posts", payload, "dsc-blog-post");
 }
 
-export function getPersistenceLabel(mode: "mock" | "supabase") {
-  return mode === "supabase"
+export function getPersistenceLabel(mode: "local" | "remote") {
+  return mode === "remote"
     ? "You'll see its status in your profile."
     : "Saved on this device for now.";
 }

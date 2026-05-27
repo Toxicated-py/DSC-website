@@ -13,9 +13,9 @@
  * - Set role to "Admin" to see the Admin Panel button in navigation
  * 
  * BACKEND INTEGRATION:
- * - Replace mock authentication in handleSubmit/handleGoogleAuth with real API calls
+ * - Authentication is handled through the configured auth provider.
  * - Implement Google OAuth using a library like @react-oauth/google
- * - Fetch user data from your backend and replace the mock currentUser object
+ * - Fetch user data from the configured profile store.
  * - Store JWT tokens in localStorage or httpOnly cookies
  * - Implement role-based access control on backend
  */
