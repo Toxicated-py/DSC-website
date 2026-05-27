@@ -1961,7 +1961,7 @@ function ProjectDetailPage() {
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
       <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
-        <ArrowLeft size={16} /> Back to Gallery
+        <ArrowLeft size={16} /> Back to Projects
       </button>
 
       {loadingProject ? (
