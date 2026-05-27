@@ -150,6 +150,11 @@ create table public.certificates (
   description text,
   status public.review_status not null default 'approved',
   issued_at date,
+  verification_code text unique,
+  recipient_name_snapshot text,
+  event_title_snapshot text,
+  template_style text not null default 'event',
+  revoked_at timestamptz,
   certificate_url text,
   thumbnail_url text,
   created_at timestamptz not null default now(),
@@ -537,6 +542,9 @@ create policy "Admins can manage blog posts" on public.blog_posts
 
 create policy "Users can read own certificates" on public.certificates
   for select using ((select auth.uid()) = recipient_id);
+
+create policy "Public can verify active certificates" on public.certificates
+  for select using (verification_code is not null and revoked_at is null and status in ('approved', 'published'));
 
 create policy "Admins can manage certificates" on public.certificates
   for all using ((select private.current_user_is_admin()))

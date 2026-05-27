@@ -4,7 +4,7 @@ import { Database, Menu, X, Users, ArrowRight, ArrowLeft, Search, Camera, Check,
 import { NewLoginPage, AdminPanelPage, UserBadge } from "./AuthAndAdmin";
 import { ComprehensiveAdminPanel } from "./ComprehensiveAdmin";
 // New Pages
-import { CertificatePage, TeamPage, ContactPage, ResourcesPage, CommentSection } from "./NewPages";
+import { CertificatePage, VerifyCertificatePage, TeamPage, ContactPage, ResourcesPage, CommentSection } from "./NewPages";
 import { GalleryPage, UserProfilePage, AchievementsPage, PartnersPage } from "./NewPages2";
 import { UpdatedAboutPage } from "./UpdatedAbout";
 import { UpdatedFooter } from "./UpdatedFooter";
@@ -74,6 +74,17 @@ const BrutalBadge = ({ children, color = "bg-[#FB7185]", text="text-white", clas
     {children}
   </span>
 );
+
+const createCertificateCode = () => {
+  const bytes = new Uint8Array(9);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 12).toUpperCase();
+};
+
+const formatCertificateError = (message: string) =>
+  message.includes("verification_code") || message.includes("recipient_name_snapshot")
+    ? "Certificate verification is not installed in Supabase yet. Run the latest certificate migration, then try again."
+    : message;
 
 function requireLoginForAction(navigate: ReturnType<typeof useNavigate>, returnTo: string) {
   if (localStorage.getItem("dsc-auth-state") !== "logged-in") {
@@ -1367,6 +1378,11 @@ function EventDetailPage() {
       certificate_type: "Event",
       issuer_name: "Data Science Club",
       issued_at: new Date().toISOString().slice(0, 10),
+      verification_code: createCertificateCode(),
+      recipient_name_snapshot: attendee.profiles?.full_name || attendee.profiles?.email || "Participant",
+      event_title_snapshot: eventInfo?.title || "Event",
+      template_style: "event",
+      description: `This certifies participation in ${eventInfo?.title || "the event"}.`,
       status: "approved",
     })).filter((row) => row.recipient_id);
     if (!rows.length) {
@@ -1381,7 +1397,7 @@ function EventDetailPage() {
       .in("recipient_id", recipientIds)
       .neq("status", "archived");
     if (existingError) {
-      setManagerStatus(existingError.message);
+      setManagerStatus(formatCertificateError(existingError.message));
       return;
     }
     const existingRecipients = new Set((existingCerts || []).map((certificate) => certificate.recipient_id));
@@ -1393,7 +1409,7 @@ function EventDetailPage() {
 
     const { error } = await supabase.from("certificates").insert(newRows);
     if (error) {
-      setManagerStatus(error.message);
+      setManagerStatus(formatCertificateError(error.message));
       return;
     }
     const skipped = rows.length - newRows.length;
@@ -3336,6 +3352,7 @@ export default function App() {
           
           {/* New Pages */}
           <Route path="certificates" element={<ProtectedRoute><CertificatePage /></ProtectedRoute>} />
+          <Route path="verify/:code" element={<VerifyCertificatePage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="resources" element={<ResourcesPage />} />

@@ -104,6 +104,17 @@ const defaultSiteSettings = {
   },
 };
 
+const createCertificateCode = () => {
+  const bytes = new Uint8Array(9);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 12).toUpperCase();
+};
+
+const formatCertificateError = (message: string) =>
+  message.includes("verification_code") || message.includes("recipient_name_snapshot")
+    ? "Certificate verification is not installed in Supabase yet. Run the latest certificate migration, then try again."
+    : message;
+
 export function ComprehensiveAdminPanel() {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState("overview");
@@ -277,7 +288,7 @@ export function ComprehensiveAdminPanel() {
               .eq("id", userData.user.id),
         supabase
           .from("certificates")
-          .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
+          .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
           .order("created_at", { ascending: false }),
         projectQuery,
         supabase
@@ -1092,6 +1103,11 @@ export function ComprehensiveAdminPanel() {
       issuer_name: certificateForm.issuerName,
       issued_at: certificateForm.issuedAt || null,
       certificate_url: certificateForm.certificateUrl || null,
+      verification_code: editingCertificateId ? undefined : createCertificateCode(),
+      recipient_name_snapshot: profileOptions.find((profile) => profile.id === certificateForm.recipientId)?.full_name || profileOptions.find((profile) => profile.id === certificateForm.recipientId)?.email || "Participant",
+      event_title_snapshot: events.find((event) => event.id === certificateForm.eventId)?.title || certificateForm.title,
+      template_style: "event",
+      description: `This certifies participation in ${events.find((event) => event.id === certificateForm.eventId)?.title || certificateForm.title}.`,
       status: "approved",
     };
 
@@ -1104,7 +1120,7 @@ export function ComprehensiveAdminPanel() {
         .neq("status", "archived")
         .maybeSingle();
       if (duplicateError) {
-        setCertificateStatus(duplicateError.message);
+        setCertificateStatus(formatCertificateError(duplicateError.message));
         return;
       }
       if (duplicate) {
@@ -1118,7 +1134,7 @@ export function ComprehensiveAdminPanel() {
       : await supabase.from("certificates").insert(payload);
 
     if (error) {
-      setCertificateStatus(error.message);
+      setCertificateStatus(formatCertificateError(error.message));
       return;
     }
 
@@ -1127,7 +1143,7 @@ export function ComprehensiveAdminPanel() {
 
     const { data: certs } = await supabase
       .from("certificates")
-      .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
+      .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
       .order("created_at", { ascending: false });
     setIssuedCertificates(certs || []);
   };
@@ -1174,7 +1190,7 @@ export function ComprehensiveAdminPanel() {
 
     if (existingError) {
       setIssuingBulkCertificates(false);
-      setCertificateStatus(existingError.message);
+      setCertificateStatus(formatCertificateError(existingError.message));
       return;
     }
 
@@ -1192,6 +1208,10 @@ export function ComprehensiveAdminPanel() {
           issuer_name: certificateForm.issuerName,
           description: `This certifies that ${recipient?.full_name || recipient?.email || "the participant"} participated in ${events.find((event) => event.id === certificateForm.eventId)?.title || "the event"}.`,
           issued_at: certificateForm.issuedAt || new Date().toISOString().slice(0, 10),
+          verification_code: createCertificateCode(),
+          recipient_name_snapshot: recipient?.full_name || recipient?.email || "Participant",
+          event_title_snapshot: events.find((event) => event.id === certificateForm.eventId)?.title || certificateForm.title,
+          template_style: "event",
           certificate_url: certificateForm.certificateUrl || null,
           status: "approved",
         };
@@ -1206,13 +1226,13 @@ export function ComprehensiveAdminPanel() {
     const { error } = await supabase.from("certificates").insert(rows);
     if (error) {
       setIssuingBulkCertificates(false);
-      setCertificateStatus(error.message);
+      setCertificateStatus(formatCertificateError(error.message));
       return;
     }
 
     const { data: certs } = await supabase
       .from("certificates")
-      .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
+      .select("id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,certificate_url,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)")
       .order("created_at", { ascending: false });
 
     setIssuedCertificates(certs || []);
@@ -1240,7 +1260,7 @@ export function ComprehensiveAdminPanel() {
     if (!window.confirm("Delete this certificate permanently?")) return;
     const { error } = await supabase.from("certificates").delete().eq("id", id);
     if (error) {
-      setCertificateStatus(error.message);
+      setCertificateStatus(formatCertificateError(error.message));
       return;
     }
     setIssuedCertificates(issuedCertificates.filter((certificate) => certificate.id !== id));
@@ -2447,10 +2467,22 @@ export function ComprehensiveAdminPanel() {
                             Event: {Array.isArray(certificate.events) ? certificate.events[0]?.title : certificate.events.title}
                           </p>
                         )}
+                        <p className="text-xs font-mono text-slate-500">
+                          Verify code: {certificate.verification_code || "Pending migration"}
+                        </p>
                       </div>
                       <div className="flex gap-2 flex-wrap">
                         <BrutalBadge color="bg-[#7C3AED]">{certificate.certificate_type}</BrutalBadge>
                         <BrutalBadge color="bg-green-500">{certificate.status}</BrutalBadge>
+                        {certificate.verification_code && (
+                          <button
+                            type="button"
+                            onClick={() => window.open(`/verify/${certificate.verification_code}`, "_blank", "noopener,noreferrer")}
+                            className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
+                          >
+                            View
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => editCertificate(certificate)}

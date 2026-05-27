@@ -227,7 +227,7 @@ export function CertificatePage() {
 
       const { data, error } = await supabase
         .from("certificates")
-        .select("id,title,certificate_type,issuer_name,status,issued_at,certificate_url,thumbnail_url,description")
+        .select("id,title,certificate_type,issuer_name,status,issued_at,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,certificate_url,thumbnail_url,description")
         .eq("recipient_id", userData.user.id)
         .order("issued_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
@@ -235,7 +235,9 @@ export function CertificatePage() {
       if (!mounted) return;
 
       if (error) {
-        setLoadError(error.message);
+        setLoadError(error.message.includes("verification_code")
+          ? "Certificate verification is not installed in the database yet. Ask an admin to run the latest Supabase migration."
+          : error.message);
         setCertificates([]);
       } else {
         setCertificates(data || []);
@@ -250,12 +252,16 @@ export function CertificatePage() {
     };
   }, [navigate]);
 
-  const handleDownload = (cert: any) => {
+  const handleOpenCertificate = (cert: any) => {
+    if (cert.verification_code) {
+      navigate(`/verify/${cert.verification_code}`);
+      return;
+    }
     if (cert.certificate_url) {
       window.open(cert.certificate_url, "_blank", "noopener,noreferrer");
       return;
     }
-    alert("Certificate file has not been uploaded yet.");
+    alert("Certificate verification is not ready yet. Ask an admin to run the certificate migration.");
   };
 
   const availableCertificates = certificates.filter(c => c.status === "approved" || c.status === "published");
@@ -330,14 +336,13 @@ export function CertificatePage() {
           const isAvailable = cert.status === "approved" || cert.status === "published";
           return (
           <BrutalCard key={cert.id} color="bg-white">
-            <div className="aspect-video bg-slate-200 border-2 border-[#171717] mb-4 overflow-hidden">
-              {cert.thumbnail_url ? (
-                <img src={cert.thumbnail_url} alt={cert.title} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-[#FFE800] flex items-center justify-center">
-                  <Award size={56} className="text-[#171717]" />
-                </div>
-              )}
+            <div className="aspect-video bg-white border-2 border-[#171717] mb-4 overflow-hidden p-4">
+              <div className="w-full h-full border-4 border-[#171717] bg-[#F4EFEB] flex flex-col items-center justify-center text-center px-5">
+                <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-[#2563EB]">Verified Certificate</p>
+                <p className="mt-2 text-2xl uppercase leading-none" style={fonts.display}>{cert.recipient_name_snapshot || "Member"}</p>
+                <p className="mt-2 text-xs text-slate-600">{cert.event_title_snapshot || cert.title}</p>
+                <p className="mt-3 text-[10px] font-mono uppercase">{cert.verification_code || "Code pending"}</p>
+              </div>
             </div>
             <div className="flex items-start justify-between mb-3">
               <BrutalBadge color={isAvailable ? "bg-green-500" : "bg-[#FFE800]"} text={isAvailable ? "text-white" : "text-[#171717]"}>
@@ -360,11 +365,11 @@ export function CertificatePage() {
               color={isAvailable ? "bg-[#2563EB]" : "bg-slate-300"}
               text={isAvailable ? "text-white" : "text-slate-500"}
               className="w-full text-sm"
-              onClick={() => handleDownload(cert)}
+              onClick={() => handleOpenCertificate(cert)}
               disabled={!isAvailable}
             >
               <Download size={14} className="inline mr-2" />
-              {isAvailable ? (cert.certificate_url ? "Download PDF" : "File Pending") : "Not Available Yet"}
+              {isAvailable ? "View / Print Certificate" : "Not Available Yet"}
             </BrutalButton>
           </BrutalCard>
           );
@@ -400,6 +405,130 @@ export function CertificatePage() {
 }
 
 // ─── 2. TEAM PAGE ──────────────────────────────────────────────────────────────
+
+export function VerifyCertificatePage() {
+  const { code } = useParams();
+  const navigate = useNavigate();
+  const [certificate, setCertificate] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadCertificate() {
+      if (!code || !isSupabaseConfigured || !supabase) {
+        setLoading(false);
+        return;
+      }
+      const { data, error: loadError } = await supabase
+        .from("certificates")
+        .select("id,title,certificate_type,issuer_name,status,issued_at,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,revoked_at,description,events:event_id(title,start_time)")
+        .eq("verification_code", code.toUpperCase())
+        .maybeSingle();
+      if (!mounted) return;
+      if (loadError) {
+        setError(loadError.message.includes("verification_code")
+          ? "Certificate verification is not installed in the database yet. Run the latest Supabase migration, then reload this page."
+          : loadError.message);
+      }
+      else setCertificate(data);
+      setLoading(false);
+    }
+    loadCertificate();
+    return () => {
+      mounted = false;
+    };
+  }, [code]);
+
+  const isVerified = certificate && ["approved", "published"].includes(certificate.status) && !certificate.revoked_at;
+  const event = certificate ? (Array.isArray(certificate.events) ? certificate.events[0] : certificate.events) : null;
+  const recipientName = certificate?.recipient_name_snapshot || "Certificate Holder";
+  const eventTitle = certificate?.event_title_snapshot || event?.title || certificate?.title || "Program";
+  const issuedDate = certificate?.issued_at
+    ? new Date(certificate.issued_at).toLocaleDateString(undefined, { month: "long", day: "2-digit", year: "numeric" })
+    : "Date pending";
+
+  return (
+    <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto min-h-screen">
+      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+        Back
+      </button>
+
+      {loading ? (
+        <BrutalCard color="bg-white">
+          <p className="font-mono text-sm text-slate-500">Verifying certificate...</p>
+        </BrutalCard>
+      ) : error ? (
+        <BrutalCard color="bg-[#FB7185]" className="text-white">
+          <h1 className="text-4xl uppercase mb-3" style={fonts.display}>Verification unavailable</h1>
+          <p className="font-mono text-sm">{error}</p>
+        </BrutalCard>
+      ) : !certificate ? (
+        <BrutalCard color="bg-white">
+          <BrutalBadge color="bg-[#FB7185]" className="mb-4 inline-block">Invalid</BrutalBadge>
+          <h1 className="text-4xl md:text-6xl uppercase mb-3" style={fonts.display}>Certificate not found</h1>
+          <p className="text-slate-600">No active credential exists for this verification code.</p>
+        </BrutalCard>
+      ) : (
+        <div className="grid lg:grid-cols-[1fr_340px] gap-8">
+          <div className="border-4 border-[#171717] bg-white p-6 md:p-10 brutal-shadow-lg">
+            <div className="min-h-[560px] border-4 border-[#171717] bg-[#F4EFEB] p-8 md:p-12 flex flex-col text-center">
+              <div className="flex items-center justify-between gap-4">
+                <BrutalBadge color={isVerified ? "bg-green-500" : "bg-[#FB7185]"}>
+                  {isVerified ? "Verified" : "Not Active"}
+                </BrutalBadge>
+                <p className="text-xs font-mono uppercase tracking-widest">{certificate.verification_code}</p>
+              </div>
+              <div className="flex-1 flex flex-col items-center justify-center py-10">
+                <p className="text-xs md:text-sm font-bold uppercase tracking-[0.4em] text-[#2563EB]">Data Science Club</p>
+                <h1 className="mt-6 text-5xl md:text-7xl uppercase leading-none" style={fonts.display}>Certificate</h1>
+                <p className="mt-3 text-lg md:text-xl" style={fonts.serif}>This verifies that</p>
+                <p className="mt-5 text-4xl md:text-6xl leading-tight" style={fonts.serif}>{recipientName}</p>
+                <p className="mt-6 max-w-2xl text-lg md:text-xl leading-8 text-slate-700" style={fonts.serif}>
+                  successfully participated in <b>{eventTitle}</b>.
+                </p>
+                <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]" className="mt-6">{certificate.certificate_type}</BrutalBadge>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-5 text-left">
+                <div>
+                  <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase">{certificate.issuer_name || "Data Science Club"}</p>
+                  <p className="text-[10px] font-mono text-slate-500">Issuer</p>
+                </div>
+                <div>
+                  <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase">{issuedDate}</p>
+                  <p className="text-[10px] font-mono text-slate-500">Issue Date</p>
+                </div>
+                <div>
+                  <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase break-all">{window.location.origin}/verify/{certificate.verification_code}</p>
+                  <p className="text-[10px] font-mono text-slate-500">Verify URL</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <BrutalCard color={isVerified ? "bg-green-500" : "bg-[#FB7185]"} className="text-white">
+              <h2 className="text-3xl uppercase mb-3" style={fonts.display}>{isVerified ? "Verified Credential" : "Credential Inactive"}</h2>
+              <p className="text-sm opacity-90">
+                {isVerified ? "This certificate is active and can be shared publicly." : "This certificate is not currently valid."}
+              </p>
+            </BrutalCard>
+            <BrutalCard color="bg-white">
+              <div className="space-y-3 text-sm">
+                <p><b>Recipient:</b> {recipientName}</p>
+                <p><b>Program:</b> {eventTitle}</p>
+                <p><b>Issued:</b> {issuedDate}</p>
+                <p><b>Code:</b> {certificate.verification_code}</p>
+              </div>
+              <BrutalButton color="bg-[#2563EB]" text="text-white" className="w-full mt-5" onClick={() => window.print()}>
+                <Download size={14} className="inline mr-2" /> Print / Save PDF
+              </BrutalButton>
+            </BrutalCard>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function TeamPage() {
   const executives = [
