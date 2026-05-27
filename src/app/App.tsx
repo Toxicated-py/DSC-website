@@ -2465,6 +2465,34 @@ function BlogEditorPage() {
   const [preview, setPreview] = useState(true);
   const [status, setStatus] = useState("");
   const [publishingPost, setPublishingPost] = useState(false);
+  const [authorName, setAuthorName] = useState("Member");
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadAuthorName() {
+      if (!isSupabaseConfigured || !supabase) return;
+      const { data: userData } = await supabase.auth.getUser();
+      if (!mounted || !userData.user) return;
+
+      const fallbackName =
+        userData.user.user_metadata?.full_name ||
+        userData.user.email ||
+        "Member";
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name,email")
+        .eq("id", userData.user.id)
+        .maybeSingle();
+
+      if (!mounted) return;
+      setAuthorName(profile?.full_name || profile?.email || fallbackName);
+    }
+
+    loadAuthorName();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const updateField = (field: string, value: string) => {
     const next = { ...form, [field]: value };
@@ -2558,7 +2586,7 @@ function BlogEditorPage() {
                     {form.summary || "Post summary preview."}
                   </p>
                   <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-slate-500">
-                    <span>Data Science Club</span>
+                    <span>{authorName}</span>
                     <span>{previewDate}</span>
                     <span>{previewReadTime}</span>
                   </div>
