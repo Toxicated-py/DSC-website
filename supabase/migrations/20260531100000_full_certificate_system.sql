@@ -97,6 +97,13 @@ alter table public.certificates
   alter column template set not null,
   alter column issuer_name set not null;
 
+drop policy if exists "Public can verify active certificates" on public.certificates;
+drop policy if exists "Users can read own certificates" on public.certificates;
+drop policy if exists "Admins can manage certificates" on public.certificates;
+drop policy if exists "Event managers can manage certificates" on public.certificates;
+drop policy if exists "Authenticated users can read own certificates" on public.certificates;
+drop policy if exists "Public can verify certificates" on public.certificates;
+
 alter table public.certificates
   alter column status drop default;
 
