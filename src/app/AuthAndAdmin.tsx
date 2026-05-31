@@ -184,8 +184,8 @@ export function NewLoginPage() {
         {/* Left Panel */}
         <div className="md:w-1/2 p-8 md:p-12 border-b-4 md:border-b-0 md:border-r-4 border-[#171717] flex flex-col justify-center bg-[#FFE800]">
           <div className="mb-6 flex items-center gap-3">
-            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center overflow-hidden">
-              <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-cover" />
+            <div className="w-20 h-20 bg-white flex items-center justify-center p-2">
+              <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-contain" />
             </div>
             <p className="text-xs font-bold uppercase tracking-widest leading-5">Data Science Club<br />SMS, TU</p>
           </div>

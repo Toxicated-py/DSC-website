@@ -134,7 +134,7 @@ const CertificateCanvas = ({ certificate, compact = false }: { certificate: any;
       <div className="absolute right-64 -bottom-28 h-[95%] w-16 rotate-45 bg-white/80" />
       <div className="relative z-10 flex h-full flex-col px-[8%] py-[6%]">
         <div className="flex items-start justify-between">
-          <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className={`${compact ? "h-14 w-14" : "h-32 w-32"} rounded-full object-cover`} />
+          <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className={`${compact ? "h-12 w-20" : "h-28 w-36"} object-contain`} />
           <div className="text-center">
             <h1 className={`${compact ? "text-3xl" : "text-7xl"} font-black uppercase tracking-[0.12em] text-[#073B91]`} style={fonts.sans}>Certificate</h1>
             <p className={`${compact ? "text-base" : "text-4xl"} mt-2 italic uppercase text-[#0B65AE]`} style={fonts.sans}>of {certificateType}</p>

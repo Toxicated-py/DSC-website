@@ -56,7 +56,7 @@ export const CertificateRenderer = forwardRef<HTMLDivElement, CertificateRendere
 
         <div className={`relative z-10 flex h-full flex-col px-[7%] py-[5%] ${isModern ? "" : "text-[#171717]"}`}>
           <div className="flex items-start justify-between gap-6">
-            <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="h-28 w-28 rounded-full object-cover" />
+            <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="h-24 w-32 object-contain" />
             <div className="text-center">
               <h1 className={`uppercase leading-none ${isModern ? "text-7xl font-black tracking-[0.12em] text-[#073B91]" : "text-6xl tracking-widest text-[#171717]"}`}>
                 {certificate.certificate_title}

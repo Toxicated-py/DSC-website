@@ -437,8 +437,8 @@ function Nav() {
       <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 shrink-0">
-          <div className="w-12 h-12 flex items-center justify-center rounded-full overflow-hidden bg-white">
-            <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-cover" />
+          <div className="w-12 h-12 flex items-center justify-center bg-white p-1.5">
+            <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-contain" />
           </div>
           <span className="font-bold text-sm tracking-widest text-[#171717] uppercase hidden xl:block" style={fonts.sans}>
             Data Science Club
@@ -629,8 +629,8 @@ function Footer() {
       <div className="max-w-[1400px] mx-auto grid md:grid-cols-3 gap-10 items-start">
         <div>
           <Link to="/" className="flex items-center gap-2 mb-4 w-max hover:opacity-80 transition-opacity">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden">
-              <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-cover" />
+            <div className="w-12 h-12 bg-white flex items-center justify-center p-1.5">
+              <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-contain" />
             </div>
             <span className="font-bold text-lg uppercase tracking-widest text-[#171717]" style={fonts.display}>Data Science Club</span>
           </Link>
