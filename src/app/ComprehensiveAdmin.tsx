@@ -160,6 +160,8 @@ export function ComprehensiveAdminPanel() {
     issuedAt: "",
     certificateUrl: "",
     templateStyle: "modern",
+    eventTitleSnapshot: "",
+    recipientNameSnapshot: "",
     description: "For actively participating in this program and demonstrating commitment and enthusiasm.",
     signatures: [
       { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR", signature_image_url: "" },
@@ -568,6 +570,8 @@ export function ComprehensiveAdminPanel() {
       issuedAt: "",
       certificateUrl: "",
       templateStyle: "modern",
+      eventTitleSnapshot: "",
+      recipientNameSnapshot: "",
       description: "For actively participating in this program and demonstrating commitment and enthusiasm.",
       signatures: [
         { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR", signature_image_url: "" },
@@ -603,6 +607,7 @@ export function ComprehensiveAdminPanel() {
       certificateType: selectedEvent ? eventCertificateType : certificateForm.certificateType,
       templateStyle: selectedEvent?.category === "SEMINAR" ? "classic" : "modern",
       issuedAt: certificateForm.issuedAt || new Date().toISOString().slice(0, 10),
+      eventTitleSnapshot: selectedEvent?.title || certificateForm.eventTitleSnapshot,
     });
     if (eventId) {
       void refreshCertificateRegistry(eventId);
@@ -1190,7 +1195,7 @@ export function ComprehensiveAdminPanel() {
       setCertificateStatus("Select an event before issuing a certificate.");
       return;
     }
-    if (!certificateForm.recipientId) {
+    if (!certificateForm.recipientId && !editingCertificateId) {
       setCertificateStatus("Select a checked-in attendee before issuing a certificate.");
       return;
     }
@@ -1207,11 +1212,11 @@ export function ComprehensiveAdminPanel() {
       registration.event_id === certificateForm.eventId &&
       registration.user_id === certificateForm.recipientId
     );
-    if (!selectedRegistration) {
+    if (!editingCertificateId && !selectedRegistration) {
       setCertificateStatus("This member is not registered for the selected event.");
       return;
     }
-    if (!(selectedRegistration.status === "checked_in" || selectedRegistration.checked_in_at)) {
+    if (!editingCertificateId && !(selectedRegistration?.status === "checked_in" || selectedRegistration?.checked_in_at)) {
       setCertificateStatus("Only checked-in attendees can receive event certificates.");
       return;
     }
@@ -1235,6 +1240,8 @@ export function ComprehensiveAdminPanel() {
           issued_date: certificateForm.issuedAt,
           external_pdf_url: certificateForm.certificateUrl || null,
           signature_data: signatureData,
+          event_title_snapshot: certificateForm.eventTitleSnapshot.trim() || undefined,
+          recipient_name_snapshot: certificateForm.recipientNameSnapshot.trim() || undefined,
         });
         setCertificateStatus("Certificate updated.");
       } else {
@@ -1249,6 +1256,8 @@ export function ComprehensiveAdminPanel() {
           issued_date: certificateForm.issuedAt,
           external_pdf_url: certificateForm.certificateUrl || null,
           signature_data: signatureData,
+          event_title_snapshot: certificateForm.eventTitleSnapshot.trim() || undefined,
+          recipient_name_snapshot: certificateForm.recipientNameSnapshot.trim() || undefined,
         });
         setCertificateStatus("Certificate issued.");
       }
@@ -1333,6 +1342,8 @@ export function ComprehensiveAdminPanel() {
       issuedAt: certificate.issued_date || certificate.issued_at || "",
       certificateUrl: certificate.external_pdf_url || certificate.certificate_url || "",
       templateStyle: certificate.template || certificate.template_style || "modern",
+      eventTitleSnapshot: certificate.event_title_snapshot || (Array.isArray(certificate.events) ? certificate.events[0]?.title : certificate.events?.title) || "",
+      recipientNameSnapshot: certificate.recipient_name_snapshot || "",
       description: certificate.description || "For actively participating in this program and demonstrating commitment and enthusiasm.",
       signatures: Array.isArray(certificate.signature_data) && certificate.signature_data.length
         ? certificate.signature_data.map((signature: any) => ({
@@ -1494,7 +1505,7 @@ export function ComprehensiveAdminPanel() {
     : (certificateEventAttendees.length
         ? (Array.isArray(certificateEventAttendees[0].profiles) ? certificateEventAttendees[0].profiles[0] : certificateEventAttendees[0].profiles)
         : null);
-  const certificatePreviewName = certificatePreviewRecipient?.full_name || certificatePreviewRecipient?.email || "Participant Name";
+  const certificatePreviewName = certificateForm.recipientNameSnapshot || certificatePreviewRecipient?.full_name || certificatePreviewRecipient?.email || "Participant Name";
   const certificatePreviewRecord = {
     id: editingCertificateId || "preview",
     member_id: certificateForm.recipientId || "preview",
@@ -1508,7 +1519,7 @@ export function ComprehensiveAdminPanel() {
     external_pdf_url: certificateForm.certificateUrl || null,
     signature_data: certificateForm.signatures,
     verification_code: "CLUB-YYYY-00000",
-    event_title_snapshot: selectedCertificateEvent?.title || "Selected Event",
+    event_title_snapshot: certificateForm.eventTitleSnapshot || selectedCertificateEvent?.title || "Selected Event",
     recipient_name_snapshot: certificatePreviewName,
     status: "valid" as const,
     created_at: new Date().toISOString(),
@@ -2531,6 +2542,7 @@ export function ComprehensiveAdminPanel() {
                   label="Certificate Event"
                   value={certificateForm.eventId}
                   onChange={(event: any) => applyCertificateEvent(event.target.value)}
+                  disabled={Boolean(editingCertificateId)}
                   options={[
                     { value: "", label: "Select event" },
                     ...events.map((event) => ({
@@ -2593,13 +2605,38 @@ export function ComprehensiveAdminPanel() {
                 <BrutalSelect
                   label="Single Attendee"
                   value={certificateForm.recipientId}
-                  onChange={(event: any) => setCertificateForm({ ...certificateForm, recipientId: event.target.value })}
-                  disabled={!certificateForm.eventId}
+                  onChange={(event: any) => {
+                    const profile = profileOptions.find((option) => option.id === event.target.value);
+                    setCertificateForm({
+                      ...certificateForm,
+                      recipientId: event.target.value,
+                      recipientNameSnapshot: profile?.full_name || profile?.email || certificateForm.recipientNameSnapshot,
+                    });
+                  }}
+                  disabled={!certificateForm.eventId || Boolean(editingCertificateId)}
                   options={[
                     { value: "", label: certificateForm.eventId ? "Select one attendee for single issue" : "Select event first" },
                     ...certificateMemberOptions,
                   ]}
                 />
+                {editingCertificateId && (
+                  <div className="mb-5 grid md:grid-cols-2 gap-3">
+                    <BrutalInput
+                      label="Printed Recipient Name"
+                      value={certificateForm.recipientNameSnapshot}
+                      onChange={(event: any) => setCertificateForm({ ...certificateForm, recipientNameSnapshot: event.target.value })}
+                      placeholder="Name shown on certificate"
+                      required
+                    />
+                    <BrutalInput
+                      label="Printed Event Name"
+                      value={certificateForm.eventTitleSnapshot}
+                      onChange={(event: any) => setCertificateForm({ ...certificateForm, eventTitleSnapshot: event.target.value })}
+                      placeholder="Event shown on certificate"
+                      required
+                    />
+                  </div>
+                )}
                 {certificateForm.recipientId && !isSelectedRecipientCheckedIn && (
                   <p className="mb-4 text-xs font-bold text-[#FB7185]">
                     This attendee has not checked in yet. Check-in is required before issuing.
@@ -2750,16 +2787,19 @@ export function ComprehensiveAdminPanel() {
                     color="bg-[#2563EB]"
                     text="text-white"
                     className="w-full text-xs"
-                    disabled={!certificateForm.eventId || !certificateForm.recipientId || !isSelectedRecipientCheckedIn || (isSelectedRecipientAlreadyIssued && !editingCertificateId)}
-                  >
-                    <Award size={16} className="inline mr-2" /> {editingCertificateId ? "Update Single" : "Issue Single"}
+                    disabled={
+                      !certificateForm.eventId ||
+                      (!editingCertificateId && (!certificateForm.recipientId || !isSelectedRecipientCheckedIn || isSelectedRecipientAlreadyIssued))
+                    }
+                >
+                    <Award size={16} className="inline mr-2" /> {editingCertificateId ? "Save Certificate" : "Issue Single"}
                   </BrutalButton>
                   <BrutalButton
                     type="button"
                     color="bg-[#FFE800]"
                     className="w-full text-xs"
                     onClick={issueEventCertificates}
-                    disabled={issuingBulkCertificates || !certificateForm.eventId || eligibleCertificateAttendees.length === 0}
+                    disabled={Boolean(editingCertificateId) || issuingBulkCertificates || !certificateForm.eventId || eligibleCertificateAttendees.length === 0}
                   >
                     <Users size={16} className="inline mr-2" /> {issuingBulkCertificates ? "Issuing..." : "Issue Checked-In"}
                   </BrutalButton>

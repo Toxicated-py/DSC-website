@@ -36,6 +36,8 @@ export interface CertificateFormData {
   issued_date: string;
   external_pdf_url?: string | null;
   signature_data: SignatureData[];
+  event_title_snapshot?: string;
+  recipient_name_snapshot?: string;
 }
 
 export interface PublicCertificate {

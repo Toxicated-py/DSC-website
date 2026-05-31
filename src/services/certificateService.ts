@@ -110,11 +110,13 @@ export async function issueSingleCertificate(formData: CertificateFormData): Pro
     throw new Error("Certificate already issued to this person for this event.");
   }
 
-  const [verificationCode, eventTitle, recipientName] = await Promise.all([
+  const [verificationCode, eventTitleDefault, recipientNameDefault] = await Promise.all([
     generateVerificationCode(),
     getEventTitle(formData.event_id),
     getRecipientName(formData.member_id),
   ]);
+  const eventTitle = formData.event_title_snapshot?.trim() || eventTitleDefault;
+  const recipientName = formData.recipient_name_snapshot?.trim() || recipientNameDefault;
 
   const payload = {
     member_id: formData.member_id,
@@ -321,6 +323,8 @@ export async function updateCertificate(
   if (updates.issued_date !== undefined) allowedUpdates.issued_date = updates.issued_date;
   if (updates.external_pdf_url !== undefined) allowedUpdates.external_pdf_url = updates.external_pdf_url;
   if (updates.signature_data !== undefined) allowedUpdates.signature_data = updates.signature_data;
+  if (updates.event_title_snapshot !== undefined) allowedUpdates.event_title_snapshot = updates.event_title_snapshot;
+  if (updates.recipient_name_snapshot !== undefined) allowedUpdates.recipient_name_snapshot = updates.recipient_name_snapshot;
 
   const { data, error } = await client
     .from("certificates")
