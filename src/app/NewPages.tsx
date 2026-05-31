@@ -139,9 +139,7 @@ const CertificateCanvas = ({ certificate, compact = false }: { certificate: any;
             <h1 className={`${compact ? "text-3xl" : "text-7xl"} font-black uppercase tracking-[0.12em] text-[#073B91]`} style={fonts.sans}>Certificate</h1>
             <p className={`${compact ? "text-base" : "text-4xl"} mt-2 italic uppercase text-[#0B65AE]`} style={fonts.sans}>of {certificateType}</p>
           </div>
-          <div className={`${compact ? "h-14 w-14 text-[8px]" : "h-28 w-28 text-xs"} flex items-center justify-center rounded-full border-4 border-[#0B65AE] bg-white text-center font-bold uppercase text-[#0B65AE]`}>
-            TU
-          </div>
+          <img src="/assets/sms-tu-logo.png" alt="SMS TU logo" className={`${compact ? "h-14 w-14" : "h-28 w-28"} object-contain`} />
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -1056,7 +1054,7 @@ export function ContactPage() {
                 <h3 className="text-lg font-bold uppercase mb-2" style={fonts.display}>Address</h3>
                 <p className="text-sm">
                   School of Mathematical Sciences<br />
-                  Tribhuvan University<br />
+                  SMS, TU<br />
                   Kirtipur, Kathmandu, Nepal
                 </p>
               </div>

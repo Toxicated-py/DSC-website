@@ -635,7 +635,7 @@ function Footer() {
             <span className="font-bold text-lg uppercase tracking-widest text-[#171717]" style={fonts.display}>Data Science Club</span>
           </Link>
           <p className="text-sm text-slate-600 max-w-xs mb-4" style={fonts.sans}>
-            School of Mathematical Sciences, Tribhuvan University.
+            School of Mathematical Sciences, SMS, TU.
           </p>
           
           {/* Social Links */}

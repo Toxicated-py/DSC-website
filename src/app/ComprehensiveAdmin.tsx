@@ -103,7 +103,7 @@ const defaultSiteSettings = {
   tagline: "Empowering Students Through Data",
   contactEmail: "contact@datascienceclub.sms.tu.edu.np",
   contactPhone: "+977-1-4331976",
-  address: "School of Mathematical Sciences, Tribhuvan University, Kathmandu, Nepal",
+  address: "School of Mathematical Sciences, SMS, TU, Kathmandu, Nepal",
   socialLinks: {
     github: "https://github.com/datascienceclub",
     linkedin: "https://linkedin.com/company/datascienceclub",

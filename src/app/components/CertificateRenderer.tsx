@@ -65,9 +65,7 @@ export const CertificateRenderer = forwardRef<HTMLDivElement, CertificateRendere
                 {certificate.certificate_type}
               </p>
             </div>
-            <div className="rounded-xl border-2 border-[#073B91] bg-white p-2">
-              <QRCodeCanvas value={verifyUrl} size={84} includeMargin />
-            </div>
+            <img src="/assets/sms-tu-logo.png" alt="SMS TU logo" className="h-28 w-28 object-contain" />
           </div>
 
           <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -101,9 +99,12 @@ export const CertificateRenderer = forwardRef<HTMLDivElement, CertificateRendere
             ))}
           </div>
 
-          <p className="absolute bottom-4 right-6 font-mono text-[10px] uppercase tracking-widest text-[#073B91]">
-            Verify: {verifyUrl}
-          </p>
+          <div className="absolute bottom-4 right-6 flex items-center gap-2 rounded bg-white/80 p-1">
+            <QRCodeCanvas value={verifyUrl} size={42} includeMargin />
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[#073B91]">
+              Verify: {verifyUrl}
+            </p>
+          </div>
         </div>
       </div>
     );

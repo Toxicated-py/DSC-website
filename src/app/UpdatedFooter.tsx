@@ -39,7 +39,7 @@ export function UpdatedFooter() {
               </span>
             </Link>
             <p className="text-sm text-slate-600 max-w-xs mb-4" style={fonts.sans}>
-              School of Mathematical Sciences, Tribhuvan University.<br />
+              School of Mathematical Sciences, SMS, TU.<br />
               Kirtipur, Kathmandu, Nepal.
             </p>
             <div className="flex flex-wrap gap-3 mt-6">
