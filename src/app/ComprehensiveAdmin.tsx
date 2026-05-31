@@ -128,6 +128,8 @@ const isCertificateSchemaError = (message = "") =>
 const formatCertificateError = (message: string) =>
   isCertificateSchemaError(message)
     ? "Certificate verification is not installed in Supabase yet. Run the latest certificate migration, then try again."
+    : message.toLowerCase().includes("row-level security")
+      ? "Certificate issuing is blocked by Supabase permissions. Run the latest certificate event-manager policy migration, then try again."
     : message;
 
 const certificateTemplateOptions = [
@@ -1255,7 +1257,7 @@ export function ComprehensiveAdminPanel() {
       setIssuedCertificates(refreshed);
       resetCertificateForm();
     } catch (error: any) {
-      setCertificateStatus(error.message || "Could not issue certificate.");
+      setCertificateStatus(formatCertificateError(error.message || "Could not issue certificate."));
     }
   };
 
@@ -1309,9 +1311,12 @@ export function ComprehensiveAdminPanel() {
       });
       const refreshed = await getCertificatesByEvent(certificateForm.eventId);
       setIssuedCertificates(refreshed);
-      setCertificateStatus(`${summary.success.length} issued, ${summary.skipped.length} skipped (duplicates), ${summary.failed.length} failed.`);
+      const failedDetails = summary.failed.length
+        ? ` Failed: ${summary.failed.map((failure) => formatCertificateError(failure)).join("; ")}`
+        : "";
+      setCertificateStatus(`${summary.success.length} issued, ${summary.skipped.length} skipped (duplicates), ${summary.failed.length} failed.${failedDetails}`);
     } catch (error: any) {
-      setCertificateStatus(error.message || "Could not issue bulk certificates.");
+      setCertificateStatus(formatCertificateError(error.message || "Could not issue bulk certificates."));
     } finally {
       setIssuingBulkCertificates(false);
     }

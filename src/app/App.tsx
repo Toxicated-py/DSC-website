@@ -86,6 +86,8 @@ const createCertificateCode = () => {
 const formatCertificateError = (message: string) =>
   ["verification_code", "recipient_name_snapshot", "event_title_snapshot", "template_style", "revoked_at", "signature_data"].some((field) => message.includes(field))
     ? "Certificate verification is not installed in Supabase yet. Run the latest certificate migration, then try again."
+    : message.toLowerCase().includes("row-level security")
+      ? "Certificate issuing is blocked by Supabase permissions. Run the latest certificate event-manager policy migration, then try again."
     : message;
 
 function requireLoginForAction(navigate: ReturnType<typeof useNavigate>, returnTo: string) {
