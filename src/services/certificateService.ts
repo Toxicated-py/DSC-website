@@ -139,10 +139,20 @@ export async function issueSingleCertificate(formData: CertificateFormData): Pro
     .select(CERTIFICATE_SELECT)
     .single();
 
-  if (error?.code === "23502" && error.message.includes("recipient_id")) {
+  if (
+    error?.code === "23502" &&
+    (error.message.includes("recipient_id") || error.message.includes("\"title\""))
+  ) {
     const retry = await client
       .from("certificates")
-      .insert({ ...payload, recipient_id: formData.member_id })
+      .insert({
+        ...payload,
+        recipient_id: formData.member_id,
+        title: formData.certificate_title,
+        template_style: formData.template,
+        certificate_url: formData.external_pdf_url || null,
+        issued_at: formData.issued_date,
+      })
       .select(CERTIFICATE_SELECT)
       .single();
     data = retry.data;

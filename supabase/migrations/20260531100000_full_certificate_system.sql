@@ -58,6 +58,9 @@ begin
   ) then
     update public.certificates set certificate_title = coalesce(certificate_title, title)
     where certificate_title is null;
+
+    alter table public.certificates
+      alter column title drop not null;
   end if;
 
   if exists (
@@ -66,6 +69,9 @@ begin
   ) then
     update public.certificates set template = coalesce(template, template_style)
     where template is null;
+
+    alter table public.certificates
+      alter column template_style drop not null;
   end if;
 
   if exists (
@@ -74,6 +80,9 @@ begin
   ) then
     update public.certificates set external_pdf_url = coalesce(external_pdf_url, certificate_url)
     where external_pdf_url is null;
+
+    alter table public.certificates
+      alter column certificate_url drop not null;
   end if;
 
   if exists (
@@ -82,6 +91,9 @@ begin
   ) then
     update public.certificates set issued_date = coalesce(issued_date, issued_at)
     where issued_date is null;
+
+    alter table public.certificates
+      alter column issued_at drop not null;
   end if;
 end $$;
 
