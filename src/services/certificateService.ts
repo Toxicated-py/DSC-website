@@ -240,7 +240,7 @@ export async function getCertificateByVerificationCode(code: string): Promise<Pu
     .maybeSingle();
 
   if (error) throw new Error(`Could not verify certificate: ${error.message}`);
-  if (!data || data.status === "revoked") return data ? normalizePublicCertificate(data) : null;
+  if (!data || data.status === "revoked") return null;
   return normalizePublicCertificate(data);
 }
 

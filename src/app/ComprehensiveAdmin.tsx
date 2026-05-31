@@ -230,6 +230,7 @@ export function ComprehensiveAdminPanel() {
   const [editingBlogId, setEditingBlogId] = useState("");
   const [editingPartnerId, setEditingPartnerId] = useState("");
   const [reviewPreview, setReviewPreview] = useState<any>(null);
+  const [certificateModal, setCertificateModal] = useState<any>(null);
 
   const [users, setUsers] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -1489,7 +1490,42 @@ export function ComprehensiveAdminPanel() {
         ? (Array.isArray(certificateEventAttendees[0].profiles) ? certificateEventAttendees[0].profiles[0] : certificateEventAttendees[0].profiles)
         : null);
   const certificatePreviewName = certificatePreviewRecipient?.full_name || certificatePreviewRecipient?.email || "Participant Name";
-  const selectedCertificateTemplate = certificateTemplateOptions.find((template) => template.value === certificateForm.templateStyle) || certificateTemplateOptions[0];
+  const certificatePreviewRecord = {
+    id: editingCertificateId || "preview",
+    member_id: certificateForm.recipientId || "preview",
+    event_id: certificateForm.eventId || "preview",
+    certificate_title: certificateForm.title || "Certificate of Participation",
+    certificate_type: certificateForm.certificateType || "Participation",
+    template: certificateForm.templateStyle || "modern",
+    description: certificateForm.description || "For actively participating in this program and demonstrating commitment and enthusiasm.",
+    issuer_name: certificateForm.issuerName || "Data Science Club",
+    issued_date: certificateForm.issuedAt || new Date().toISOString().slice(0, 10),
+    external_pdf_url: certificateForm.certificateUrl || null,
+    signature_data: certificateForm.signatures,
+    verification_code: "CLUB-YYYY-00000",
+    event_title_snapshot: selectedCertificateEvent?.title || "Selected Event",
+    recipient_name_snapshot: certificatePreviewName,
+    status: "valid" as const,
+    created_at: new Date().toISOString(),
+  };
+  const normalizeCertificateForRenderer = (certificate: any) => ({
+    id: certificate.id,
+    member_id: certificate.member_id || certificate.recipient_id || "",
+    event_id: certificate.event_id || "",
+    certificate_title: certificate.certificate_title || certificate.title || "Certificate",
+    certificate_type: certificate.certificate_type || "Participation",
+    template: certificate.template || certificate.template_style || "modern",
+    description: certificate.description || "For actively participating in this program and demonstrating commitment and enthusiasm.",
+    issuer_name: certificate.issuer_name || "Data Science Club",
+    issued_date: certificate.issued_date || certificate.issued_at || "",
+    external_pdf_url: certificate.external_pdf_url || certificate.certificate_url || null,
+    signature_data: Array.isArray(certificate.signature_data) ? certificate.signature_data : [],
+    verification_code: certificate.verification_code || "CLUB-YYYY-00000",
+    event_title_snapshot: certificate.event_title_snapshot || certificate.events?.title || "Event",
+    recipient_name_snapshot: certificate.recipient_name_snapshot || "Participant",
+    status: certificate.status === "revoked" || certificate.status === "archived" ? "revoked" as const : "valid" as const,
+    created_at: certificate.created_at || new Date().toISOString(),
+  });
   const activeCredentialCount = issuedCertificates.filter((certificate) => certificate.status !== "revoked" && certificate.status !== "archived").length;
   const revokedCredentialCount = issuedCertificates.filter((certificate) => certificate.status === "revoked" || certificate.status === "archived").length;
 
@@ -2653,31 +2689,8 @@ export function ComprehensiveAdminPanel() {
                 </div>
                 <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-5 brutal-shadow">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Certificate Draft</p>
-                  <div className={`border-4 border-[#171717] p-6 text-center ${selectedCertificateTemplate.surface} ${selectedCertificateTemplate.text}`}>
-                    <div className="mx-auto mb-4 w-24 h-24 bg-white rounded-full flex items-center justify-center overflow-hidden">
-                      <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-cover" />
-                    </div>
-                    <div className={`mx-auto mb-4 h-2 w-28 border-2 border-[#171717] ${selectedCertificateTemplate.accent}`} />
-                    <p className="text-xs font-bold uppercase tracking-[0.3em]">Data Science Club</p>
-                    <h3 className="mt-3 text-3xl uppercase leading-tight" style={fonts.display}>
-                      {certificateForm.title || "Certificate of Participation"}
-                    </h3>
-                    <p className="mt-5 text-sm uppercase tracking-widest font-bold">Presented to</p>
-                    <p className="mt-2 text-4xl leading-none" style={fonts.serif}>{certificatePreviewName}</p>
-                    <p className={`mt-5 text-sm leading-6 ${certificateForm.templateStyle === "competition" ? "text-white/80" : "text-slate-600"}`}>
-                      {certificateForm.description || "For actively participating in this program and demonstrating commitment and enthusiasm."}
-                    </p>
-                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                      {certificateForm.signatures.slice(0, 3).map((signature, index) => (
-                        <div key={index}>
-                          {signature.signature_image_url && (
-                            <img src={signature.signature_image_url} alt={`${signature.name} signature`} className="mx-auto mb-2 h-10 max-w-32 object-contain" />
-                          )}
-                          <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase">{signature.name || "Signer"}</p>
-                          <p className="text-[10px] font-mono text-slate-500 uppercase">{signature.title || "Title"}</p>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="origin-top-left scale-[0.39] sm:scale-[0.45] md:scale-[0.5] w-[255%] sm:w-[222%] md:w-[200%] -mb-[34rem] sm:-mb-[31rem] md:-mb-[28rem]">
+                    <CertificateRenderer certificate={certificatePreviewRecord} />
                   </div>
                   {certificateForm.eventId && (
                     <p className="mt-4 text-xs font-mono text-slate-500">
@@ -2818,7 +2831,7 @@ export function ComprehensiveAdminPanel() {
                         <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{certificate.template || certificate.template_style || "legacy"}</BrutalBadge>
                         <button
                           type="button"
-                          onClick={() => window.open(`/verify/${certificate.verification_code}`, "_blank", "noopener,noreferrer")}
+                          onClick={() => setCertificateModal(certificate)}
                           className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
                         >
                           View
@@ -3017,6 +3030,25 @@ export function ComprehensiveAdminPanel() {
 
       {/* ─── MODALS ──────────────────────────────────────────────────────────── */}
       
+      {certificateModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+          <div className="max-w-6xl w-full max-h-[94vh] overflow-y-auto">
+            <div className="mb-4 flex items-center justify-between gap-3 text-white">
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>
+                {certificateModal.certificate_title || certificateModal.title || "Certificate"}
+              </h2>
+              <button
+                onClick={() => setCertificateModal(null)}
+                className="px-4 py-2 border-2 border-[#171717] bg-white text-[#171717] font-bold uppercase tracking-widest text-xs"
+              >
+                Close
+              </button>
+            </div>
+            <CertificateRenderer certificate={normalizeCertificateForRenderer(certificateModal)} />
+          </div>
+        </div>
+      )}
+
       {reviewPreview && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <BrutalCard className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
