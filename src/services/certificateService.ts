@@ -116,26 +116,38 @@ export async function issueSingleCertificate(formData: CertificateFormData): Pro
     getRecipientName(formData.member_id),
   ]);
 
-  const { data, error } = await client
+  const payload = {
+    member_id: formData.member_id,
+    event_id: formData.event_id,
+    certificate_title: formData.certificate_title,
+    certificate_type: formData.certificate_type,
+    template: formData.template,
+    description: formData.description,
+    issuer_name: formData.issuer_name,
+    issued_date: formData.issued_date,
+    external_pdf_url: formData.external_pdf_url || null,
+    signature_data: formData.signature_data,
+    verification_code: verificationCode,
+    event_title_snapshot: eventTitle,
+    recipient_name_snapshot: recipientName,
+    status: "valid",
+  };
+
+  let { data, error } = await client
     .from("certificates")
-    .insert({
-      member_id: formData.member_id,
-      event_id: formData.event_id,
-      certificate_title: formData.certificate_title,
-      certificate_type: formData.certificate_type,
-      template: formData.template,
-      description: formData.description,
-      issuer_name: formData.issuer_name,
-      issued_date: formData.issued_date,
-      external_pdf_url: formData.external_pdf_url || null,
-      signature_data: formData.signature_data,
-      verification_code: verificationCode,
-      event_title_snapshot: eventTitle,
-      recipient_name_snapshot: recipientName,
-      status: "valid",
-    })
+    .insert(payload)
     .select(CERTIFICATE_SELECT)
     .single();
+
+  if (error?.code === "23502" && error.message.includes("recipient_id")) {
+    const retry = await client
+      .from("certificates")
+      .insert({ ...payload, recipient_id: formData.member_id })
+      .select(CERTIFICATE_SELECT)
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     if (error.code === "23505") {

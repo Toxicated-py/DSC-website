@@ -47,6 +47,9 @@ begin
     update public.certificates
     set member_id = coalesce(member_id, recipient_id)
     where member_id is null;
+
+    alter table public.certificates
+      alter column recipient_id drop not null;
   end if;
 
   if exists (
