@@ -2619,8 +2619,14 @@ export function ComprehensiveAdminPanel() {
                     ...certificateMemberOptions,
                   ]}
                 />
-                {editingCertificateId && (
-                  <div className="mb-5 grid md:grid-cols-2 gap-3">
+                <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Draft text</p>
+                  <h3 className="font-bold uppercase tracking-widest text-sm">Edit what prints on the certificate</h3>
+                  <p className="mt-1 text-xs font-mono text-slate-500">
+                    These fields control the final certificate preview and PDF.
+                  </p>
+                </div>
+                <div className="mb-5 grid md:grid-cols-2 gap-3">
                     <BrutalInput
                       label="Printed Recipient Name"
                       value={certificateForm.recipientNameSnapshot}
@@ -2635,8 +2641,7 @@ export function ComprehensiveAdminPanel() {
                       placeholder="Event shown on certificate"
                       required
                     />
-                  </div>
-                )}
+                </div>
                 {certificateForm.recipientId && !isSelectedRecipientCheckedIn && (
                   <p className="mb-4 text-xs font-bold text-[#FB7185]">
                     This attendee has not checked in yet. Check-in is required before issuing.
