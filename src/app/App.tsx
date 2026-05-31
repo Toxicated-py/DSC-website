@@ -4,7 +4,9 @@ import { Database, Menu, X, Users, ArrowRight, ArrowLeft, Search, Camera, Check,
 import { NewLoginPage, AdminPanelPage, UserBadge } from "./AuthAndAdmin";
 import { ComprehensiveAdminPanel } from "./ComprehensiveAdmin";
 // New Pages
-import { CertificatePage, CertificateDetailPage, VerifyCertificatePage, TeamPage, ContactPage, ResourcesPage, CommentSection } from "./NewPages";
+import { TeamPage, ContactPage, ResourcesPage, CommentSection } from "./NewPages";
+import { MyCertificates } from "./MyCertificates";
+import { CertificateVerifyPage } from "./CertificateVerifyPage";
 import { GalleryPage, UserProfilePage, AchievementsPage, PartnersPage } from "./NewPages2";
 import { UpdatedAboutPage } from "./UpdatedAbout";
 import { UpdatedFooter } from "./UpdatedFooter";
@@ -3356,9 +3358,8 @@ export default function App() {
           <Route path="admin" element={<AdminRoute><ComprehensiveAdminPanel /></AdminRoute>} />
           
           {/* New Pages */}
-          <Route path="certificates" element={<ProtectedRoute><CertificatePage /></ProtectedRoute>} />
-          <Route path="certificates/:id" element={<ProtectedRoute><CertificateDetailPage /></ProtectedRoute>} />
-          <Route path="verify/:code" element={<VerifyCertificatePage />} />
+          <Route path="certificates" element={<ProtectedRoute><MyCertificates /></ProtectedRoute>} />
+          <Route path="verify/:code" element={<CertificateVerifyPage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="resources" element={<ResourcesPage />} />

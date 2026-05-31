@@ -21,6 +21,16 @@ import {
   Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import {
+  deleteCertificate as deleteCertificateRecord,
+  getCertificatesByEvent,
+  issueCheckedInBulk,
+  issueSingleCertificate,
+  revokeCertificate,
+  updateCertificate,
+  uploadSignatureImage,
+} from "../services/certificateService";
+import { CertificateRenderer } from "./components/CertificateRenderer";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -121,12 +131,11 @@ const formatCertificateError = (message: string) =>
     : message;
 
 const certificateTemplateOptions = [
-  { value: "workshop", label: "Workshop", accent: "bg-[#2563EB]", surface: "bg-[#F4EFEB]", text: "text-[#171717]" },
-  { value: "competition", label: "Competition", accent: "bg-[#FB7185]", surface: "bg-[#171717]", text: "text-white" },
-  { value: "participation", label: "Participation", accent: "bg-[#FFE800]", surface: "bg-white", text: "text-[#171717]" },
+  { value: "modern", label: "Modern", accent: "bg-[#2563EB]", surface: "bg-[#F4EFEB]", text: "text-[#171717]" },
+  { value: "classic", label: "Classic", accent: "bg-[#FFE800]", surface: "bg-white", text: "text-[#171717]" },
 ];
 
-const certificateCredentialSelect = "id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,signature_data,revoked_at,certificate_url,description,created_at,profiles:recipient_id(full_name,email),issuer:issued_by(full_name,email),events:event_id(title)";
+const certificateCredentialSelect = "id,member_id,event_id,certificate_title,certificate_type,issuer_name,issued_date,status,verification_code,recipient_name_snapshot,event_title_snapshot,template,signature_data,external_pdf_url,description,created_at,profiles:member_id(full_name,email),events:event_id(title)";
 const certificateLegacySelect = "id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,description,created_at,profiles:recipient_id(full_name,email),events:event_id(title)";
 
 export function ComprehensiveAdminPanel() {
@@ -148,12 +157,12 @@ export function ComprehensiveAdminPanel() {
     issuerName: "Data Science Club",
     issuedAt: "",
     certificateUrl: "",
-    templateStyle: "workshop",
+    templateStyle: "modern",
     description: "For actively participating in this program and demonstrating commitment and enthusiasm.",
     signatures: [
-      { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR" },
-      { name: "DIRECTOR_NAME", title: "DIRECTOR" },
-      { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT" },
+      { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR", signature_image_url: "" },
+      { name: "DIRECTOR_NAME", title: "DIRECTOR", signature_image_url: "" },
+      { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT", signature_image_url: "" },
     ],
   });
   const [editingCertificateId, setEditingCertificateId] = useState("");
@@ -555,14 +564,24 @@ export function ComprehensiveAdminPanel() {
       issuerName: "Data Science Club",
       issuedAt: "",
       certificateUrl: "",
-      templateStyle: "workshop",
+      templateStyle: "modern",
       description: "For actively participating in this program and demonstrating commitment and enthusiasm.",
       signatures: [
-        { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR" },
-        { name: "DIRECTOR_NAME", title: "DIRECTOR" },
-        { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT" },
+        { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR", signature_image_url: "" },
+        { name: "DIRECTOR_NAME", title: "DIRECTOR", signature_image_url: "" },
+        { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT", signature_image_url: "" },
       ],
     });
+  };
+
+  const refreshCertificateRegistry = async (eventId = certificateForm.eventId) => {
+    if (!eventId) return;
+    try {
+      const rows = await getCertificatesByEvent(eventId);
+      setIssuedCertificates(rows);
+    } catch (error: any) {
+      setCertificateStatus(error.message || "Could not load certificates for this event.");
+    }
   };
 
   const applyCertificateEvent = (eventId: string) => {
@@ -579,16 +598,15 @@ export function ComprehensiveAdminPanel() {
         ? `${selectedEvent.title} Certificate of Participation`
         : certificateForm.title,
       certificateType: selectedEvent ? eventCertificateType : certificateForm.certificateType,
-      templateStyle: selectedEvent?.category === "COMPETITION"
-        ? "competition"
-        : selectedEvent?.category === "SEMINAR"
-          ? "participation"
-          : "workshop",
+      templateStyle: selectedEvent?.category === "SEMINAR" ? "classic" : "modern",
       issuedAt: certificateForm.issuedAt || new Date().toISOString().slice(0, 10),
     });
+    if (eventId) {
+      void refreshCertificateRegistry(eventId);
+    }
   };
 
-  const updateCertificateSignature = (index: number, field: "name" | "title", value: string) => {
+  const updateCertificateSignature = (index: number, field: "name" | "title" | "signature_image_url", value: string) => {
     setCertificateForm({
       ...certificateForm,
       signatures: certificateForm.signatures.map((signature, signatureIndex) =>
@@ -598,9 +616,13 @@ export function ComprehensiveAdminPanel() {
   };
 
   const addCertificateSignature = () => {
+    if (certificateForm.signatures.length >= 3) {
+      setCertificateStatus("You can add up to 3 signature blocks.");
+      return;
+    }
     setCertificateForm({
       ...certificateForm,
-      signatures: [...certificateForm.signatures, { name: "", title: "" }],
+      signatures: [...certificateForm.signatures, { name: "", title: "", signature_image_url: "" }],
     });
   };
 
@@ -609,6 +631,18 @@ export function ComprehensiveAdminPanel() {
       ...certificateForm,
       signatures: certificateForm.signatures.filter((_, signatureIndex) => signatureIndex !== index),
     });
+  };
+
+  const uploadCertificateSignature = async (index: number, file?: File) => {
+    if (!file) return;
+    try {
+      setCertificateStatus("Uploading signature...");
+      const publicUrl = await uploadSignatureImage(file);
+      updateCertificateSignature(index, "signature_image_url", publicUrl);
+      setCertificateStatus("Signature uploaded.");
+    } catch (error: any) {
+      setCertificateStatus(error.message || "Could not upload signature.");
+    }
   };
 
   const resetEventForm = () => {
@@ -1149,17 +1183,6 @@ export function ComprehensiveAdminPanel() {
     event.preventDefault();
     setCertificateStatus("");
 
-    if (!isSupabaseConfigured || !supabase) {
-      setCertificateStatus("The certificate system is unavailable right now.");
-      return;
-    }
-
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      navigate("/login?redirect=/admin");
-      return;
-    }
-
     if (!certificateForm.eventId) {
       setCertificateStatus("Select an event before issuing a certificate.");
       return;
@@ -1170,6 +1193,10 @@ export function ComprehensiveAdminPanel() {
     }
     if (!certificateForm.title.trim() || !certificateForm.issuerName.trim()) {
       setCertificateStatus("Certificate title and issuer are required.");
+      return;
+    }
+    if (!certificateForm.issuedAt) {
+      setCertificateStatus("Issued date is required.");
       return;
     }
 
@@ -1186,111 +1213,63 @@ export function ComprehensiveAdminPanel() {
       return;
     }
 
-    const registrationProfile = Array.isArray(selectedRegistration.profiles) ? selectedRegistration.profiles[0] : selectedRegistration.profiles;
-    const recipientProfile = profileOptions.find((profile) => profile.id === certificateForm.recipientId) || registrationProfile;
-    const certificateEvent = events.find((event) => event.id === certificateForm.eventId);
     const signatureData = certificateForm.signatures
-      .map((signature) => ({ name: signature.name.trim(), title: signature.title.trim() }))
+      .map((signature) => ({
+        name: signature.name.trim(),
+        title: signature.title.trim(),
+        signature_image_url: signature.signature_image_url || "",
+      }))
       .filter((signature) => signature.name || signature.title);
-    const payload = {
-      recipient_id: certificateForm.recipientId,
-      event_id: certificateForm.eventId,
-      issued_by: userData.user.id,
-      title: certificateForm.title,
-      certificate_type: certificateForm.certificateType,
-      issuer_name: certificateForm.issuerName,
-      issued_at: certificateForm.issuedAt || null,
-      certificate_url: certificateForm.certificateUrl || null,
-      verification_code: editingCertificateId ? undefined : createCertificateCode(),
-      recipient_name_snapshot: recipientProfile?.full_name || recipientProfile?.email || "Participant",
-      event_title_snapshot: certificateEvent?.title || certificateForm.title,
-      template_style: certificateForm.templateStyle,
-      signature_data: signatureData,
-      description: certificateForm.description.trim() || `For actively participating in ${certificateEvent?.title || certificateForm.title}.`,
-      status: "approved",
-    };
-    const legacyPayload = {
-      recipient_id: payload.recipient_id,
-      event_id: payload.event_id,
-      issued_by: payload.issued_by,
-      title: payload.title,
-      certificate_type: payload.certificate_type,
-      issuer_name: payload.issuer_name,
-      issued_at: payload.issued_at,
-      certificate_url: payload.certificate_url,
-      description: payload.description,
-      status: payload.status,
-    };
 
-    if (!editingCertificateId) {
-      const { data: duplicate, error: duplicateError } = await supabase
-        .from("certificates")
-        .select("id")
-        .eq("recipient_id", certificateForm.recipientId)
-        .eq("event_id", certificateForm.eventId)
-        .neq("status", "archived")
-        .maybeSingle();
-      if (duplicateError) {
-        setCertificateStatus(formatCertificateError(duplicateError.message));
-        return;
-      }
-      if (duplicate) {
-        setCertificateStatus("This member already has this certificate for the selected event.");
-        return;
-      }
-    }
-
-    const { error } = editingCertificateId
-      ? await supabase.from("certificates").update(payload).eq("id", editingCertificateId)
-      : await supabase.from("certificates").insert(payload);
-
-    if (error) {
-      if (isCertificateSchemaError(error.message)) {
-        const { error: legacyError } = editingCertificateId
-          ? await supabase.from("certificates").update(legacyPayload).eq("id", editingCertificateId)
-          : await supabase.from("certificates").insert(legacyPayload);
-        if (legacyError) {
-          setCertificateStatus(formatCertificateError(legacyError.message));
-          return;
-        }
-        setCertificateStatus("Certificate saved in legacy mode. Run the certificate migration to enable verification links and public certificate pages.");
+    try {
+      if (editingCertificateId) {
+        await updateCertificate(editingCertificateId, {
+          certificate_title: certificateForm.title,
+          certificate_type: certificateForm.certificateType,
+          template: certificateForm.templateStyle,
+          description: certificateForm.description,
+          issuer_name: certificateForm.issuerName,
+          issued_date: certificateForm.issuedAt,
+          external_pdf_url: certificateForm.certificateUrl || null,
+          signature_data: signatureData,
+        });
+        setCertificateStatus("Certificate updated.");
       } else {
-        setCertificateStatus(formatCertificateError(error.message));
-        return;
+        await issueSingleCertificate({
+          member_id: certificateForm.recipientId,
+          event_id: certificateForm.eventId,
+          certificate_title: certificateForm.title,
+          certificate_type: certificateForm.certificateType,
+          template: certificateForm.templateStyle,
+          description: certificateForm.description,
+          issuer_name: certificateForm.issuerName,
+          issued_date: certificateForm.issuedAt,
+          external_pdf_url: certificateForm.certificateUrl || null,
+          signature_data: signatureData,
+        });
+        setCertificateStatus("Certificate issued.");
       }
-    } else {
-      setCertificateStatus(editingCertificateId ? "Certificate updated." : "Certificate issued.");
-    }
 
-    resetCertificateForm();
-
-    const { data: certs, error: certsError } = await supabase
-      .from("certificates")
-      .select(certificateCredentialSelect)
-      .order("created_at", { ascending: false });
-    if (certsError && isCertificateSchemaError(certsError.message)) {
-      const { data: legacyCerts } = await supabase
-        .from("certificates")
-        .select(certificateLegacySelect)
-        .order("created_at", { ascending: false });
-      setIssuedCertificates(legacyCerts || []);
-      return;
+      const refreshed = await getCertificatesByEvent(certificateForm.eventId);
+      setIssuedCertificates(refreshed);
+      resetCertificateForm();
+    } catch (error: any) {
+      setCertificateStatus(error.message || "Could not issue certificate.");
     }
-    setIssuedCertificates(certs || []);
   };
 
   const issueEventCertificates = async () => {
     setCertificateStatus("");
-    if (!isSupabaseConfigured || !supabase) {
-      setCertificateStatus("The certificate system is unavailable right now.");
-      return;
-    }
     if (!certificateForm.eventId) {
       setCertificateStatus("Select an event before issuing bulk certificates.");
       return;
     }
     if (!certificateForm.title.trim() || !certificateForm.issuerName.trim()) {
       setCertificateStatus("Certificate title and issuer are required.");
+      return;
+    }
+    if (!certificateForm.issuedAt) {
+      setCertificateStatus("Issued date is required.");
       return;
     }
 
@@ -1303,176 +1282,92 @@ export function ComprehensiveAdminPanel() {
       return;
     }
 
+    if (!window.confirm(`Issue certificates to ${eligibleCertificateAttendees.length} checked-in attendee${eligibleCertificateAttendees.length === 1 ? "" : "s"}?`)) {
+      return;
+    }
+
     setIssuingBulkCertificates(true);
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      setIssuingBulkCertificates(false);
-      navigate("/login?redirect=/admin");
-      return;
-    }
-
-    const recipientIds = attendeesForEvent.map((registration) => registration.user_id).filter(Boolean);
-    if (!recipientIds.length) {
-      setIssuingBulkCertificates(false);
-      setCertificateStatus("Checked-in attendees must be linked to member accounts before certificates can be issued.");
-      return;
-    }
-
-    const { data: existingCerts, error: existingError } = await supabase
-      .from("certificates")
-      .select("recipient_id")
-      .eq("event_id", certificateForm.eventId)
-      .in("recipient_id", recipientIds)
-      .neq("status", "archived");
-
-    if (existingError) {
-      setIssuingBulkCertificates(false);
-      setCertificateStatus(formatCertificateError(existingError.message));
-      return;
-    }
-
-    const existingRecipients = new Set((existingCerts || []).map((certificate) => certificate.recipient_id));
     const signatureData = certificateForm.signatures
-      .map((signature) => ({ name: signature.name.trim(), title: signature.title.trim() }))
+      .map((signature) => ({
+        name: signature.name.trim(),
+        title: signature.title.trim(),
+        signature_image_url: signature.signature_image_url || "",
+      }))
       .filter((signature) => signature.name || signature.title);
-    const rows = attendeesForEvent
-      .filter((registration) => registration.user_id && !existingRecipients.has(registration.user_id))
-      .map((registration) => {
-        const recipient = Array.isArray(registration.profiles) ? registration.profiles[0] : registration.profiles;
-        return {
-          recipient_id: registration.user_id,
-          event_id: certificateForm.eventId,
-          issued_by: userData.user.id,
-          title: certificateForm.title,
-          certificate_type: certificateForm.certificateType,
-          issuer_name: certificateForm.issuerName,
-          description: certificateForm.description.trim() || `For actively participating in ${events.find((event) => event.id === certificateForm.eventId)?.title || "the event"}.`,
-          issued_at: certificateForm.issuedAt || new Date().toISOString().slice(0, 10),
-          verification_code: createCertificateCode(),
-          recipient_name_snapshot: recipient?.full_name || recipient?.email || "Participant",
-          event_title_snapshot: events.find((event) => event.id === certificateForm.eventId)?.title || certificateForm.title,
-          template_style: certificateForm.templateStyle,
-          signature_data: signatureData,
-          certificate_url: certificateForm.certificateUrl || null,
-          status: "approved",
-        };
+
+    try {
+      const summary = await issueCheckedInBulk(certificateForm.eventId, {
+        certificate_title: certificateForm.title,
+        certificate_type: certificateForm.certificateType,
+        template: certificateForm.templateStyle,
+        description: certificateForm.description,
+        issuer_name: certificateForm.issuerName,
+        issued_date: certificateForm.issuedAt,
+        external_pdf_url: certificateForm.certificateUrl || null,
+        signature_data: signatureData,
       });
-    const legacyRows = rows.map((row) => ({
-      recipient_id: row.recipient_id,
-      event_id: row.event_id,
-      issued_by: row.issued_by,
-      title: row.title,
-      certificate_type: row.certificate_type,
-      issuer_name: row.issuer_name,
-      description: row.description,
-      issued_at: row.issued_at,
-      certificate_url: row.certificate_url,
-      status: row.status,
-    }));
-
-    if (!rows.length) {
+      const refreshed = await getCertificatesByEvent(certificateForm.eventId);
+      setIssuedCertificates(refreshed);
+      setCertificateStatus(`${summary.success.length} issued, ${summary.skipped.length} skipped (duplicates), ${summary.failed.length} failed.`);
+    } catch (error: any) {
+      setCertificateStatus(error.message || "Could not issue bulk certificates.");
+    } finally {
       setIssuingBulkCertificates(false);
-      setCertificateStatus("Certificates were already issued for all checked-in attendees.");
-      return;
     }
-
-    const { error } = await supabase.from("certificates").insert(rows);
-    if (error) {
-      if (isCertificateSchemaError(error.message)) {
-        const { error: legacyError } = await supabase.from("certificates").insert(legacyRows);
-        if (legacyError) {
-          setIssuingBulkCertificates(false);
-          setCertificateStatus(formatCertificateError(legacyError.message));
-          return;
-        }
-      } else {
-        setIssuingBulkCertificates(false);
-        setCertificateStatus(formatCertificateError(error.message));
-        return;
-      }
-    }
-
-    const { data: certs, error: certsError } = await supabase
-      .from("certificates")
-      .select(certificateCredentialSelect)
-      .order("created_at", { ascending: false });
-
-    if (certsError && isCertificateSchemaError(certsError.message)) {
-      const { data: legacyCerts } = await supabase
-        .from("certificates")
-        .select(certificateLegacySelect)
-        .order("created_at", { ascending: false });
-      setIssuedCertificates(legacyCerts || []);
-    } else {
-      setIssuedCertificates(certs || []);
-    }
-    setIssuingBulkCertificates(false);
-    const skipped = attendeesForEvent.length - rows.length;
-    setCertificateStatus(`${error ? "Saved in legacy mode. Run the certificate migration to enable verification links. " : ""}Issued ${rows.length} certificate${rows.length === 1 ? "" : "s"}${skipped ? `, skipped ${skipped} duplicate${skipped === 1 ? "" : "s"}` : ""}.`);
   };
 
   const editCertificate = (certificate: any) => {
     setEditingCertificateId(certificate.id);
     setCertificateForm({
-      recipientId: certificate.recipient_id || "",
+      recipientId: certificate.member_id || certificate.recipient_id || "",
       eventId: certificate.event_id || "",
-      title: certificate.title || "",
+      title: certificate.certificate_title || certificate.title || "",
       certificateType: certificate.certificate_type || "Workshop",
       issuerName: certificate.issuer_name || "Data Science Club",
-      issuedAt: certificate.issued_at || "",
-      certificateUrl: certificate.certificate_url || "",
-      templateStyle: certificate.template_style || "workshop",
+      issuedAt: certificate.issued_date || certificate.issued_at || "",
+      certificateUrl: certificate.external_pdf_url || certificate.certificate_url || "",
+      templateStyle: certificate.template || certificate.template_style || "modern",
       description: certificate.description || "For actively participating in this program and demonstrating commitment and enthusiasm.",
       signatures: Array.isArray(certificate.signature_data) && certificate.signature_data.length
         ? certificate.signature_data.map((signature: any) => ({
             name: signature.name || "",
             title: signature.title || "",
+            signature_image_url: signature.signature_image_url || "",
           }))
         : [
-            { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR" },
-            { name: "DIRECTOR_NAME", title: "DIRECTOR" },
-            { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT" },
+            { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR", signature_image_url: "" },
+            { name: "DIRECTOR_NAME", title: "DIRECTOR", signature_image_url: "" },
+            { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT", signature_image_url: "" },
           ],
     });
     setCertificateStatus("");
   };
 
   const deleteCertificate = async (id: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
     if (!window.confirm("Delete this certificate permanently?")) return;
-    const { error } = await supabase.from("certificates").delete().eq("id", id);
-    if (error) {
-      setCertificateStatus(formatCertificateError(error.message));
-      return;
+    try {
+      await deleteCertificateRecord(id);
+      setIssuedCertificates(issuedCertificates.filter((certificate) => certificate.id !== id));
+      setCertificateStatus("Certificate deleted.");
+    } catch (error: any) {
+      setCertificateStatus(error.message || "Could not delete certificate.");
     }
-    setIssuedCertificates(issuedCertificates.filter((certificate) => certificate.id !== id));
-    setCertificateStatus("Certificate deleted.");
   };
 
   const setCertificateRevoked = async (certificate: any, revoked: boolean) => {
-    if (!isSupabaseConfigured || !supabase) return;
     setCertificateStatus("");
-    const patch = revoked
-      ? { revoked_at: new Date().toISOString(), status: "archived" }
-      : { revoked_at: null, status: "approved" };
-    const { error } = await supabase.from("certificates").update(patch).eq("id", certificate.id);
-    if (error) {
-      if (isCertificateSchemaError(error.message)) {
-        const legacyPatch = { status: revoked ? "archived" : "approved" };
-        const { error: legacyError } = await supabase.from("certificates").update(legacyPatch).eq("id", certificate.id);
-        if (legacyError) {
-          setCertificateStatus(formatCertificateError(legacyError.message));
-          return;
-        }
-        setIssuedCertificates(issuedCertificates.map((row) => row.id === certificate.id ? { ...row, ...legacyPatch } : row));
-        setCertificateStatus(revoked ? "Certificate archived. Run the certificate migration to enable full revoke metadata." : "Certificate restored.");
-        return;
+    if (!window.confirm(revoked ? "Revoke this certificate?" : "Restore this certificate?")) return;
+    try {
+      if (revoked) {
+        await revokeCertificate(certificate.id);
+      } else {
+        if (supabase) await supabase.from("certificates").update({ status: "valid" }).eq("id", certificate.id);
       }
-      setCertificateStatus(formatCertificateError(error.message));
-      return;
+      setIssuedCertificates(issuedCertificates.map((row) => row.id === certificate.id ? { ...row, status: revoked ? "revoked" : "valid" } : row));
+      setCertificateStatus(revoked ? "Certificate revoked." : "Certificate restored.");
+    } catch (error: any) {
+      setCertificateStatus(error.message || "Could not update certificate status.");
     }
-    setIssuedCertificates(issuedCertificates.map((row) => row.id === certificate.id ? { ...row, ...patch } : row));
-    setCertificateStatus(revoked ? "Certificate revoked. The verify page will no longer validate it." : "Certificate restored and active again.");
   };
 
   const copyCertificateLink = async (certificate: any) => {
@@ -1551,11 +1446,11 @@ export function ComprehensiveAdminPanel() {
     issuedCertificates
       .filter((certificate) =>
         certificate.event_id === certificateForm.eventId &&
-        certificate.recipient_id &&
-        !certificate.revoked_at &&
+        (certificate.member_id || certificate.recipient_id) &&
+        certificate.status !== "revoked" &&
         certificate.status !== "archived"
       )
-      .map((certificate) => certificate.recipient_id)
+      .map((certificate) => certificate.member_id || certificate.recipient_id)
   );
   const certificateEventAttendees = eventRegistrations.filter((registration) =>
     registration.event_id === certificateForm.eventId &&
@@ -1595,8 +1490,8 @@ export function ComprehensiveAdminPanel() {
         : null);
   const certificatePreviewName = certificatePreviewRecipient?.full_name || certificatePreviewRecipient?.email || "Participant Name";
   const selectedCertificateTemplate = certificateTemplateOptions.find((template) => template.value === certificateForm.templateStyle) || certificateTemplateOptions[0];
-  const activeCredentialCount = issuedCertificates.filter((certificate) => !certificate.revoked_at && certificate.status !== "archived").length;
-  const revokedCredentialCount = issuedCertificates.filter((certificate) => certificate.revoked_at || certificate.status === "archived").length;
+  const activeCredentialCount = issuedCertificates.filter((certificate) => certificate.status !== "revoked" && certificate.status !== "archived").length;
+  const revokedCredentialCount = issuedCertificates.filter((certificate) => certificate.status === "revoked" || certificate.status === "archived").length;
 
   return (
     <div className="pt-32 pb-20 px-4 md:px-6 max-w-[1600px] mx-auto min-h-screen bg-[#F4EFEB]">
@@ -2708,27 +2603,40 @@ export function ComprehensiveAdminPanel() {
                   </div>
                   <div className="space-y-3">
                     {certificateForm.signatures.map((signature, index) => (
-                      <div key={index} className="grid md:grid-cols-[1fr_1fr_auto] gap-2">
-                        <input
-                          className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
-                          value={signature.name}
-                          onChange={(event) => updateCertificateSignature(index, "name", event.target.value)}
-                          placeholder="Signer name"
-                        />
-                        <input
-                          className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
-                          value={signature.title}
-                          onChange={(event) => updateCertificateSignature(index, "title", event.target.value)}
-                          placeholder="Role / title"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeCertificateSignature(index)}
-                          className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase tracking-widest text-[10px]"
-                          disabled={certificateForm.signatures.length === 1}
-                        >
-                          Remove
-                        </button>
+                      <div key={index} className="border-2 border-[#171717] p-3">
+                        <div className="grid md:grid-cols-[1fr_1fr_auto] gap-2">
+                          <input
+                            className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
+                            value={signature.name}
+                            onChange={(event) => updateCertificateSignature(index, "name", event.target.value)}
+                            placeholder="Signer name"
+                          />
+                          <input
+                            className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
+                            value={signature.title}
+                            onChange={(event) => updateCertificateSignature(index, "title", event.target.value)}
+                            placeholder="Role / title"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeCertificateSignature(index)}
+                            className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase tracking-widest text-[10px]"
+                            disabled={certificateForm.signatures.length === 1}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <div className="mt-3 grid md:grid-cols-[1fr_auto] gap-3 items-center">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(event) => uploadCertificateSignature(index, event.target.files?.[0])}
+                            className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
+                          />
+                          {signature.signature_image_url && (
+                            <img src={signature.signature_image_url} alt={`${signature.name} signature`} className="h-12 max-w-40 object-contain border-2 border-[#171717] bg-white p-1" />
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2762,6 +2670,9 @@ export function ComprehensiveAdminPanel() {
                     <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                       {certificateForm.signatures.slice(0, 3).map((signature, index) => (
                         <div key={index}>
+                          {signature.signature_image_url && (
+                            <img src={signature.signature_image_url} alt={`${signature.name} signature`} className="mx-auto mb-2 h-10 max-w-32 object-contain" />
+                          )}
                           <p className="border-t-2 border-[#171717] pt-2 text-xs font-bold uppercase">{signature.name || "Signer"}</p>
                           <p className="text-[10px] font-mono text-slate-500 uppercase">{signature.title || "Title"}</p>
                         </div>
@@ -2875,26 +2786,22 @@ export function ComprehensiveAdminPanel() {
               <div className="space-y-3">
                 {issuedCertificates.map((certificate) => {
                   const recipient = Array.isArray(certificate.profiles) ? certificate.profiles[0] : certificate.profiles;
-                  const issuer = Array.isArray(certificate.issuer) ? certificate.issuer[0] : certificate.issuer;
-                  const isRevoked = Boolean(certificate.revoked_at || certificate.status === "archived");
+                  const isRevoked = Boolean(certificate.status === "revoked" || certificate.status === "archived");
                   const verifyUrl = certificate.verification_code ? `${window.location.origin}/verify/${certificate.verification_code}` : "";
                   return (
                     <div key={certificate.id} className={`border-2 border-[#171717] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 ${isRevoked ? "bg-slate-100 opacity-80" : "bg-white"}`}>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="font-bold uppercase">{certificate.title}</h3>
+                          <h3 className="font-bold uppercase">{certificate.certificate_title || certificate.title}</h3>
                           <BrutalBadge color={isRevoked ? "bg-slate-500" : "bg-green-500"}>
                             {isRevoked ? "Revoked" : "Verified"}
                           </BrutalBadge>
                         </div>
                         <p className="text-xs font-mono text-slate-500">
-                          Recipient: {certificate.recipient_name_snapshot || recipient?.full_name || recipient?.email || "Member"} - issued {certificate.issued_at || "date pending"}
+                          Recipient: {certificate.recipient_name_snapshot || recipient?.full_name || recipient?.email || "Member"} - issued {certificate.issued_date || certificate.issued_at || "date pending"}
                         </p>
                         <p className="text-xs font-mono text-slate-500">
                           Issuer: {certificate.issuer_name || "Data Science Club"} - Created: {certificate.created_at ? new Date(certificate.created_at).toLocaleString() : "unknown"}
-                        </p>
-                        <p className="text-xs font-mono text-slate-500">
-                          Issued by: {issuer?.full_name || issuer?.email || "Unknown admin"} - Issued time: {certificate.created_at ? new Date(certificate.created_at).toLocaleString() : "unknown"}
                         </p>
                         {certificate.events && (
                           <p className="text-xs font-mono text-slate-500">
@@ -2908,10 +2815,10 @@ export function ComprehensiveAdminPanel() {
                       </div>
                       <div className="flex gap-2 flex-wrap">
                         <BrutalBadge color="bg-[#7C3AED]">{certificate.certificate_type}</BrutalBadge>
-                        <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{certificate.template_style || "legacy"}</BrutalBadge>
+                        <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{certificate.template || certificate.template_style || "legacy"}</BrutalBadge>
                         <button
                           type="button"
-                          onClick={() => window.open(`/certificates/${certificate.id}`, "_blank", "noopener,noreferrer")}
+                          onClick={() => window.open(`/verify/${certificate.verification_code}`, "_blank", "noopener,noreferrer")}
                           className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
                         >
                           View
@@ -2943,6 +2850,7 @@ export function ComprehensiveAdminPanel() {
                           type="button"
                           onClick={() => deleteCertificate(certificate.id)}
                           className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs"
+                          disabled={!isRevoked}
                         >
                           Delete
                         </button>
