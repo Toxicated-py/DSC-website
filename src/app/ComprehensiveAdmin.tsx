@@ -1560,16 +1560,16 @@ export function ComprehensiveAdminPanel() {
             {isFullAdmin ? "Manage all aspects of your Data Science Club website" : "Manage your events, projects, blogs, certificates, and check-ins"}
           </p>
         </div>
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => navigate("/dashboard")}
-            className="px-4 py-2 border-2 border-[#171717] bg-white hover:bg-[#F4EFEB] transition-all font-bold uppercase tracking-widest text-xs md:text-sm"
+            className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#F4EFEB] transition-all font-bold uppercase tracking-widest text-xs"
           >
             Dashboard
           </button>
           <button
             onClick={() => navigate("/")}
-            className="px-4 py-2 border-2 border-[#171717] bg-white hover:bg-[#F4EFEB] transition-all font-bold uppercase tracking-widest text-xs md:text-sm"
+            className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#F4EFEB] transition-all font-bold uppercase tracking-widest text-xs"
           >
             View Site
           </button>
@@ -1577,21 +1577,27 @@ export function ComprehensiveAdminPanel() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-8 flex gap-2 border-b-2 border-[#171717] pb-2 overflow-x-auto">
-        {visibleTabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setSelectedTab(tab.id)}
-            className={`px-4 md:px-6 py-3 font-bold uppercase tracking-widest text-xs md:text-sm transition-all whitespace-nowrap flex items-center gap-2 ${
-              selectedTab === tab.id
-                ? "bg-[#171717] text-white border-2 border-[#171717]"
-                : "bg-white text-[#171717] border-2 border-transparent hover:border-[#171717]"
-            }`}
-          >
-            {tab.icon}
-            <span className="hidden md:inline">{tab.label}</span>
-          </button>
-        ))}
+      <div className="mb-8 border-y-2 border-[#171717] bg-white px-3 py-3 brutal-shadow">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+          {visibleTabs.map((tab, index) => (
+            <React.Fragment key={tab.id}>
+              <button
+                onClick={() => setSelectedTab(tab.id)}
+                className={`inline-flex items-center gap-1.5 px-2 py-1 font-bold uppercase tracking-widest text-[11px] md:text-xs transition-all ${
+                  selectedTab === tab.id
+                    ? "bg-[#171717] text-white"
+                    : "text-[#171717] hover:bg-[#FFE800]"
+                }`}
+              >
+                {React.cloneElement(tab.icon, { size: 13 })}
+                {tab.label}
+              </button>
+              {index < visibleTabs.length - 1 && (
+                <span className="font-bold text-slate-400 select-none">/</span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
 
       {adminStatus && (
