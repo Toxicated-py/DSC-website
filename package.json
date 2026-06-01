@@ -5,7 +5,14 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:status": "npx supabase status",
+    "supabase:reset": "npx supabase db reset",
+    "supabase:link": "npx supabase link --project-ref oiqsxwzlgdfyselcpnco",
+    "supabase:pull": "npx supabase db pull",
+    "supabase:push": "npx supabase db push"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

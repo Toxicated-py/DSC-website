@@ -1,0 +1,3 @@
+-- Local development seed data.
+-- Keep this file safe to run repeatedly after `npm run supabase:reset`.
+-- Add non-production sample rows here when you need test data.
