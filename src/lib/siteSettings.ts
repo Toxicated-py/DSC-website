@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { isSupabaseConfigured, supabase } from "./supabase";
+import { apiGet } from "./apiClient";
 
 export interface SiteSettings {
   siteName: string;
@@ -162,16 +162,12 @@ export function mergeSiteSettings(value?: Partial<SiteSettings> | null): SiteSet
 }
 
 export async function loadSiteSettings(): Promise<SiteSettings> {
-  if (!isSupabaseConfigured || !supabase) return defaultSiteSettings;
-
-  const { data, error } = await supabase
-    .from("site_settings")
-    .select("value")
-    .eq("key", "site")
-    .maybeSingle();
-
-  if (error || !data?.value) return defaultSiteSettings;
-  return mergeSiteSettings(data.value as Partial<SiteSettings>);
+  try {
+    const value = await apiGet<Partial<SiteSettings>>("/api/site-settings");
+    return mergeSiteSettings(value);
+  } catch {
+    return defaultSiteSettings;
+  }
 }
 
 export function useSiteSettings() {

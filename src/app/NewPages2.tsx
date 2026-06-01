@@ -15,6 +15,8 @@ import {
   TrendingUp, Users, Code, BookOpen, Shield, Crown, GraduationCap, UserCheck, Handshake
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { apiGet, apiPatch } from "../lib/apiClient";
+import { submitGallery } from "../lib/contentApi";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -83,12 +85,7 @@ export function GalleryPage() {
     let mounted = true;
 
     async function loadGallery() {
-      if (!isSupabaseConfigured || !supabase) return;
-      const { data } = await supabase
-        .from("gallery_submissions")
-        .select("id,title,image_url,event_name,created_at")
-        .in("status", ["approved", "published"])
-        .order("created_at", { ascending: false });
+      const data = await apiGet<any[]>("/api/gallery").catch(() => []);
       if (!mounted) return;
       setSubmittedPhotos((data || []).map((item) => ({
         id: item.id,
@@ -116,49 +113,25 @@ export function GalleryPage() {
     event.preventDefault();
     if (submittingGallery) return;
     setSubmitStatus("");
-    if (!isSupabaseConfigured || !supabase) {
-      setSubmitStatus("Submissions are unavailable right now.");
-      return;
-    }
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      navigate("/login?redirect=/gallery");
-      return;
-    }
     setSubmittingGallery(true);
-    const { data: existing, error: existingError } = await supabase
-      .from("gallery_submissions")
-      .select("id")
-      .eq("submitted_by", userData.user.id)
-      .eq("image_url", galleryForm.imageUrl.trim())
-      .in("status", ["pending", "approved", "published"])
-      .limit(1);
-    if (existingError) {
-      setSubmitStatus(existingError.message);
+    try {
+      await submitGallery({
+        title: galleryForm.title.trim(),
+        image_url: galleryForm.imageUrl.trim(),
+        event_name: galleryForm.eventName.trim() || "Community",
+      });
+      setGalleryForm({ title: "", imageUrl: "", eventName: "" });
+      setSubmitStatus("Photo submitted for admin approval.");
+      setShowSubmitForm(false);
+    } catch (error: any) {
+      if (error?.message?.toLowerCase().includes("log in")) {
+        navigate("/login?redirect=/gallery");
+        return;
+      }
+      setSubmitStatus(error?.message || "Could not submit photo.");
+    } finally {
       setSubmittingGallery(false);
-      return;
     }
-    if (existing?.length) {
-      setSubmitStatus("This photo was already submitted.");
-      setSubmittingGallery(false);
-      return;
-    }
-    const { error } = await supabase.from("gallery_submissions").insert({
-      title: galleryForm.title.trim(),
-      image_url: galleryForm.imageUrl.trim(),
-      event_name: galleryForm.eventName.trim() || "Community",
-      submitted_by: userData.user.id,
-      status: "pending",
-    });
-    if (error) {
-      setSubmitStatus(error.message);
-      setSubmittingGallery(false);
-      return;
-    }
-    setGalleryForm({ title: "", imageUrl: "", eventName: "" });
-    setSubmitStatus("Photo submitted for admin approval.");
-    setShowSubmitForm(false);
-    setSubmittingGallery(false);
   };
 
   return (
@@ -321,45 +294,10 @@ export function UserProfilePage() {
         userData.user.email ||
         "Member";
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name,email,bio,designation,designation_status,batch_year,major,github_username,linkedin_username,skills")
-        .eq("id", userData.user.id)
-        .maybeSingle();
-
-      const { data: options } = await supabase
-        .from("designation_options")
-        .select("label")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true })
-        .order("label", { ascending: true });
-
-      const [projectRows, blogRows, proposalRows, galleryRows, certificateRows] = await Promise.all([
-        supabase
-          .from("projects")
-          .select("id,title,status,submitted_at,published_at")
-          .eq("author_id", userData.user.id)
-          .order("submitted_at", { ascending: false }),
-        supabase
-          .from("blog_posts")
-          .select("id,title,status,published_at")
-          .eq("author_id", userData.user.id)
-          .order("published_at", { ascending: false }),
-        supabase
-          .from("event_proposals")
-          .select("id,title,status,submitted_at")
-          .eq("proposed_by", userData.user.id)
-          .order("submitted_at", { ascending: false }),
-        supabase
-          .from("gallery_submissions")
-          .select("id,title,status,created_at")
-          .eq("submitted_by", userData.user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("certificates")
-          .select("id,title,status,created_at")
-          .eq("recipient_id", userData.user.id)
-          .order("created_at", { ascending: false }),
+      const [data, options, submissionRows] = await Promise.all([
+        apiGet<any>("/api/me", { auth: true }),
+        apiGet<any[]>("/api/designation-options"),
+        apiGet<any>("/api/me/submissions", { auth: true }),
       ]);
 
       if (!mounted) return;
@@ -383,11 +321,11 @@ export function UserProfilePage() {
         skills: data?.skills?.length ? data.skills : current.skills,
       }));
       setSubmissions([
-        ...(projectRows.data || []).map((item) => ({ ...item, type: "Project", date: item.submitted_at || item.published_at })),
-        ...(blogRows.data || []).map((item) => ({ ...item, type: "Blog", date: item.published_at })),
-        ...(proposalRows.data || []).map((item) => ({ ...item, type: "Event Proposal", date: item.submitted_at })),
-        ...(galleryRows.data || []).map((item) => ({ ...item, type: "Gallery", date: item.created_at })),
-        ...(certificateRows.data || []).map((item) => ({ ...item, type: "Certificate", date: item.created_at })),
+        ...(submissionRows.projects || []).map((item: any) => ({ ...item, type: "Project", date: item.submitted_at || item.published_at })),
+        ...(submissionRows.blog_posts || []).map((item: any) => ({ ...item, type: "Blog", date: item.published_at })),
+        ...(submissionRows.event_proposals || []).map((item: any) => ({ ...item, type: "Event Proposal", date: item.submitted_at })),
+        ...(submissionRows.gallery_submissions || []).map((item: any) => ({ ...item, type: "Gallery", date: item.created_at })),
+        ...(submissionRows.certificates || []).map((item: any) => ({ ...item, title: item.certificate_title || item.title, type: "Certificate", date: item.created_at })),
       ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
       setLoadingProfile(false);
     }
@@ -414,9 +352,9 @@ export function UserProfilePage() {
       }
 
       const parsedYear = Number.parseInt(profile.year, 10);
-      const { error } = await supabase
-        .from("profiles")
-        .update({
+      try {
+        await apiPatch("/api/me", {
+          data: {
           full_name: profile.name,
           bio: profile.bio,
           designation: profile.designation,
@@ -425,11 +363,10 @@ export function UserProfilePage() {
           github_username: profile.github,
           linkedin_username: profile.linkedin,
           skills: profile.skills,
-        })
-        .eq("id", userData.user.id);
-
-      if (error) {
-        setSaveStatus(error.message);
+          },
+        }, { auth: true });
+      } catch (error: any) {
+        setSaveStatus(error?.message || "Could not save profile.");
         return;
       }
       setSaveStatus("Profile saved. Designation changes need admin approval before they appear publicly.");
@@ -810,12 +747,7 @@ export function PartnersPage() {
     let mounted = true;
 
     async function loadPartners() {
-      if (!isSupabaseConfigured || !supabase) return;
-      const { data } = await supabase
-        .from("partner_submissions")
-        .select("id,name,website_url,logo_url,category,description,created_at")
-        .in("status", ["approved", "published"])
-        .order("created_at", { ascending: false });
+      const data = await apiGet<any[]>("/api/partners").catch(() => []);
       if (!mounted) return;
       setAdminPartners((data || []).map((partner) => ({
         name: partner.name,

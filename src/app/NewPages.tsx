@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { useSiteSettings } from "../lib/siteSettings";
+import { apiGet, apiPost } from "../lib/apiClient";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -915,31 +916,21 @@ export function ContactPage() {
     e.preventDefault();
     setContactStatus("");
 
-    if (!isSupabaseConfigured || !supabase) {
-      setContactStatus("Message inbox is not configured yet. Please email us directly for now.");
-      return;
-    }
-
     setSubmittingMessage(true);
-    const { error } = await supabase.from("contact_messages").insert({
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      subject: formData.subject.trim(),
-      message: formData.message.trim(),
-    });
-    setSubmittingMessage(false);
-
-    if (error) {
-      setContactStatus(
-        error.message.includes("contact_messages") || error.message.includes("schema cache")
-          ? "Contact inbox is not installed yet. Run the latest contact messages migration."
-          : error.message
-      );
-      return;
+    try {
+      await apiPost("/api/contact-messages", {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        subject: formData.subject.trim(),
+        message: formData.message.trim(),
+      });
+      setContactStatus("Message sent. We will get back to you soon.");
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (error: any) {
+      setContactStatus(error?.message || "Could not send message right now. Please email us directly.");
+    } finally {
+      setSubmittingMessage(false);
     }
-
-    setContactStatus("Message sent. We will get back to you soon.");
-    setFormData({ name: "", email: "", subject: "", message: "" });
   };
   
   const FAQItem = ({ question, answer, isOpen, onClick }: any) => (
@@ -1136,12 +1127,7 @@ export function ResourcesPage() {
   useEffect(() => {
     let mounted = true;
     async function loadLearningMaterials() {
-      if (!isSupabaseConfigured || !supabase) return;
-      const { data } = await supabase
-        .from("learning_materials")
-        .select("id,title,description,resource_url,category,status,created_at")
-        .in("status", ["approved", "published"])
-        .order("created_at", { ascending: false });
+      const data = await apiGet<any[]>("/api/learning-materials").catch(() => []);
       if (!mounted) return;
       setResources((data || []).map((item) => ({
         id: item.id,

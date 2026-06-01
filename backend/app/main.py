@@ -266,7 +266,7 @@ async def list_gallery(client: SupabaseRestClient = Depends(get_supabase)) -> li
     try:
         return await client.select(
             "gallery_submissions",
-            filters={"status": "eq.approved"},
+            filters={"status": "in.(approved,published)"},
             order="created_at.desc",
         )
     except SupabaseRestError as exc:
@@ -290,11 +290,21 @@ async def list_learning_materials(client: SupabaseRestClient = Depends(get_supab
     try:
         return await client.select(
             "learning_materials",
-            filters={"status": "eq.published"},
+            filters={"status": "in.(approved,published)"},
             order="created_at.desc",
         )
     except SupabaseRestError as exc:
         raise supabase_http_error(exc) from exc
+
+
+@app.get("/api/designation-options")
+async def list_designation_options(client: SupabaseRestClient = Depends(get_supabase)) -> list[dict[str, Any]]:
+    return await client.select(
+        "designation_options",
+        columns="id,label,is_active,sort_order",
+        filters={"is_active": "eq.true"},
+        order="sort_order.asc,label.asc",
+    )
 
 
 @app.get("/api/home-summary")
@@ -350,6 +360,33 @@ async def verify_certificate(
 @app.get("/api/me")
 async def get_me(profile: dict[str, Any] = Depends(get_current_profile)) -> dict[str, Any]:
     return profile
+
+
+@app.patch("/api/me")
+async def update_me(
+    payload: GenericPayload,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> dict[str, Any]:
+    allowed = {
+        "full_name",
+        "bio",
+        "designation",
+        "batch_year",
+        "major",
+        "github_username",
+        "linkedin_username",
+        "skills",
+        "student_email",
+        "is_sms_student",
+    }
+    updates = {key: value for key, value in payload.data.items() if key in allowed}
+    if "designation" in updates and updates.get("designation") != profile.get("designation"):
+        updates["designation_status"] = "pending"
+    rows = await client.update("profiles", updates, filters={"id": f"eq.{profile['id']}"})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Profile not found.")
+    return rows[0]
 
 
 @app.get("/api/me/submissions")
@@ -425,6 +462,18 @@ async def submit_gallery(
     profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    existing = await client.select(
+        "gallery_submissions",
+        columns="id",
+        filters={
+            "submitted_by": f"eq.{profile['id']}",
+            "image_url": f"eq.{payload.image_url}",
+            "status": "in.(pending,approved,published)",
+        },
+        limit=1,
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="This photo was already submitted.")
     row = await client.insert(
         "gallery_submissions",
         {**payload.model_dump(), "submitted_by": profile["id"], "status": "pending"},
