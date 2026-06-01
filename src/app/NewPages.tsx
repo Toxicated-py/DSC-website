@@ -942,41 +942,6 @@ export function ContactPage() {
     setFormData({ name: "", email: "", subject: "", message: "" });
   };
   
-  const faqs = [
-    {
-      question: "How do I become a member?",
-      answer: "Simply register on our website using any valid email address. Once registered, you can attend events, submit projects, and access exclusive resources. To become a verified Club Member, attend at least 3 events and submit one project."
-    },
-    {
-      question: "Are events free for members?",
-      answer: "Yes! All our workshops, talks, and regular events are completely free for registered members. Some special competitions may have nominal registration fees to cover logistics."
-    },
-    {
-      question: "Do I need prior experience in data science?",
-      answer: "Not at all! We welcome students from all backgrounds and skill levels. We have beginner-friendly workshops and resources to help you get started, as well as advanced sessions for experienced members."
-    },
-    {
-      question: "How often do you organize events?",
-      answer: "We typically organize 2-3 events per month, including workshops, guest lectures, hackathons, and social gatherings. Check our Events page for the latest schedule."
-    },
-    {
-      question: "Can I collaborate on projects with other members?",
-      answer: "Absolutely! We encourage collaboration. You can find teammates through our Discord server, project boards, or at our events. Many of our featured projects are team efforts."
-    },
-    {
-      question: "What tools and technologies do you focus on?",
-      answer: "We primarily focus on Python (NumPy, Pandas, Scikit-learn, TensorFlow, PyTorch), R, SQL, and data visualization tools. We also cover ML/AI concepts, statistics, and real-world applications."
-    },
-    {
-      question: "How can I contribute to the club?",
-      answer: "There are many ways to contribute! Attend events, submit projects, help organize workshops, create content, mentor juniors, or apply for leadership positions. We value every contribution."
-    },
-    {
-      question: "Do you offer certificates?",
-      answer: "Yes! We provide completion certificates for workshops (with 80%+ attendance), competition participation, and project submissions. Certificates are available in your dashboard."
-    }
-  ];
-  
   const FAQItem = ({ question, answer, isOpen, onClick }: any) => (
     <div className="border-2 border-[#171717] mb-4">
       <button
@@ -1134,9 +1099,9 @@ export function ContactPage() {
         </p>
         
         <div>
-          {faqs.map((faq, index) => (
+          {settings.faqs.map((faq, index) => (
             <FAQItem
-              key={index}
+              key={faq.id || index}
               question={faq.question}
               answer={faq.answer}
               isOpen={openFAQ === index}

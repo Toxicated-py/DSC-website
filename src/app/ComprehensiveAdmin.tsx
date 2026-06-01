@@ -21,7 +21,7 @@ import {
   Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { ContactItem, defaultSiteSettings, mergeSiteSettings } from "../lib/siteSettings";
+import { ContactItem, defaultSiteSettings, FAQItem, mergeSiteSettings } from "../lib/siteSettings";
 import {
   deleteCertificate as deleteCertificateRecord,
   getCertificatesByEvent,
@@ -237,6 +237,7 @@ export function ComprehensiveAdminPanel() {
     label: "",
     value: "",
   });
+  const [newFAQ, setNewFAQ] = useState<Omit<FAQItem, "id">>({ question: "", answer: "" });
 
   // Tab configuration
   const tabs = [
@@ -550,6 +551,43 @@ export function ComprehensiveAdminPanel() {
       ],
     });
     setNewContactItem({ type: "email", label: "", value: "" });
+    setSettingsStatus("");
+  };
+
+  const updateFAQ = (id: string, patch: Partial<FAQItem>) => {
+    setSiteSettings({
+      ...siteSettings,
+      faqs: siteSettings.faqs.map((faq) => faq.id === id ? { ...faq, ...patch } : faq),
+    });
+  };
+
+  const removeFAQ = (id: string) => {
+    setSiteSettings({
+      ...siteSettings,
+      faqs: siteSettings.faqs.filter((faq) => faq.id !== id),
+    });
+  };
+
+  const addFAQ = () => {
+    const question = newFAQ.question.trim();
+    const answer = newFAQ.answer.trim();
+    if (!question || !answer) {
+      setSettingsStatus("Add both a FAQ question and answer.");
+      return;
+    }
+
+    setSiteSettings({
+      ...siteSettings,
+      faqs: [
+        ...siteSettings.faqs,
+        {
+          id: `faq-${Date.now()}`,
+          question,
+          answer,
+        },
+      ],
+    });
+    setNewFAQ({ question: "", answer: "" });
     setSettingsStatus("");
   };
 
@@ -3362,6 +3400,56 @@ export function ComprehensiveAdminPanel() {
             </div>
             <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Social Links"}
+            </BrutalButton>
+          </BrutalCard>
+
+          <BrutalCard>
+            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Frequently Asked Questions</h2>
+            <div className="space-y-4">
+              {siteSettings.faqs.map((faq) => (
+                <div key={faq.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                  <BrutalInput
+                    label="Question"
+                    value={faq.question}
+                    onChange={(e: any) => updateFAQ(faq.id, { question: e.target.value })}
+                  />
+                  <BrutalTextarea
+                    label="Answer"
+                    value={faq.answer}
+                    onChange={(e: any) => updateFAQ(faq.id, { answer: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFAQ(faq.id)}
+                    className="px-4 py-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                  >
+                    Remove FAQ
+                  </button>
+                </div>
+              ))}
+
+              <div className="border-2 border-dashed border-[#171717] bg-white p-3">
+                <BrutalInput
+                  label="New Question"
+                  value={newFAQ.question}
+                  onChange={(e: any) => setNewFAQ({ ...newFAQ, question: e.target.value })}
+                />
+                <BrutalTextarea
+                  label="New Answer"
+                  value={newFAQ.answer}
+                  onChange={(e: any) => setNewFAQ({ ...newFAQ, answer: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={addFAQ}
+                  className="px-4 py-2 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                >
+                  Add FAQ
+                </button>
+              </div>
+            </div>
+            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
+              <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save FAQs"}
             </BrutalButton>
           </BrutalCard>
         </div>
