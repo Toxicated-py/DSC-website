@@ -12,7 +12,13 @@
     "supabase:reset": "npx supabase db reset",
     "supabase:link": "npx supabase link --project-ref oiqsxwzlgdfyselcpnco",
     "supabase:pull": "npx supabase db pull",
-    "supabase:push": "npx supabase db push"
+    "supabase:push": "npx supabase db push",
+    "sync:status": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode status",
+    "sync:local-reset": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode local-reset",
+    "sync:pull-schema": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode pull-schema",
+    "sync:push-schema": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode push-schema",
+    "sync:dump-public-data": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode dump-public-data",
+    "sync:restore-public-data": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode restore-public-data"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

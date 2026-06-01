@@ -48,25 +48,52 @@
 
   ## Syncing local and remote Supabase
 
-  Use migrations as the sync source of truth:
+  Migrations are the source of truth for database structure. Local Docker
+  Supabase is for development and testing; the hosted Supabase project is for
+  production.
 
-  - Local testing: write migration SQL in `supabase/migrations`, then run
-    `npm run supabase:reset`.
-  - Push schema changes to the linked remote project:
+  ### Everyday offline/local work
 
-    ```bash
-    npm run supabase:link
-    npm run supabase:push
-    ```
+  Rebuild your local database from committed migrations:
 
-  - If you changed the remote database directly in Supabase Dashboard, pull the
-    remote schema back into a migration before continuing:
+  ```bash
+  npm run sync:local-reset
+  npm run dev
+  ```
 
-    ```bash
-    npm run supabase:pull
-    npm run supabase:reset
-    ```
+  ### Bring hosted schema changes into local
 
-  Do not use production user data for local testing. Add safe sample rows to
-  `supabase/seed.sql` instead.
+  Use this after changing tables, views, policies, or functions in the Supabase
+  Dashboard:
+
+  ```bash
+  npm run sync:pull-schema
+  ```
+
+  This creates a new migration from the hosted schema and then rebuilds local
+  Supabase with it.
+
+  ### Push local schema changes to hosted Supabase
+
+  Use this only when your local migrations are tested and ready:
+
+  ```bash
+  npm run sync:push-schema
+  ```
+
+  This applies migration files to the hosted project. It does not upload local
+  rows or test users.
+
+  ### Optional public data copy for development
+
+  Prefer adding fake rows to `supabase/seed.sql`. If you need a one-time copy of
+  hosted public-table data for testing:
+
+  ```bash
+  npm run sync:dump-public-data
+  npm run sync:restore-public-data
+  ```
+
+  The dump is written under `supabase/.temp`, which is ignored by git. Do not
+  use real private user data for local testing.
   
