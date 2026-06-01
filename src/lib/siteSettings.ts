@@ -7,7 +7,15 @@ export interface SiteSettings {
   contactEmail: string;
   contactPhone: string;
   address: string;
+  contactItems: ContactItem[];
   socialLinks: Record<string, string>;
+}
+
+export interface ContactItem {
+  id: string;
+  type: "email" | "phone" | "address" | "other";
+  label: string;
+  value: string;
 }
 
 export const defaultSiteSettings: SiteSettings = {
@@ -16,6 +24,11 @@ export const defaultSiteSettings: SiteSettings = {
   contactEmail: "contact@datascienceclub.sms.tu.edu.np",
   contactPhone: "+977-1-4331976",
   address: "School of Mathematical Sciences, SMS, TU, Kathmandu, Nepal",
+  contactItems: [
+    { id: "email-primary", type: "email", label: "Email", value: "contact@datascienceclub.sms.tu.edu.np" },
+    { id: "phone-primary", type: "phone", label: "Phone", value: "+977-1-4331976" },
+    { id: "address-primary", type: "address", label: "Address", value: "School of Mathematical Sciences, SMS, TU, Kathmandu, Nepal" },
+  ],
   socialLinks: {
     github: "https://github.com/datascienceclub",
     linkedin: "https://linkedin.com/company/datascienceclub",
@@ -28,10 +41,25 @@ export const defaultSiteSettings: SiteSettings = {
 
 export function mergeSiteSettings(value?: Partial<SiteSettings> | null): SiteSettings {
   const hasSavedSocialLinks = Boolean(value && Object.prototype.hasOwnProperty.call(value, "socialLinks"));
+  const hasSavedContactItems = Boolean(value && Object.prototype.hasOwnProperty.call(value, "contactItems"));
+  const contactItems = hasSavedContactItems
+    ? [...(value?.contactItems || [])]
+    : [
+        { id: "email-primary", type: "email" as const, label: "Email", value: value?.contactEmail || defaultSiteSettings.contactEmail },
+        { id: "phone-primary", type: "phone" as const, label: "Phone", value: value?.contactPhone || defaultSiteSettings.contactPhone },
+        { id: "address-primary", type: "address" as const, label: "Address", value: value?.address || defaultSiteSettings.address },
+      ];
+  const primaryEmail = contactItems.find((item) => item.type === "email")?.value || value?.contactEmail || defaultSiteSettings.contactEmail;
+  const primaryPhone = contactItems.find((item) => item.type === "phone")?.value || value?.contactPhone || defaultSiteSettings.contactPhone;
+  const primaryAddress = contactItems.find((item) => item.type === "address")?.value || value?.address || defaultSiteSettings.address;
 
   return {
     ...defaultSiteSettings,
     ...(value || {}),
+    contactEmail: primaryEmail,
+    contactPhone: primaryPhone,
+    address: primaryAddress,
+    contactItems,
     socialLinks: hasSavedSocialLinks ? { ...(value?.socialLinks || {}) } : defaultSiteSettings.socialLinks,
   };
 }

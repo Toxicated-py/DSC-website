@@ -21,7 +21,7 @@ import {
   Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { defaultSiteSettings, mergeSiteSettings } from "../lib/siteSettings";
+import { ContactItem, defaultSiteSettings, mergeSiteSettings } from "../lib/siteSettings";
 import {
   deleteCertificate as deleteCertificateRecord,
   getCertificatesByEvent,
@@ -232,6 +232,11 @@ export function ComprehensiveAdminPanel() {
   const [settingsStatus, setSettingsStatus] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [newSocialLink, setNewSocialLink] = useState({ platform: "", url: "" });
+  const [newContactItem, setNewContactItem] = useState<Omit<ContactItem, "id">>({
+    type: "email",
+    label: "",
+    value: "",
+  });
 
   // Tab configuration
   const tabs = [
@@ -476,17 +481,27 @@ export function ComprehensiveAdminPanel() {
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
+      const firstEmail = siteSettings.contactItems.find((item) => item.type === "email")?.value || siteSettings.contactEmail;
+      const firstPhone = siteSettings.contactItems.find((item) => item.type === "phone")?.value || siteSettings.contactPhone;
+      const firstAddress = siteSettings.contactItems.find((item) => item.type === "address")?.value || siteSettings.address;
+      const normalizedSettings = {
+        ...siteSettings,
+        contactEmail: firstEmail,
+        contactPhone: firstPhone,
+        address: firstAddress,
+      };
 
       const { error } = await supabase
         .from("site_settings")
         .upsert({
           key: "site",
-          value: siteSettings,
+          value: normalizedSettings,
           updated_by: userData.user?.id || null,
           updated_at: new Date().toISOString(),
         }, { onConflict: "key" });
 
       if (error) throw error;
+      setSiteSettings(normalizedSettings);
       setSettingsStatus("Settings saved and connected to the public footer.");
     } catch (error: any) {
       const message = error.message || "Could not save settings.";
@@ -498,6 +513,44 @@ export function ComprehensiveAdminPanel() {
     } finally {
       setSavingSettings(false);
     }
+  };
+
+  const updateContactItem = (id: string, patch: Partial<ContactItem>) => {
+    setSiteSettings({
+      ...siteSettings,
+      contactItems: siteSettings.contactItems.map((item) => item.id === id ? { ...item, ...patch } : item),
+    });
+  };
+
+  const removeContactItem = (id: string) => {
+    setSiteSettings({
+      ...siteSettings,
+      contactItems: siteSettings.contactItems.filter((item) => item.id !== id),
+    });
+  };
+
+  const addContactItem = () => {
+    const label = newContactItem.label.trim() || newContactItem.type;
+    const value = newContactItem.value.trim();
+    if (!value) {
+      setSettingsStatus("Add a contact value first.");
+      return;
+    }
+
+    setSiteSettings({
+      ...siteSettings,
+      contactItems: [
+        ...siteSettings.contactItems,
+        {
+          id: `${newContactItem.type}-${Date.now()}`,
+          type: newContactItem.type,
+          label,
+          value,
+        },
+      ],
+    });
+    setNewContactItem({ type: "email", label: "", value: "" });
+    setSettingsStatus("");
   };
 
   const updateContactMessageStatus = async (id: string, status: "new" | "read" | "archived") => {
@@ -3175,9 +3228,81 @@ export function ComprehensiveAdminPanel() {
 
           <BrutalCard>
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Contact Information</h2>
-            <BrutalInput label="Email" type="email" value={siteSettings.contactEmail} onChange={(e: any) => setSiteSettings({...siteSettings, contactEmail: e.target.value})} />
-            <BrutalInput label="Phone" value={siteSettings.contactPhone} onChange={(e: any) => setSiteSettings({...siteSettings, contactPhone: e.target.value})} />
-            <BrutalTextarea label="Address" value={siteSettings.address} onChange={(e: any) => setSiteSettings({...siteSettings, address: e.target.value})} />
+            <div className="space-y-4">
+              {siteSettings.contactItems.map((item) => (
+                <div key={item.id} className="grid lg:grid-cols-[160px_220px_1fr_auto] gap-3 items-end border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                  <BrutalSelect
+                    label="Type"
+                    value={item.type}
+                    onChange={(e: any) => updateContactItem(item.id, { type: e.target.value })}
+                    options={[
+                      { value: "email", label: "Email" },
+                      { value: "phone", label: "Phone" },
+                      { value: "address", label: "Address" },
+                      { value: "other", label: "Other" },
+                    ]}
+                  />
+                  <BrutalInput
+                    label="Label"
+                    value={item.label}
+                    onChange={(e: any) => updateContactItem(item.id, { label: e.target.value })}
+                  />
+                  {item.type === "address" ? (
+                    <BrutalTextarea
+                      label="Value"
+                      value={item.value}
+                      onChange={(e: any) => updateContactItem(item.id, { value: e.target.value })}
+                    />
+                  ) : (
+                    <BrutalInput
+                      label="Value"
+                      value={item.value}
+                      onChange={(e: any) => updateContactItem(item.id, { value: e.target.value })}
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeContactItem(item.id)}
+                    className="h-[52px] px-4 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+
+              <div className="grid lg:grid-cols-[160px_220px_1fr_auto] gap-3 items-end border-2 border-dashed border-[#171717] bg-white p-3">
+                <BrutalSelect
+                  label="New Type"
+                  value={newContactItem.type}
+                  onChange={(e: any) => setNewContactItem({ ...newContactItem, type: e.target.value })}
+                  options={[
+                    { value: "email", label: "Email" },
+                    { value: "phone", label: "Phone" },
+                    { value: "address", label: "Address" },
+                    { value: "other", label: "Other" },
+                  ]}
+                />
+                <BrutalInput
+                  label="New Label"
+                  placeholder="Office, WhatsApp, Location"
+                  value={newContactItem.label}
+                  onChange={(e: any) => setNewContactItem({ ...newContactItem, label: e.target.value })}
+                />
+                <BrutalInput
+                  label="New Value"
+                  placeholder="clubid@sms.tu.edu.np"
+                  value={newContactItem.value}
+                  onChange={(e: any) => setNewContactItem({ ...newContactItem, value: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={addContactItem}
+                  className="h-[52px] px-4 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                >
+                  Add Contact
+                </button>
+              </div>
+            </div>
             <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Contact Info"}
             </BrutalButton>

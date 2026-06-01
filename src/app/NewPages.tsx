@@ -997,6 +997,19 @@ export function ContactPage() {
     </div>
   );
 
+  const contactColorClasses = ["bg-[#2563EB]", "bg-[#7C3AED]", "bg-[#FB7185]", "bg-[#FFE800] text-[#171717]"];
+  const getContactIcon = (type: string) => {
+    if (type === "email") return <Mail size={24} className="flex-shrink-0" />;
+    if (type === "phone") return <Phone size={24} className="flex-shrink-0" />;
+    if (type === "address") return <MapPin size={24} className="flex-shrink-0" />;
+    return <Globe size={24} className="flex-shrink-0" />;
+  };
+  const getContactHref = (type: string, value: string) => {
+    if (type === "email") return `mailto:${value}`;
+    if (type === "phone") return `tel:${value.replace(/[^\d+]/g, "")}`;
+    return "";
+  };
+
   return (
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto">
       {/* Header */}
@@ -1057,39 +1070,30 @@ export function ContactPage() {
 
         {/* Contact Info */}
         <div className="space-y-6">
-          <BrutalCard color="bg-[#2563EB]" className="text-white">
-            <div className="flex items-start gap-4">
-              <Mail size={24} className="flex-shrink-0" />
-              <div>
-                <h3 className="text-lg font-bold uppercase mb-2" style={fonts.display}>Email</h3>
-                <a href={`mailto:${settings.contactEmail}`} className="font-mono text-sm hover:underline">
-                  {settings.contactEmail}
-                </a>
-              </div>
-            </div>
-          </BrutalCard>
-
-          <BrutalCard color="bg-[#7C3AED]" className="text-white">
-            <div className="flex items-start gap-4">
-              <Phone size={24} className="flex-shrink-0" />
-              <div>
-                <h3 className="text-lg font-bold uppercase mb-2" style={fonts.display}>Phone</h3>
-                <a href={`tel:${settings.contactPhone.replace(/[^\d+]/g, "")}`} className="font-mono text-sm hover:underline">
-                  {settings.contactPhone}
-                </a>
-              </div>
-            </div>
-          </BrutalCard>
-
-          <BrutalCard color="bg-[#FB7185]" className="text-white">
-            <div className="flex items-start gap-4">
-              <MapPin size={24} className="flex-shrink-0" />
-              <div>
-                <h3 className="text-lg font-bold uppercase mb-2" style={fonts.display}>Address</h3>
-                <p className="text-sm">{settings.address}</p>
-              </div>
-            </div>
-          </BrutalCard>
+          {settings.contactItems.map((item, index) => {
+            const href = getContactHref(item.type, item.value);
+            return (
+              <BrutalCard
+                key={item.id || `${item.type}-${index}`}
+                color={contactColorClasses[index % contactColorClasses.length]}
+                className={index % contactColorClasses.length === 3 ? "" : "text-white"}
+              >
+                <div className="flex items-start gap-4">
+                  {getContactIcon(item.type)}
+                  <div>
+                    <h3 className="text-lg font-bold uppercase mb-2" style={fonts.display}>{item.label}</h3>
+                    {href ? (
+                      <a href={href} className="font-mono text-sm hover:underline break-all">
+                        {item.value}
+                      </a>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{item.value}</p>
+                    )}
+                  </div>
+                </div>
+              </BrutalCard>
+            );
+          })}
 
           <BrutalCard color="bg-[#FFE800]">
             <div className="flex items-start gap-4">
