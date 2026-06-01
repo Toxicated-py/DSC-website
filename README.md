@@ -9,6 +9,38 @@
 
   Run `npm run dev` to start the development server.
 
+  ## Python backend
+
+  The project now includes a FastAPI backend under `backend/`. It starts as a
+  sidecar API so we can move Supabase calls behind Python gradually without
+  breaking the existing website.
+
+  Install backend dependencies:
+
+  ```bash
+  npm run api:install
+  ```
+
+  Start the Python API:
+
+  ```bash
+  npm run api:dev
+  ```
+
+  The API runs at `http://127.0.0.1:8000`. Vite proxies `/api/*` and `/health`
+  to this backend during local development.
+
+  Useful starting endpoints:
+
+  - `GET /health`
+  - `GET /api/site-settings`
+  - `GET /api/home-summary`
+  - `GET /api/events`
+  - `GET /api/projects`
+  - `GET /api/blog-posts`
+  - `POST /api/contact-messages`
+  - `GET /api/certificates/verify/{code}`
+
   ## Local Supabase development
 
   This project can run against a local Supabase database for offline-safe

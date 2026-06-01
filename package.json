@@ -6,6 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "api:install": "python -m pip install -r backend/requirements.txt",
+    "api:dev": "python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000",
     "supabase:start": "npx supabase start",
     "supabase:stop": "npx supabase stop",
     "supabase:status": "npx supabase status",
