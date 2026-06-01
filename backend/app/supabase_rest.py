@@ -57,6 +57,37 @@ class SupabaseRestClient:
         }
         return await self._request("POST", table, json=payload, headers=headers)
 
+    async def upsert(self, table: str, payload: dict[str, Any], *, on_conflict: str | None = None) -> Any:
+        headers = {
+            **self.headers,
+            "prefer": "resolution=merge-duplicates,return=representation",
+        }
+        params = {"on_conflict": on_conflict} if on_conflict else None
+        return await self._request("POST", table, params=params, json=payload, headers=headers)
+
+    async def update(
+        self,
+        table: str,
+        payload: dict[str, Any],
+        *,
+        filters: dict[str, str],
+        single: bool = False,
+    ) -> Any:
+        headers = {
+            **self.headers,
+            "prefer": "return=representation",
+        }
+        if single:
+            headers["accept"] = "application/vnd.pgrst.object+json"
+        return await self._request("PATCH", table, params=filters, json=payload, headers=headers)
+
+    async def delete(self, table: str, *, filters: dict[str, str]) -> Any:
+        headers = {
+            **self.headers,
+            "prefer": "return=representation",
+        }
+        return await self._request("DELETE", table, params=filters, headers=headers)
+
     async def _request(
         self,
         method: str,
