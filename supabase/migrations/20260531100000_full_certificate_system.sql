@@ -119,6 +119,9 @@ drop policy if exists "Event managers can manage certificates" on public.certifi
 drop policy if exists "Authenticated users can read own certificates" on public.certificates;
 drop policy if exists "Public can verify certificates" on public.certificates;
 
+drop index if exists public.certificates_unique_event_recipient;
+drop index if exists public.certificates_unique_event_recipient_type;
+
 alter table public.certificates
   alter column status drop default;
 
