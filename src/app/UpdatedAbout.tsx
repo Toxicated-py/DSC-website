@@ -56,17 +56,17 @@ export function UpdatedAboutPage() {
   };
 
   const renderTeamCard = (member: any, color = "bg-white") => (
-    <BrutalCard key={member.id} color={color} className={color === "bg-white" ? "" : "text-white"}>
-      <div className="aspect-square bg-slate-200 border-2 border-[#171717] mb-4 overflow-hidden">
+    <BrutalCard key={member.id} color={color} className={`${color === "bg-white" ? "" : "text-white"} h-full p-4 flex flex-col`}>
+      <div className="h-40 bg-slate-200 border-2 border-[#171717] mb-4 overflow-hidden">
         <img src={member.image || "/assets/dsc-logo.png"} alt={member.name} className="w-full h-full object-cover" />
       </div>
       <BrutalBadge color={color === "bg-white" ? "bg-[#2563EB]" : "bg-white"} text={color === "bg-white" ? "text-white" : "text-[#171717]"} className="mb-3">
         {member.position}
       </BrutalBadge>
-      <h3 className="text-2xl font-bold uppercase mb-1" style={fonts.display}>{member.name}</h3>
-      <p className={`text-sm mb-3 ${color === "bg-white" ? "text-slate-600" : "opacity-90"}`}>{member.meta}</p>
-      <p className={`text-sm mb-4 ${color === "bg-white" ? "text-slate-700" : "opacity-90"}`}>{member.bio}</p>
-      <div className="flex gap-2 pt-4 border-t-2 border-slate-200">
+      <h3 className="text-xl font-bold uppercase mb-1 leading-tight" style={fonts.display}>{member.name}</h3>
+      <p className={`text-xs mb-2 ${color === "bg-white" ? "text-slate-600" : "opacity-90"}`}>{member.meta}</p>
+      <p className={`text-sm mb-4 line-clamp-3 ${color === "bg-white" ? "text-slate-700" : "opacity-90"}`}>{member.bio}</p>
+      <div className="flex gap-2 pt-3 border-t-2 border-slate-200 mt-auto">
         {member.linkedin && <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="p-2 border-2 border-[#171717] bg-[#2563EB] text-white"><Linkedin size={16} /></a>}
         {member.github && <a href={member.github} target="_blank" rel="noopener noreferrer" className="p-2 border-2 border-[#171717] bg-[#171717] text-white"><Github size={16} /></a>}
         {member.email && <a href={`mailto:${member.email}`} className="p-2 border-2 border-[#171717] bg-[#FFE800] text-[#171717]"><Mail size={16} /></a>}
@@ -115,7 +115,7 @@ export function UpdatedAboutPage() {
         {groupedTeam.faculty.length > 0 && (
           <div className="mb-12">
             <h3 className="text-3xl uppercase mb-6" style={fonts.display}>Faculty Advisors</h3>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
               {groupedTeam.faculty.map((member) => renderTeamCard(member, "bg-[#7C3AED]"))}
             </div>
           </div>
