@@ -2518,7 +2518,7 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {selectedTab === "certificates" && (
-        <div className="grid xl:grid-cols-[480px_1fr] gap-6">
+        <div className="space-y-6">
           <BrutalCard color="bg-white">
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>
               {editingCertificateId ? "Edit Certificate" : "Certificate Studio"}
@@ -2571,180 +2571,193 @@ export function ComprehensiveAdminPanel() {
                     </div>
                   </div>
                 )}
-                <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Step 2</p>
-                  <h3 className="font-bold uppercase tracking-widest text-sm">Configure the credential</h3>
-                </div>
-                <BrutalInput
-                  label="Certificate Title"
-                  value={certificateForm.title}
-                  onChange={(event: any) => setCertificateForm({ ...certificateForm, title: event.target.value })}
-                  placeholder="Certificate of Participation"
-                  required
-                />
-                <BrutalSelect
-                  label="Type"
-                  value={certificateForm.certificateType}
-                  onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateType: event.target.value })}
-                  options={[
-                    { value: "Workshop", label: "Workshop" },
-                    { value: "Competition", label: "Competition" },
-                    { value: "Course", label: "Course" },
-                    { value: "Participation", label: "Participation" },
-                  ]}
-                />
-                <BrutalSelect
-                  label="Template"
-                  value={certificateForm.templateStyle}
-                  onChange={(event: any) => setCertificateForm({ ...certificateForm, templateStyle: event.target.value })}
-                  options={certificateTemplateOptions.map((template) => ({
-                    value: template.value,
-                    label: template.label,
-                  }))}
-                />
-                <BrutalSelect
-                  label="Single Attendee"
-                  value={certificateForm.recipientId}
-                  onChange={(event: any) => {
-                    const profile = profileOptions.find((option) => option.id === event.target.value);
-                    setCertificateForm({
-                      ...certificateForm,
-                      recipientId: event.target.value,
-                      recipientNameSnapshot: profile?.full_name || profile?.email || certificateForm.recipientNameSnapshot,
-                    });
-                  }}
-                  disabled={!certificateForm.eventId || Boolean(editingCertificateId)}
-                  options={[
-                    { value: "", label: certificateForm.eventId ? "Select one attendee for single issue" : "Select event first" },
-                    ...certificateMemberOptions,
-                  ]}
-                />
-                <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Draft text</p>
-                  <h3 className="font-bold uppercase tracking-widest text-sm">Edit what prints on the certificate</h3>
-                  <p className="mt-1 text-xs font-mono text-slate-500">
-                    These fields control the final certificate preview and PDF.
-                  </p>
-                </div>
-                <div className="mb-5 grid md:grid-cols-2 gap-3">
-                    <BrutalInput
-                      label="Printed Recipient Name"
-                      value={certificateForm.recipientNameSnapshot}
-                      onChange={(event: any) => setCertificateForm({ ...certificateForm, recipientNameSnapshot: event.target.value })}
-                      placeholder="Name shown on certificate"
-                      required
-                    />
-                    <BrutalInput
-                      label="Printed Event Name"
-                      value={certificateForm.eventTitleSnapshot}
-                      onChange={(event: any) => setCertificateForm({ ...certificateForm, eventTitleSnapshot: event.target.value })}
-                      placeholder="Event shown on certificate"
-                      required
-                    />
-                </div>
-                {certificateForm.recipientId && !isSelectedRecipientCheckedIn && (
-                  <p className="mb-4 text-xs font-bold text-[#FB7185]">
-                    This attendee has not checked in yet. Check-in is required before issuing.
-                  </p>
-                )}
-                {certificateForm.recipientId && isSelectedRecipientAlreadyIssued && !editingCertificateId && (
-                  <p className="mb-4 text-xs font-bold text-[#FB7185]">
-                    This attendee already has an active certificate for this event.
-                  </p>
-                )}
-                <BrutalInput
-                  label="Issuer"
-                  value={certificateForm.issuerName}
-                  onChange={(event: any) => setCertificateForm({ ...certificateForm, issuerName: event.target.value })}
-                  required
-                />
-                <BrutalInput
-                  label="Issued Date"
-                  type="date"
-                  value={certificateForm.issuedAt}
-                  onChange={(event: any) => setCertificateForm({ ...certificateForm, issuedAt: event.target.value })}
-                />
-                <BrutalTextarea
-                  label="Certificate Description"
-                  value={certificateForm.description}
-                  onChange={(event: any) => setCertificateForm({ ...certificateForm, description: event.target.value })}
-                  placeholder="For actively participating in this program..."
-                />
-                <div className="mb-5 border-2 border-[#171717] bg-white p-4">
-                  <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="mb-6 border-4 border-[#171717] bg-[#171717] text-white brutal-shadow-lg">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b-4 border-[#171717] bg-[#2563EB] p-4">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Signatures</p>
-                      <h3 className="font-bold uppercase tracking-widest text-sm">Certificate signers</h3>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Certificate Draft Editor</p>
+                      <h3 className="text-2xl uppercase leading-none" style={fonts.display}>Design the certificate before issuing</h3>
                     </div>
-                    <button
-                      type="button"
-                      onClick={addCertificateSignature}
-                      className="px-3 py-2 border-2 border-[#171717] bg-[#FFE800] font-bold uppercase tracking-widest text-[10px]"
-                    >
-                      Add
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{certificateForm.templateStyle}</BrutalBadge>
+                      <BrutalBadge color="bg-white" text="text-[#171717]">Live Preview</BrutalBadge>
+                    </div>
                   </div>
-                  <div className="space-y-3">
-                    {certificateForm.signatures.map((signature, index) => (
-                      <div key={index} className="border-2 border-[#171717] p-3">
-                        <div className="grid md:grid-cols-[1fr_1fr_auto] gap-2">
-                          <input
-                            className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
-                            value={signature.name}
-                            onChange={(event) => updateCertificateSignature(index, "name", event.target.value)}
-                            placeholder="Signer name"
+
+                  <div className="grid 2xl:grid-cols-[520px_1fr] gap-0 bg-white text-[#171717]">
+                    <div className="border-b-4 2xl:border-b-0 2xl:border-r-4 border-[#171717] p-4 md:p-5 space-y-5">
+                      <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Content</p>
+                            <h4 className="font-bold uppercase tracking-widest text-sm">Text printed on certificate</h4>
+                          </div>
+                          <FileText size={18} className="text-[#2563EB]" />
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3">
+                          <BrutalInput
+                            label="Printed Recipient Name"
+                            value={certificateForm.recipientNameSnapshot}
+                            onChange={(event: any) => setCertificateForm({ ...certificateForm, recipientNameSnapshot: event.target.value })}
+                            placeholder="Name shown on certificate"
+                            required
                           />
-                          <input
-                            className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
-                            value={signature.title}
-                            onChange={(event) => updateCertificateSignature(index, "title", event.target.value)}
-                            placeholder="Role / title"
+                          <BrutalInput
+                            label="Printed Event Name"
+                            value={certificateForm.eventTitleSnapshot}
+                            onChange={(event: any) => setCertificateForm({ ...certificateForm, eventTitleSnapshot: event.target.value })}
+                            placeholder="Event shown on certificate"
+                            required
                           />
+                        </div>
+                        <BrutalInput
+                          label="Certificate Title"
+                          value={certificateForm.title}
+                          onChange={(event: any) => setCertificateForm({ ...certificateForm, title: event.target.value })}
+                          placeholder="Certificate of Participation"
+                          required
+                        />
+                        <BrutalTextarea
+                          label="Certificate Description"
+                          value={certificateForm.description}
+                          onChange={(event: any) => setCertificateForm({ ...certificateForm, description: event.target.value })}
+                          placeholder="For actively participating in this program..."
+                          rows={5}
+                        />
+                      </div>
+
+                      <div className="border-2 border-[#171717] bg-white p-4">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Design</p>
+                            <h4 className="font-bold uppercase tracking-widest text-sm">Template and metadata</h4>
+                          </div>
+                          <Settings size={18} className="text-[#7C3AED]" />
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-3">
+                          <BrutalSelect
+                            label="Type"
+                            value={certificateForm.certificateType}
+                            onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateType: event.target.value })}
+                            options={[
+                              { value: "Workshop", label: "Workshop" },
+                              { value: "Competition", label: "Competition" },
+                              { value: "Course", label: "Course" },
+                              { value: "Participation", label: "Participation" },
+                            ]}
+                          />
+                          <BrutalSelect
+                            label="Template"
+                            value={certificateForm.templateStyle}
+                            onChange={(event: any) => setCertificateForm({ ...certificateForm, templateStyle: event.target.value })}
+                            options={certificateTemplateOptions.map((template) => ({
+                              value: template.value,
+                              label: template.label,
+                            }))}
+                          />
+                          <BrutalInput
+                            label="Issuer"
+                            value={certificateForm.issuerName}
+                            onChange={(event: any) => setCertificateForm({ ...certificateForm, issuerName: event.target.value })}
+                            required
+                          />
+                          <BrutalInput
+                            label="Issued Date"
+                            type="date"
+                            value={certificateForm.issuedAt}
+                            onChange={(event: any) => setCertificateForm({ ...certificateForm, issuedAt: event.target.value })}
+                          />
+                        </div>
+                        <BrutalInput
+                          label="Optional External PDF Link"
+                          value={certificateForm.certificateUrl}
+                          onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateUrl: event.target.value })}
+                          placeholder="https://..."
+                        />
+                      </div>
+
+                      <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Signatures</p>
+                            <h4 className="font-bold uppercase tracking-widest text-sm">Add up to 3 signers</h4>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => removeCertificateSignature(index)}
-                            className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase tracking-widest text-[10px]"
-                            disabled={certificateForm.signatures.length === 1}
+                            onClick={addCertificateSignature}
+                            className="px-3 py-2 border-2 border-[#171717] bg-[#FFE800] font-bold uppercase tracking-widest text-[10px]"
                           >
-                            Remove
+                            Add Signer
                           </button>
                         </div>
-                        <div className="mt-3 grid md:grid-cols-[1fr_auto] gap-3 items-center">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(event) => uploadCertificateSignature(index, event.target.files?.[0])}
-                            className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
-                          />
-                          {signature.signature_image_url && (
-                            <img src={signature.signature_image_url} alt={`${signature.name} signature`} className="h-12 max-w-40 object-contain border-2 border-[#171717] bg-white p-1" />
-                          )}
+                        <div className="space-y-3">
+                          {certificateForm.signatures.map((signature, index) => (
+                            <div key={index} className="border-2 border-[#171717] bg-white p-3">
+                              <div className="mb-2 flex items-center justify-between gap-3">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Signer {index + 1}</p>
+                                <button
+                                  type="button"
+                                  onClick={() => removeCertificateSignature(index)}
+                                  className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase tracking-widest text-[10px]"
+                                  disabled={certificateForm.signatures.length === 1}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                              <div className="grid md:grid-cols-2 gap-2">
+                                <input
+                                  className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
+                                  value={signature.name}
+                                  onChange={(event) => updateCertificateSignature(index, "name", event.target.value)}
+                                  placeholder="Signer name"
+                                />
+                                <input
+                                  className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
+                                  value={signature.title}
+                                  onChange={(event) => updateCertificateSignature(index, "title", event.target.value)}
+                                  placeholder="Role / title"
+                                />
+                              </div>
+                              <div className="mt-3 grid md:grid-cols-[1fr_auto] gap-3 items-center">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(event) => uploadCertificateSignature(index, event.target.files?.[0])}
+                                  className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
+                                />
+                                {signature.signature_image_url && (
+                                  <img src={signature.signature_image_url} alt={`${signature.name} signature`} className="h-12 max-w-40 object-contain border-2 border-[#171717] bg-white p-1" />
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="bg-[#F4EFEB] p-4 md:p-6">
+                      <div className="sticky top-28">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Final draft</p>
+                            <h4 className="font-bold uppercase tracking-widest text-sm">Preview before issue</h4>
+                          </div>
+                          <BrutalBadge color="bg-[#2563EB]">{certificateForm.certificateType}</BrutalBadge>
+                        </div>
+                        <div className="overflow-x-auto border-2 border-[#171717] bg-white p-3 brutal-shadow">
+                          <div className="min-w-[760px]">
+                            <CertificateRenderer certificate={certificatePreviewRecord} />
+                          </div>
+                        </div>
+                        {certificateForm.eventId && (
+                          <p className="mt-4 text-xs font-mono text-slate-500">
+                            Bulk issue will send this same draft to {eligibleCertificateAttendees.length} checked-in attendee{eligibleCertificateAttendees.length === 1 ? "" : "s"} who {eligibleCertificateAttendees.length === 1 ? "does" : "do"} not already have one.
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <BrutalInput
-                  label="Optional External PDF Link"
-                  value={certificateForm.certificateUrl}
-                  onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateUrl: event.target.value })}
-                  placeholder="https://..."
-                />
-                <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Step 3</p>
-                  <h3 className="font-bold uppercase tracking-widest text-sm">Preview and issue</h3>
-                </div>
-                <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-5 brutal-shadow">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Certificate Draft</p>
-                  <div className="origin-top-left scale-[0.39] sm:scale-[0.45] md:scale-[0.5] w-[255%] sm:w-[222%] md:w-[200%] -mb-[34rem] sm:-mb-[31rem] md:-mb-[28rem]">
-                    <CertificateRenderer certificate={certificatePreviewRecord} />
-                  </div>
-                  {certificateForm.eventId && (
-                    <p className="mt-4 text-xs font-mono text-slate-500">
-                      Bulk issue will send this same certificate to {eligibleCertificateAttendees.length} checked-in attendee{eligibleCertificateAttendees.length === 1 ? "" : "s"} who {eligibleCertificateAttendees.length === 1 ? "does" : "do"} not already have one.
-                    </p>
-                  )}
-                </div>
+
                 {selectedCertificateEvent && (
                   <div className="mb-5 border-2 border-[#171717] bg-white p-4">
                     <div className="flex items-center justify-between gap-3 mb-3">
