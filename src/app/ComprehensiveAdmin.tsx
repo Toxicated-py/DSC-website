@@ -21,6 +21,7 @@ import {
   Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { defaultSiteSettings, mergeSiteSettings } from "../lib/siteSettings";
 import {
   deleteCertificate as deleteCertificateRecord,
   getCertificatesByEvent,
@@ -97,22 +98,6 @@ const BrutalSelect = ({ label, options, ...props }: any) => (
 );
 
 // ─── Main Admin Panel ──────────────────────────────────────────────────────────
-
-const defaultSiteSettings = {
-  siteName: "Data Science Club - SMS TU",
-  tagline: "Empowering Students Through Data",
-  contactEmail: "contact@datascienceclub.sms.tu.edu.np",
-  contactPhone: "+977-1-4331976",
-  address: "School of Mathematical Sciences, SMS, TU, Kathmandu, Nepal",
-  socialLinks: {
-    github: "https://github.com/datascienceclub",
-    linkedin: "https://linkedin.com/company/datascienceclub",
-    twitter: "https://twitter.com/datascienceclub",
-    facebook: "https://facebook.com/datascienceclub",
-    instagram: "https://instagram.com/datascienceclub",
-    discord: "https://discord.gg/datascienceclub",
-  },
-};
 
 const createCertificateCode = () => {
   const bytes = new Uint8Array(9);
@@ -325,7 +310,7 @@ export function ComprehensiveAdminPanel() {
         eventQuery = eventQuery.eq("created_by", userData.user.id);
       }
 
-      const [{ data: profiles }, { data: certs, error: certsError }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }, { data: blogRows }, { data: galleryRows }, { data: partnerRows }, { data: resourceRows }, { data: registrationRows }, { data: settingsRow }] = await Promise.all([
+      const [{ data: profiles }, { data: certs, error: certsError }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }, { data: blogRows }, { data: galleryRows }, { data: partnerRows }, { data: resourceRows }, { data: registrationRows }, { data: settingsRow, error: settingsError }] = await Promise.all([
         isAdmin
           ? supabase
               .from("profiles")
@@ -423,15 +408,15 @@ export function ComprehensiveAdminPanel() {
       setLearningMaterials(resourceRows || []);
       setEventRegistrations(registrationRows || []);
       if (settingsRow?.value) {
-        const savedSettings = settingsRow.value as typeof defaultSiteSettings;
-        setSiteSettings({
-          ...defaultSiteSettings,
-          ...savedSettings,
-          socialLinks: {
-            ...defaultSiteSettings.socialLinks,
-            ...(savedSettings.socialLinks || {}),
-          },
-        });
+        setSiteSettings(mergeSiteSettings(settingsRow.value));
+      }
+      if (settingsError) {
+        const message = settingsError.message || "";
+        setSettingsStatus(
+          message.includes("site_settings") || message.includes("schema cache")
+            ? "Site settings are not installed in Supabase yet. Run the latest site settings migration, then try again."
+            : message
+        );
       }
       setEventProposals((proposalRows || []).map((proposal) => {
         const author = Array.isArray(proposal.profiles) ? proposal.profiles[0] : proposal.profiles;
@@ -470,18 +455,31 @@ export function ComprehensiveAdminPanel() {
     }
 
     setSavingSettings(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from("site_settings")
-      .upsert({
-        key: "site",
-        value: siteSettings,
-        updated_by: userData.user?.id || null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "key" });
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
 
-    setSavingSettings(false);
-    setSettingsStatus(error ? error.message : "Settings saved.");
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert({
+          key: "site",
+          value: siteSettings,
+          updated_by: userData.user?.id || null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "key" });
+
+      if (error) throw error;
+      setSettingsStatus("Settings saved and connected to the public footer.");
+    } catch (error: any) {
+      const message = error.message || "Could not save settings.";
+      setSettingsStatus(
+        message.includes("site_settings") || message.includes("schema cache")
+          ? "Site settings are not installed in Supabase yet. Run the latest site settings migration, then try again."
+          : message
+      );
+    } finally {
+      setSavingSettings(false);
+    }
   };
 
   // Helper functions

@@ -25,6 +25,7 @@ import {
   UserCheck, Crown
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { useSiteSettings } from "../lib/siteSettings";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -898,6 +899,7 @@ export function TeamPage() {
 // ─── 3. CONTACT PAGE ───────────────────────────────────────────────────────────
 
 export function ContactPage() {
+  const settings = useSiteSettings();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -1028,8 +1030,8 @@ export function ContactPage() {
               <Mail size={24} className="flex-shrink-0" />
               <div>
                 <h3 className="text-lg font-bold uppercase mb-2" style={fonts.display}>Email</h3>
-                <a href="mailto:contact@datascienceclub.sms.tu.edu.np" className="font-mono text-sm hover:underline">
-                  contact@datascienceclub.sms.tu.edu.np
+                <a href={`mailto:${settings.contactEmail}`} className="font-mono text-sm hover:underline">
+                  {settings.contactEmail}
                 </a>
               </div>
             </div>
@@ -1040,8 +1042,8 @@ export function ContactPage() {
               <Phone size={24} className="flex-shrink-0" />
               <div>
                 <h3 className="text-lg font-bold uppercase mb-2" style={fonts.display}>Phone</h3>
-                <a href="tel:+97714331976" className="font-mono text-sm hover:underline">
-                  +977-1-4331976
+                <a href={`tel:${settings.contactPhone.replace(/[^\d+]/g, "")}`} className="font-mono text-sm hover:underline">
+                  {settings.contactPhone}
                 </a>
               </div>
             </div>
@@ -1052,11 +1054,7 @@ export function ContactPage() {
               <MapPin size={24} className="flex-shrink-0" />
               <div>
                 <h3 className="text-lg font-bold uppercase mb-2" style={fonts.display}>Address</h3>
-                <p className="text-sm">
-                  School of Mathematical Sciences<br />
-                  SMS, TU<br />
-                  Kirtipur, Kathmandu, Nepal
-                </p>
+                <p className="text-sm">{settings.address}</p>
               </div>
             </div>
           </BrutalCard>

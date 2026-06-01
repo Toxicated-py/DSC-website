@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Github, Linkedin, Twitter, Facebook, Instagram, Mail } from "lucide-react";
+import { useSiteSettings } from "../lib/siteSettings";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -14,15 +15,17 @@ const DiscordIcon = ({ size = 18 }: { size?: number }) => (
 );
 
 export function UpdatedFooter() {
+  const settings = useSiteSettings();
+
   const socialLinks = [
-    { icon: <Github size={18} />, url: "https://github.com/datascienceclub", label: "GitHub" },
-    { icon: <Linkedin size={18} />, url: "https://linkedin.com/company/datascienceclub", label: "LinkedIn" },
-    { icon: <Twitter size={18} />, url: "https://twitter.com/datascienceclub", label: "Twitter" },
-    { icon: <Facebook size={18} />, url: "https://facebook.com/datascienceclub", label: "Facebook" },
-    { icon: <Instagram size={18} />, url: "https://instagram.com/datascienceclub", label: "Instagram" },
-    { icon: <DiscordIcon size={18} />, url: "https://discord.gg/datascienceclub", label: "Discord" },
-    { icon: <Mail size={18} />, url: "mailto:contact@datascienceclub.sms.tu.edu.np", label: "Email" },
-  ];
+    { icon: <Github size={18} />, url: settings.socialLinks.github, label: "GitHub" },
+    { icon: <Linkedin size={18} />, url: settings.socialLinks.linkedin, label: "LinkedIn" },
+    { icon: <Twitter size={18} />, url: settings.socialLinks.twitter, label: "Twitter" },
+    { icon: <Facebook size={18} />, url: settings.socialLinks.facebook, label: "Facebook" },
+    { icon: <Instagram size={18} />, url: settings.socialLinks.instagram, label: "Instagram" },
+    { icon: <DiscordIcon size={18} />, url: settings.socialLinks.discord, label: "Discord" },
+    { icon: <Mail size={18} />, url: `mailto:${settings.contactEmail}`, label: "Email" },
+  ].filter((social) => social.url && social.url !== "mailto:");
 
   return (
     <footer className="bg-[#F4EFEB] py-12 px-6 md:px-10 border-t-2 border-[#171717]">
@@ -35,12 +38,11 @@ export function UpdatedFooter() {
                 <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-contain" />
               </div>
               <span className="font-bold text-lg uppercase tracking-widest text-[#171717]" style={fonts.display}>
-                Data Science Club
+                {settings.siteName.replace(" - SMS TU", "")}
               </span>
             </Link>
             <p className="text-sm text-slate-600 max-w-xs mb-4" style={fonts.sans}>
-              School of Mathematical Sciences, SMS, TU.<br />
-              Kirtipur, Kathmandu, Nepal.
+              {settings.address}
             </p>
             <div className="flex flex-wrap gap-3 mt-6">
               {socialLinks.map((social) => (
@@ -82,7 +84,7 @@ export function UpdatedFooter() {
               &copy; {new Date().getFullYear()} All rights reserved.
             </p>
             <p className="text-xs text-slate-600 mt-2">
-              Empowering students through data science.
+              {settings.tagline}
             </p>
             <div className="mt-6 flex md:justify-end items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
