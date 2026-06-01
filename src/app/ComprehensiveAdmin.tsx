@@ -3228,6 +3228,11 @@ export function ComprehensiveAdminPanel() {
 
           <BrutalCard>
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Contact Information</h2>
+            <BrutalTextarea
+              label="Office Hours"
+              value={siteSettings.officeHours}
+              onChange={(e: any) => setSiteSettings({ ...siteSettings, officeHours: e.target.value })}
+            />
             <div className="space-y-4">
               {siteSettings.contactItems.map((item) => (
                 <div key={item.id} className="grid lg:grid-cols-[160px_220px_1fr_auto] gap-3 items-end border-2 border-[#171717] bg-[#F4EFEB] p-3">

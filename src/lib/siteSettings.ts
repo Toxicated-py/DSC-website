@@ -7,6 +7,7 @@ export interface SiteSettings {
   contactEmail: string;
   contactPhone: string;
   address: string;
+  officeHours: string;
   contactItems: ContactItem[];
   socialLinks: Record<string, string>;
 }
@@ -24,6 +25,7 @@ export const defaultSiteSettings: SiteSettings = {
   contactEmail: "contact@datascienceclub.sms.tu.edu.np",
   contactPhone: "+977-1-4331976",
   address: "School of Mathematical Sciences, SMS, TU, Kathmandu, Nepal",
+  officeHours: "Monday - Friday: 9:00 AM - 5:00 PM\nSaturday: 10:00 AM - 2:00 PM\nSunday: Closed",
   contactItems: [
     { id: "email-primary", type: "email", label: "Email", value: "contact@datascienceclub.sms.tu.edu.np" },
     { id: "phone-primary", type: "phone", label: "Phone", value: "+977-1-4331976" },
@@ -52,6 +54,7 @@ export function mergeSiteSettings(value?: Partial<SiteSettings> | null): SiteSet
   const primaryEmail = contactItems.find((item) => item.type === "email")?.value || value?.contactEmail || defaultSiteSettings.contactEmail;
   const primaryPhone = contactItems.find((item) => item.type === "phone")?.value || value?.contactPhone || defaultSiteSettings.contactPhone;
   const primaryAddress = contactItems.find((item) => item.type === "address")?.value || value?.address || defaultSiteSettings.address;
+  const officeHours = value?.officeHours || defaultSiteSettings.officeHours;
 
   return {
     ...defaultSiteSettings,
@@ -59,6 +62,7 @@ export function mergeSiteSettings(value?: Partial<SiteSettings> | null): SiteSet
     contactEmail: primaryEmail,
     contactPhone: primaryPhone,
     address: primaryAddress,
+    officeHours,
     contactItems,
     socialLinks: hasSavedSocialLinks ? { ...(value?.socialLinks || {}) } : defaultSiteSettings.socialLinks,
   };

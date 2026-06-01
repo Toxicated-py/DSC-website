@@ -1100,11 +1100,7 @@ export function ContactPage() {
               <Globe size={24} className="flex-shrink-0" />
               <div>
                 <h3 className="text-lg font-bold uppercase mb-2" style={fonts.display}>Office Hours</h3>
-                <p className="text-sm text-slate-700">
-                  Monday - Friday: 9:00 AM - 5:00 PM<br />
-                  Saturday: 10:00 AM - 2:00 PM<br />
-                  Sunday: Closed
-                </p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{settings.officeHours}</p>
               </div>
             </div>
           </BrutalCard>
