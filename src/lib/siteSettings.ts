@@ -10,6 +10,7 @@ export interface SiteSettings {
   officeHours: string;
   contactItems: ContactItem[];
   faqs: FAQItem[];
+  teamMembers: TeamMember[];
   socialLinks: Record<string, string>;
 }
 
@@ -24,6 +25,19 @@ export interface FAQItem {
   id: string;
   question: string;
   answer: string;
+}
+
+export interface TeamMember {
+  id: string;
+  group: "executive" | "faculty" | "member";
+  name: string;
+  position: string;
+  meta: string;
+  image: string;
+  bio: string;
+  email: string;
+  linkedin: string;
+  github: string;
 }
 
 export const defaultSiteSettings: SiteSettings = {
@@ -80,6 +94,32 @@ export const defaultSiteSettings: SiteSettings = {
       answer: "Yes. We provide certificates for selected workshops, competitions, event participation, and approved club activities.",
     },
   ],
+  teamMembers: [
+    {
+      id: "president",
+      group: "executive",
+      name: "Ashish Adhikari",
+      position: "President",
+      meta: "Data Science Club",
+      image: "/assets/dsc-logo.png",
+      bio: "Leading the club community, events, and data-driven initiatives.",
+      email: "",
+      linkedin: "",
+      github: "",
+    },
+    {
+      id: "faculty-advisor",
+      group: "faculty",
+      name: "Faculty Advisor",
+      position: "Advisor",
+      meta: "SMS, TU",
+      image: "/assets/sms-tu-logo.png",
+      bio: "Guiding the club with academic support and institutional coordination.",
+      email: "",
+      linkedin: "",
+      github: "",
+    },
+  ],
   socialLinks: {
     github: "https://github.com/datascienceclub",
     linkedin: "https://linkedin.com/company/datascienceclub",
@@ -105,6 +145,7 @@ export function mergeSiteSettings(value?: Partial<SiteSettings> | null): SiteSet
   const primaryAddress = contactItems.find((item) => item.type === "address")?.value || value?.address || defaultSiteSettings.address;
   const officeHours = value?.officeHours || defaultSiteSettings.officeHours;
   const faqs = value?.faqs?.length ? value.faqs : defaultSiteSettings.faqs;
+  const teamMembers = value?.teamMembers?.length ? value.teamMembers : defaultSiteSettings.teamMembers;
 
   return {
     ...defaultSiteSettings,
@@ -115,6 +156,7 @@ export function mergeSiteSettings(value?: Partial<SiteSettings> | null): SiteSet
     officeHours,
     contactItems,
     faqs,
+    teamMembers,
     socialLinks: hasSavedSocialLinks ? { ...(value?.socialLinks || {}) } : defaultSiteSettings.socialLinks,
   };
 }

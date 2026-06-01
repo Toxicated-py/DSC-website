@@ -86,7 +86,6 @@ export function UpdatedFooter() {
             <Link to="/blog" className="hover:text-[#2563EB] w-max">Blog</Link>
             <Link to="/resources" className="hover:text-[#2563EB] w-max">Resources</Link>
             <Link to="/about" className="hover:text-[#2563EB] w-max">About Us</Link>
-            <Link to="/team" className="hover:text-[#7C3AED] w-max">Team</Link>
             <Link to="/gallery" className="hover:text-[#7C3AED] w-max">Gallery</Link>
             <Link to="/partners" className="hover:text-[#FB7185] w-max">Partners</Link>
             <Link to="/contact" className="hover:text-[#FB7185] w-max">Contact</Link>

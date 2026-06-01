@@ -9,12 +9,12 @@
  * - Connect With Us (existing)
  */
 
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, Github, Linkedin, Twitter, Facebook, Instagram, Mail,
-  ChevronDown
+  ArrowLeft, Github, Linkedin, Mail, Users
 } from "lucide-react";
+import { useSiteSettings } from "../lib/siteSettings";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -40,76 +40,39 @@ const BrutalBadge = ({ children, color = "bg-[#FB7185]", text = "text-white", cl
   </span>
 );
 
-// FAQ Accordion Component
-function FAQItem({ question, answer, isOpen, onClick }: any) {
-  return (
-    <div className="border-2 border-[#171717] mb-4">
-      <button
-        onClick={onClick}
-        className="w-full p-4 flex items-center justify-between bg-white hover:bg-[#F4EFEB] transition-all text-left"
-      >
-        <span className="font-bold uppercase tracking-wide text-sm pr-4">{question}</span>
-        <ChevronDown
-          size={20}
-          className={`flex-shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-        />
-      </button>
-      {isOpen && (
-        <div className="p-4 bg-[#F4EFEB] border-t-2 border-[#171717]">
-          <p className="text-sm text-slate-700">{answer}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function UpdatedAboutPage() {
-  const [openFAQ, setOpenFAQ] = useState<number | null>(0);
+  const settings = useSiteSettings();
 
   const socialLinks = [
-    { icon: <Github size={20} />, url: "https://github.com/datascienceclub", label: "GitHub", color: "bg-[#171717]", textColor: "text-white" },
-    { icon: <Linkedin size={20} />, url: "https://linkedin.com/company/datascienceclub", label: "LinkedIn", color: "bg-[#2563EB]", textColor: "text-white" },
-    { icon: <Twitter size={20} />, url: "https://twitter.com/datascienceclub", label: "Twitter", color: "bg-[#1DA1F2]", textColor: "text-white" },
-    { icon: <Facebook size={20} />, url: "https://facebook.com/datascienceclub", label: "Facebook", color: "bg-[#1877F2]", textColor: "text-white" },
-    { icon: <Instagram size={20} />, url: "https://instagram.com/datascienceclub", label: "Instagram", color: "bg-[#FB7185]", textColor: "text-white" },
-    { icon: <DiscordIcon size={20} />, url: "https://discord.gg/datascienceclub", label: "Discord", color: "bg-[#5865F2]", textColor: "text-white" },
-    { icon: <Mail size={20} />, url: "mailto:contact@datascienceclub.sms.tu.edu.np", label: "Email", color: "bg-[#FFE800]", textColor: "text-[#171717]" },
-  ];
+    { icon: <Github size={20} />, url: settings.socialLinks.github, label: "GitHub", color: "bg-[#171717]", textColor: "text-white" },
+    { icon: <Linkedin size={20} />, url: settings.socialLinks.linkedin, label: "LinkedIn", color: "bg-[#2563EB]", textColor: "text-white" },
+    { icon: <Mail size={20} />, url: `mailto:${settings.contactEmail}`, label: "Email", color: "bg-[#FFE800]", textColor: "text-[#171717]" },
+  ].filter((social) => social.url && social.url !== "mailto:");
 
-  const faqs = [
-    {
-      question: "How do I become a member?",
-      answer: "Simply register on our website using any valid email address. Once registered, you can attend events, submit projects, and access exclusive resources. To become a verified Club Member, attend at least 3 events and submit one project."
-    },
-    {
-      question: "Are events free for members?",
-      answer: "Yes! All our workshops, talks, and regular events are completely free for registered members. Some special competitions may have nominal registration fees to cover logistics."
-    },
-    {
-      question: "Do I need prior experience in data science?",
-      answer: "Not at all! We welcome students from all backgrounds and skill levels. We have beginner-friendly workshops and resources to help you get started, as well as advanced sessions for experienced members."
-    },
-    {
-      question: "How often do you organize events?",
-      answer: "We typically organize 2-3 events per month, including workshops, guest lectures, hackathons, and social gatherings. Check our Events page for the latest schedule."
-    },
-    {
-      question: "Can I collaborate on projects with other members?",
-      answer: "Absolutely! We encourage collaboration. You can find teammates through our Discord server, project boards, or at our events. Many of our featured projects are team efforts."
-    },
-    {
-      question: "What tools and technologies do you focus on?",
-      answer: "We primarily focus on Python (NumPy, Pandas, Scikit-learn, TensorFlow, PyTorch), R, SQL, and data visualization tools. We also cover ML/AI concepts, statistics, and real-world applications."
-    },
-    {
-      question: "How can I contribute to the club?",
-      answer: "There are many ways to contribute! Attend events, submit projects, help organize workshops, create content, mentor juniors, or apply for leadership positions. We value every contribution."
-    },
-    {
-      question: "Do you offer certificates?",
-      answer: "Yes! We provide completion certificates for workshops (with 80%+ attendance), competition participation, and project submissions. Certificates are available in your dashboard."
-    }
-  ];
+  const groupedTeam = {
+    executive: settings.teamMembers.filter((member) => member.group === "executive"),
+    faculty: settings.teamMembers.filter((member) => member.group === "faculty"),
+    member: settings.teamMembers.filter((member) => member.group === "member"),
+  };
+
+  const renderTeamCard = (member: any, color = "bg-white") => (
+    <BrutalCard key={member.id} color={color} className={color === "bg-white" ? "" : "text-white"}>
+      <div className="aspect-square bg-slate-200 border-2 border-[#171717] mb-4 overflow-hidden">
+        <img src={member.image || "/assets/dsc-logo.png"} alt={member.name} className="w-full h-full object-cover" />
+      </div>
+      <BrutalBadge color={color === "bg-white" ? "bg-[#2563EB]" : "bg-white"} text={color === "bg-white" ? "text-white" : "text-[#171717]"} className="mb-3">
+        {member.position}
+      </BrutalBadge>
+      <h3 className="text-2xl font-bold uppercase mb-1" style={fonts.display}>{member.name}</h3>
+      <p className={`text-sm mb-3 ${color === "bg-white" ? "text-slate-600" : "opacity-90"}`}>{member.meta}</p>
+      <p className={`text-sm mb-4 ${color === "bg-white" ? "text-slate-700" : "opacity-90"}`}>{member.bio}</p>
+      <div className="flex gap-2 pt-4 border-t-2 border-slate-200">
+        {member.linkedin && <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="p-2 border-2 border-[#171717] bg-[#2563EB] text-white"><Linkedin size={16} /></a>}
+        {member.github && <a href={member.github} target="_blank" rel="noopener noreferrer" className="p-2 border-2 border-[#171717] bg-[#171717] text-white"><Github size={16} /></a>}
+        {member.email && <a href={`mailto:${member.email}`} className="p-2 border-2 border-[#171717] bg-[#FFE800] text-[#171717]"><Mail size={16} /></a>}
+      </div>
+    </BrutalCard>
+  );
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
@@ -133,6 +96,38 @@ export function UpdatedAboutPage() {
         <p>
           Today, we host hackathons, conduct workshops, and maintain an open-source culture. We are proudly student-run, completely independent, and deeply passionate about the future of AI in Nepal.
         </p>
+      </div>
+
+      {/* Team Section */}
+      <div className="mt-16 border-t-2 border-[#171717] pt-12">
+        <div className="flex items-center gap-3 mb-8">
+          <Users size={32} />
+          <h2 className="text-4xl md:text-5xl uppercase" style={fonts.display}>Meet The Team</h2>
+        </div>
+        {groupedTeam.executive.length > 0 && (
+          <div className="mb-12">
+            <h3 className="text-3xl uppercase mb-6" style={fonts.display}>Executive Board</h3>
+            <div className="grid md:grid-cols-3 gap-6">
+              {groupedTeam.executive.map((member) => renderTeamCard(member))}
+            </div>
+          </div>
+        )}
+        {groupedTeam.faculty.length > 0 && (
+          <div className="mb-12">
+            <h3 className="text-3xl uppercase mb-6" style={fonts.display}>Faculty Advisors</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              {groupedTeam.faculty.map((member) => renderTeamCard(member, "bg-[#7C3AED]"))}
+            </div>
+          </div>
+        )}
+        {groupedTeam.member.length > 0 && (
+          <div>
+            <h3 className="text-3xl uppercase mb-6" style={fonts.display}>Members</h3>
+            <div className="grid md:grid-cols-3 gap-6">
+              {groupedTeam.member.map((member) => renderTeamCard(member))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Team Photo Section */}

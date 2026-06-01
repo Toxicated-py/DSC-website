@@ -21,7 +21,7 @@ import {
   Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { ContactItem, defaultSiteSettings, FAQItem, mergeSiteSettings } from "../lib/siteSettings";
+import { ContactItem, defaultSiteSettings, FAQItem, mergeSiteSettings, TeamMember } from "../lib/siteSettings";
 import {
   deleteCertificate as deleteCertificateRecord,
   getCertificatesByEvent,
@@ -238,6 +238,17 @@ export function ComprehensiveAdminPanel() {
     value: "",
   });
   const [newFAQ, setNewFAQ] = useState<Omit<FAQItem, "id">>({ question: "", answer: "" });
+  const [newTeamMember, setNewTeamMember] = useState<Omit<TeamMember, "id">>({
+    group: "executive",
+    name: "",
+    position: "",
+    meta: "",
+    image: "",
+    bio: "",
+    email: "",
+    linkedin: "",
+    github: "",
+  });
 
   // Tab configuration
   const tabs = [
@@ -588,6 +599,60 @@ export function ComprehensiveAdminPanel() {
       ],
     });
     setNewFAQ({ question: "", answer: "" });
+    setSettingsStatus("");
+  };
+
+  const updateTeamMember = (id: string, patch: Partial<TeamMember>) => {
+    setSiteSettings({
+      ...siteSettings,
+      teamMembers: siteSettings.teamMembers.map((member) => member.id === id ? { ...member, ...patch } : member),
+    });
+  };
+
+  const removeTeamMember = (id: string) => {
+    setSiteSettings({
+      ...siteSettings,
+      teamMembers: siteSettings.teamMembers.filter((member) => member.id !== id),
+    });
+  };
+
+  const addTeamMember = () => {
+    const name = newTeamMember.name.trim();
+    const position = newTeamMember.position.trim();
+    if (!name || !position) {
+      setSettingsStatus("Add at least the team member name and position.");
+      return;
+    }
+
+    setSiteSettings({
+      ...siteSettings,
+      teamMembers: [
+        ...siteSettings.teamMembers,
+        {
+          ...newTeamMember,
+          id: `team-${Date.now()}`,
+          name,
+          position,
+          meta: newTeamMember.meta.trim(),
+          image: newTeamMember.image.trim(),
+          bio: newTeamMember.bio.trim(),
+          email: newTeamMember.email.trim(),
+          linkedin: newTeamMember.linkedin.trim(),
+          github: newTeamMember.github.trim(),
+        },
+      ],
+    });
+    setNewTeamMember({
+      group: "executive",
+      name: "",
+      position: "",
+      meta: "",
+      image: "",
+      bio: "",
+      email: "",
+      linkedin: "",
+      github: "",
+    });
     setSettingsStatus("");
   };
 
@@ -3400,6 +3465,85 @@ export function ComprehensiveAdminPanel() {
             </div>
             <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Social Links"}
+            </BrutalButton>
+          </BrutalCard>
+
+          <BrutalCard>
+            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Team Members</h2>
+            <p className="text-sm text-slate-600 mb-4">These members appear inside the About Us page.</p>
+            <div className="space-y-4">
+              {siteSettings.teamMembers.map((member) => (
+                <div key={member.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <BrutalSelect
+                      label="Group"
+                      value={member.group}
+                      onChange={(e: any) => updateTeamMember(member.id, { group: e.target.value })}
+                      options={[
+                        { value: "executive", label: "Executive" },
+                        { value: "faculty", label: "Faculty" },
+                        { value: "member", label: "Member" },
+                      ]}
+                    />
+                    <BrutalInput label="Name" value={member.name} onChange={(e: any) => updateTeamMember(member.id, { name: e.target.value })} />
+                    <BrutalInput label="Position" value={member.position} onChange={(e: any) => updateTeamMember(member.id, { position: e.target.value })} />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <BrutalInput label="Meta" value={member.meta} onChange={(e: any) => updateTeamMember(member.id, { meta: e.target.value })} placeholder="Year, department, or role detail" />
+                    <BrutalInput label="Image URL" value={member.image} onChange={(e: any) => updateTeamMember(member.id, { image: e.target.value })} />
+                  </div>
+                  <BrutalTextarea label="Bio" value={member.bio} onChange={(e: any) => updateTeamMember(member.id, { bio: e.target.value })} />
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <BrutalInput label="Email" value={member.email} onChange={(e: any) => updateTeamMember(member.id, { email: e.target.value })} />
+                    <BrutalInput label="LinkedIn" value={member.linkedin} onChange={(e: any) => updateTeamMember(member.id, { linkedin: e.target.value })} />
+                    <BrutalInput label="GitHub" value={member.github} onChange={(e: any) => updateTeamMember(member.id, { github: e.target.value })} />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeTeamMember(member.id)}
+                    className="px-4 py-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                  >
+                    Remove Member
+                  </button>
+                </div>
+              ))}
+
+              <div className="border-2 border-dashed border-[#171717] bg-white p-3">
+                <div className="grid md:grid-cols-3 gap-3">
+                  <BrutalSelect
+                    label="New Group"
+                    value={newTeamMember.group}
+                    onChange={(e: any) => setNewTeamMember({ ...newTeamMember, group: e.target.value })}
+                    options={[
+                      { value: "executive", label: "Executive" },
+                      { value: "faculty", label: "Faculty" },
+                      { value: "member", label: "Member" },
+                    ]}
+                  />
+                  <BrutalInput label="New Name" value={newTeamMember.name} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, name: e.target.value })} />
+                  <BrutalInput label="New Position" value={newTeamMember.position} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, position: e.target.value })} />
+                </div>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <BrutalInput label="New Meta" value={newTeamMember.meta} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, meta: e.target.value })} />
+                  <BrutalInput label="New Image URL" value={newTeamMember.image} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, image: e.target.value })} />
+                </div>
+                <BrutalTextarea label="New Bio" value={newTeamMember.bio} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, bio: e.target.value })} />
+                <div className="grid md:grid-cols-3 gap-3">
+                  <BrutalInput label="New Email" value={newTeamMember.email} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, email: e.target.value })} />
+                  <BrutalInput label="New LinkedIn" value={newTeamMember.linkedin} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, linkedin: e.target.value })} />
+                  <BrutalInput label="New GitHub" value={newTeamMember.github} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, github: e.target.value })} />
+                </div>
+                <button
+                  type="button"
+                  onClick={addTeamMember}
+                  className="px-4 py-2 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                >
+                  Add Team Member
+                </button>
+              </div>
+            </div>
+            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
+              <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Team"}
             </BrutalButton>
           </BrutalCard>
 
