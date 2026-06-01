@@ -906,12 +906,39 @@ export function ContactPage() {
     subject: "",
     message: ""
   });
+  const [submittingMessage, setSubmittingMessage] = useState(false);
+  const [contactStatus, setContactStatus] = useState("");
   
   const [openFAQ, setOpenFAQ] = useState<number | null>(0);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Message sent! We'll get back to you soon.");
+    setContactStatus("");
+
+    if (!isSupabaseConfigured || !supabase) {
+      setContactStatus("Message inbox is not configured yet. Please email us directly for now.");
+      return;
+    }
+
+    setSubmittingMessage(true);
+    const { error } = await supabase.from("contact_messages").insert({
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      subject: formData.subject.trim(),
+      message: formData.message.trim(),
+    });
+    setSubmittingMessage(false);
+
+    if (error) {
+      setContactStatus(
+        error.message.includes("contact_messages") || error.message.includes("schema cache")
+          ? "Contact inbox is not installed yet. Run the latest contact messages migration."
+          : error.message
+      );
+      return;
+    }
+
+    setContactStatus("Message sent. We will get back to you soon.");
     setFormData({ name: "", email: "", subject: "", message: "" });
   };
   
@@ -1017,9 +1044,14 @@ export function ContactPage() {
               onChange={(e: any) => setFormData({ ...formData, message: e.target.value })}
               required
             />
-            <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full">
-              <Send size={16} className="inline mr-2" /> Send Message
+            <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full" disabled={submittingMessage}>
+              <Send size={16} className="inline mr-2" /> {submittingMessage ? "Sending..." : "Send Message"}
             </BrutalButton>
+            {contactStatus && (
+              <div className="mt-4 border-2 border-[#171717] bg-[#FFE800] p-3 text-xs font-bold uppercase tracking-widest">
+                {contactStatus}
+              </div>
+            )}
           </form>
         </BrutalCard>
 

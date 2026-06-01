@@ -163,6 +163,7 @@ export function ComprehensiveAdminPanel() {
   const [gallerySubmissions, setGallerySubmissions] = useState<any[]>([]);
   const [partnerSubmissions, setPartnerSubmissions] = useState<any[]>([]);
   const [learningMaterials, setLearningMaterials] = useState<any[]>([]);
+  const [contactMessages, setContactMessages] = useState<any[]>([]);
   const [resourceForm, setResourceForm] = useState({
     title: "",
     category: "General",
@@ -242,10 +243,11 @@ export function ComprehensiveAdminPanel() {
     { id: "partners", label: "Partners", icon: <Globe size={16} /> },
     { id: "resources", label: "Resources", icon: <Save size={16} /> },
     { id: "certificates", label: "Certificates", icon: <Award size={16} /> },
+    { id: "contacts", label: "Contact", icon: <Mail size={16} /> },
     { id: "settings", label: "Settings", icon: <Settings size={16} /> },
     { id: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
   ];
-  const adminOnlyTabs = ["users", "gallery", "partners", "resources", "settings", "analytics"];
+  const adminOnlyTabs = ["users", "gallery", "partners", "resources", "contacts", "settings", "analytics"];
   const isFullAdmin = adminProfile?.role === "admin";
   const visibleTabs = isFullAdmin ? tabs : tabs.filter((tab) => !adminOnlyTabs.includes(tab.id));
   const openAdminTab = (tabId: string, replace = false) => {
@@ -310,7 +312,7 @@ export function ComprehensiveAdminPanel() {
         eventQuery = eventQuery.eq("created_by", userData.user.id);
       }
 
-      const [{ data: profiles }, { data: certs, error: certsError }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }, { data: blogRows }, { data: galleryRows }, { data: partnerRows }, { data: resourceRows }, { data: registrationRows }, { data: settingsRow, error: settingsError }] = await Promise.all([
+      const [{ data: profiles }, { data: certs, error: certsError }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }, { data: blogRows }, { data: galleryRows }, { data: partnerRows }, { data: resourceRows }, { data: registrationRows }, { data: settingsRow, error: settingsError }, { data: contactRows, error: contactError }] = await Promise.all([
         isAdmin
           ? supabase
               .from("profiles")
@@ -356,6 +358,12 @@ export function ComprehensiveAdminPanel() {
           .select("value")
           .eq("key", "site")
           .maybeSingle(),
+        isAdmin
+          ? supabase
+              .from("contact_messages")
+              .select("id,name,email,subject,message,status,created_at")
+              .order("created_at", { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       if (!mounted) return;
@@ -406,6 +414,7 @@ export function ComprehensiveAdminPanel() {
       setGallerySubmissions(galleryRows || []);
       setPartnerSubmissions(partnerRows || []);
       setLearningMaterials(resourceRows || []);
+      setContactMessages(contactRows || []);
       setEventRegistrations(registrationRows || []);
       if (settingsRow?.value) {
         setSiteSettings(mergeSiteSettings(settingsRow.value));
@@ -415,6 +424,14 @@ export function ComprehensiveAdminPanel() {
         setSettingsStatus(
           message.includes("site_settings") || message.includes("schema cache")
             ? "Site settings are not installed in Supabase yet. Run the latest site settings migration, then try again."
+            : message
+        );
+      }
+      if (contactError) {
+        const message = contactError.message || "";
+        setAdminStatus(
+          message.includes("contact_messages") || message.includes("schema cache")
+            ? "Contact inbox is not installed in Supabase yet. Run the latest contact messages migration."
             : message
         );
       }
@@ -480,6 +497,41 @@ export function ComprehensiveAdminPanel() {
     } finally {
       setSavingSettings(false);
     }
+  };
+
+  const updateContactMessageStatus = async (id: string, status: "new" | "read" | "archived") => {
+    if (!isSupabaseConfigured || !supabase) return;
+    setAdminStatus("");
+
+    const { error } = await supabase
+      .from("contact_messages")
+      .update({ status })
+      .eq("id", id);
+
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+
+    setContactMessages((messages) =>
+      messages.map((message) => message.id === id ? { ...message, status } : message)
+    );
+    setAdminStatus(status === "archived" ? "Message archived." : "Message updated.");
+  };
+
+  const deleteContactMessage = async (id: string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    if (!window.confirm("Delete this contact message permanently?")) return;
+    setAdminStatus("");
+
+    const { error } = await supabase.from("contact_messages").delete().eq("id", id);
+    if (error) {
+      setAdminStatus(error.message);
+      return;
+    }
+
+    setContactMessages((messages) => messages.filter((message) => message.id !== id));
+    setAdminStatus("Message deleted.");
   };
 
   // Helper functions
@@ -2978,6 +3030,89 @@ export function ComprehensiveAdminPanel() {
             <BrutalButton color="bg-[#7C3AED]" text="text-white">
               <Plus size={16} className="inline mr-2" /> Add Team Member
             </BrutalButton>
+          </BrutalCard>
+        </div>
+      )}
+
+      {/* ─── CONTACT INBOX TAB ─────────────────────────────────────────────────── */}
+      {selectedTab === "contacts" && isFullAdmin && (
+        <div className="space-y-6">
+          <div className="grid sm:grid-cols-3 gap-4">
+            <BrutalCard color="bg-[#2563EB]" className="text-white">
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{contactMessages.length}</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Total Messages</div>
+            </BrutalCard>
+            <BrutalCard color="bg-[#FFE800]">
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{contactMessages.filter((message) => message.status === "new").length}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">New</div>
+            </BrutalCard>
+            <BrutalCard color="bg-white">
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{contactMessages.filter((message) => message.status === "read").length}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">Read</div>
+            </BrutalCard>
+          </div>
+
+          <BrutalCard>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Contact Inbox</h2>
+                <p className="text-sm text-slate-600">Messages sent from the public contact page appear here.</p>
+              </div>
+              <BrutalBadge color="bg-[#FB7185]">
+                {contactMessages.filter((message) => message.status === "new").length} Unread
+              </BrutalBadge>
+            </div>
+
+            {contactMessages.length === 0 ? (
+              <div className="border-2 border-dashed border-[#171717] p-10 text-center">
+                <Mail size={36} className="mx-auto mb-3 text-[#2563EB]" />
+                <p className="font-bold uppercase tracking-widest">No contact messages yet</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {contactMessages.map((message) => (
+                  <div key={message.id} className={`border-2 border-[#171717] p-4 ${message.status === "new" ? "bg-[#FFF7A8]" : "bg-white"}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <BrutalBadge color={message.status === "new" ? "bg-[#FFE800]" : message.status === "archived" ? "bg-slate-300" : "bg-[#22C55E]"}>
+                            {message.status}
+                          </BrutalBadge>
+                          <span className="text-xs font-mono text-slate-500">
+                            {message.created_at ? new Date(message.created_at).toLocaleString() : "Unknown time"}
+                          </span>
+                        </div>
+                        <h3 className="text-xl uppercase mb-1" style={fonts.display}>{message.subject}</h3>
+                        <p className="text-sm font-mono text-slate-600 mb-3">
+                          {message.name} - <a href={`mailto:${message.email}`} className="underline">{message.email}</a>
+                        </p>
+                        <p className="text-sm whitespace-pre-wrap break-words">{message.message}</p>
+                      </div>
+                      <div className="flex flex-wrap lg:flex-col gap-2 shrink-0">
+                        <button
+                          onClick={() => updateContactMessageStatus(message.id, message.status === "new" ? "read" : "new")}
+                          className="px-3 py-2 border-2 border-[#171717] bg-white text-xs font-bold uppercase tracking-widest hover:bg-[#F4EFEB]"
+                        >
+                          {message.status === "new" ? "Mark Read" : "Mark New"}
+                        </button>
+                        <button
+                          onClick={() => updateContactMessageStatus(message.id, "archived")}
+                          className="px-3 py-2 border-2 border-[#171717] bg-[#FFE800] text-xs font-bold uppercase tracking-widest hover:bg-yellow-300"
+                        >
+                          Archive
+                        </button>
+                        <button
+                          onClick={() => deleteContactMessage(message.id)}
+                          className="px-3 py-2 border-2 border-[#171717] bg-[#FB7185] text-white text-xs font-bold uppercase tracking-widest hover:bg-[#F43F5E]"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </BrutalCard>
         </div>
       )}
