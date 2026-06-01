@@ -13,7 +13,7 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { 
   Check, Shield, User, UserCheck, GraduationCap, Settings, Search, Edit, Trash2, Crown,
   Calendar, MapPin, Users, Trophy, TrendingUp, Save, X, Plus, Eye, EyeOff, 
@@ -142,7 +142,8 @@ const certificateLegacySelect = "id,recipient_id,event_id,title,certificate_type
 
 export function ComprehensiveAdminPanel() {
   const navigate = useNavigate();
-  const [selectedTab, setSelectedTab] = useState("overview");
+  const { adminTab } = useParams();
+  const [selectedTab, setSelectedTab] = useState(adminTab || "overview");
   const [searchQuery, setSearchQuery] = useState("");
   const [adminProfile, setAdminProfile] = useState<any>(null);
   const [isCertificateAdmin, setIsCertificateAdmin] = useState(false);
@@ -262,11 +263,24 @@ export function ComprehensiveAdminPanel() {
   const adminOnlyTabs = ["users", "gallery", "partners", "resources", "settings", "analytics"];
   const isFullAdmin = adminProfile?.role === "admin";
   const visibleTabs = isFullAdmin ? tabs : tabs.filter((tab) => !adminOnlyTabs.includes(tab.id));
+  const openAdminTab = (tabId: string, replace = false) => {
+    setSelectedTab(tabId);
+    navigate(tabId === "overview" ? "/admin" : `/admin/${tabId}`, { replace });
+  };
+
+  useEffect(() => {
+    const nextTab = adminTab || "overview";
+    if (tabs.some((tab) => tab.id === nextTab)) {
+      setSelectedTab(nextTab);
+    } else {
+      openAdminTab("overview", true);
+    }
+  }, [adminTab]);
 
   useEffect(() => {
     if (!adminProfile) return;
     if (!visibleTabs.some((tab) => tab.id === selectedTab)) {
-      setSelectedTab("overview");
+      openAdminTab("overview", true);
     }
   }, [adminProfile, selectedTab, visibleTabs]);
 
@@ -1560,16 +1574,16 @@ export function ComprehensiveAdminPanel() {
             {isFullAdmin ? "Manage all aspects of your Data Science Club website" : "Manage your events, projects, blogs, certificates, and check-ins"}
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-3 flex-wrap">
           <button
             onClick={() => navigate("/dashboard")}
-            className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#F4EFEB] transition-all font-bold uppercase tracking-widest text-xs"
+            className="px-4 py-2 border-2 border-[#171717] bg-white hover:bg-[#F4EFEB] transition-all font-bold uppercase tracking-widest text-xs md:text-sm"
           >
             Dashboard
           </button>
           <button
             onClick={() => navigate("/")}
-            className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#F4EFEB] transition-all font-bold uppercase tracking-widest text-xs"
+            className="px-4 py-2 border-2 border-[#171717] bg-white hover:bg-[#F4EFEB] transition-all font-bold uppercase tracking-widest text-xs md:text-sm"
           >
             View Site
           </button>
@@ -1577,27 +1591,21 @@ export function ComprehensiveAdminPanel() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-8 border-y-2 border-[#171717] bg-white px-3 py-3 brutal-shadow">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-          {visibleTabs.map((tab, index) => (
-            <React.Fragment key={tab.id}>
-              <button
-                onClick={() => setSelectedTab(tab.id)}
-                className={`inline-flex items-center gap-1.5 px-2 py-1 font-bold uppercase tracking-widest text-[11px] md:text-xs transition-all ${
-                  selectedTab === tab.id
-                    ? "bg-[#171717] text-white"
-                    : "text-[#171717] hover:bg-[#FFE800]"
-                }`}
-              >
-                {React.cloneElement(tab.icon, { size: 13 })}
-                {tab.label}
-              </button>
-              {index < visibleTabs.length - 1 && (
-                <span className="font-bold text-slate-400 select-none">/</span>
-              )}
-            </React.Fragment>
-          ))}
-        </div>
+      <div className="mb-8 flex gap-2 border-b-2 border-[#171717] pb-2 overflow-x-auto">
+        {visibleTabs.map((tab) => (
+          <button
+            key={tab.id}
+                onClick={() => openAdminTab(tab.id)}
+            className={`px-4 md:px-6 py-3 font-bold uppercase tracking-widest text-xs md:text-sm transition-all whitespace-nowrap flex items-center gap-2 ${
+              selectedTab === tab.id
+                ? "bg-[#171717] text-white border-2 border-[#171717]"
+                : "bg-white text-[#171717] border-2 border-transparent hover:border-[#171717]"
+            }`}
+          >
+            {tab.icon}
+            <span className="hidden md:inline">{tab.label}</span>
+          </button>
+        ))}
       </div>
 
       {adminStatus && (
@@ -1645,7 +1653,7 @@ export function ComprehensiveAdminPanel() {
               )}
               {isFullAdmin && (
                 <button
-                  onClick={() => setSelectedTab("users")}
+                  onClick={() => openAdminTab("users")}
                   className="p-4 border-2 border-[#171717] bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-all brutal-shadow brutal-shadow-hover"
                 >
                   <Users size={20} className="mb-2" />
@@ -1653,7 +1661,7 @@ export function ComprehensiveAdminPanel() {
                 </button>
               )}
               <button
-                onClick={() => setSelectedTab("projects")}
+                onClick={() => openAdminTab("projects")}
                 className="p-4 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all brutal-shadow brutal-shadow-hover"
               >
                 <Trophy size={20} className="mb-2" />

@@ -3358,6 +3358,7 @@ export default function App() {
           <Route path="blog/write" element={<BlogEditorPage />} />
           <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="admin" element={<AdminRoute><ComprehensiveAdminPanel /></AdminRoute>} />
+          <Route path="admin/:adminTab" element={<AdminRoute><ComprehensiveAdminPanel /></AdminRoute>} />
           
           {/* New Pages */}
           <Route path="certificates" element={<ProtectedRoute><MyCertificates /></ProtectedRoute>} />
