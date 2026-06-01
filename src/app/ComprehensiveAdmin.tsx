@@ -231,6 +231,7 @@ export function ComprehensiveAdminPanel() {
   const [siteSettings, setSiteSettings] = useState(defaultSiteSettings);
   const [settingsStatus, setSettingsStatus] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
+  const [newSocialLink, setNewSocialLink] = useState({ platform: "", url: "" });
 
   // Tab configuration
   const tabs = [
@@ -532,6 +533,44 @@ export function ComprehensiveAdminPanel() {
 
     setContactMessages((messages) => messages.filter((message) => message.id !== id));
     setAdminStatus("Message deleted.");
+  };
+
+  const updateSocialLink = (platform: string, url: string) => {
+    setSiteSettings({
+      ...siteSettings,
+      socialLinks: {
+        ...siteSettings.socialLinks,
+        [platform]: url,
+      },
+    });
+  };
+
+  const removeSocialLink = (platform: string) => {
+    const nextSocialLinks = { ...siteSettings.socialLinks };
+    delete nextSocialLinks[platform];
+    setSiteSettings({ ...siteSettings, socialLinks: nextSocialLinks });
+  };
+
+  const addSocialLink = () => {
+    const platform = newSocialLink.platform.trim().toLowerCase().replace(/\s+/g, "-");
+    const url = newSocialLink.url.trim();
+    if (!platform || !url) {
+      setSettingsStatus("Add both a platform name and URL.");
+      return;
+    }
+    if (siteSettings.socialLinks[platform]) {
+      setSettingsStatus("That social link already exists. Edit the existing field instead.");
+      return;
+    }
+    setSiteSettings({
+      ...siteSettings,
+      socialLinks: {
+        ...siteSettings.socialLinks,
+        [platform]: url,
+      },
+    });
+    setNewSocialLink({ platform: "", url: "" });
+    setSettingsStatus("");
   };
 
   // Helper functions
@@ -3146,12 +3185,51 @@ export function ComprehensiveAdminPanel() {
 
           <BrutalCard>
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Social Media Links</h2>
-            <BrutalInput label="GitHub" value={siteSettings.socialLinks.github} onChange={(e: any) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, github: e.target.value}})} />
-            <BrutalInput label="LinkedIn" value={siteSettings.socialLinks.linkedin} onChange={(e: any) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, linkedin: e.target.value}})} />
-            <BrutalInput label="Twitter" value={siteSettings.socialLinks.twitter} onChange={(e: any) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, twitter: e.target.value}})} />
-            <BrutalInput label="Facebook" value={siteSettings.socialLinks.facebook} onChange={(e: any) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, facebook: e.target.value}})} />
-            <BrutalInput label="Instagram" value={siteSettings.socialLinks.instagram} onChange={(e: any) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, instagram: e.target.value}})} />
-            <BrutalInput label="Discord" value={siteSettings.socialLinks.discord} onChange={(e: any) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, discord: e.target.value}})} />
+            <div className="space-y-4">
+              {Object.entries(siteSettings.socialLinks).map(([platform, url]) => (
+                <div key={platform} className="grid lg:grid-cols-[220px_1fr_auto] gap-3 items-end border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                  <BrutalInput
+                    label="Platform"
+                    value={platform}
+                    disabled
+                  />
+                  <BrutalInput
+                    label="URL"
+                    value={url}
+                    onChange={(e: any) => updateSocialLink(platform, e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeSocialLink(platform)}
+                    className="h-[52px] px-4 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+
+              <div className="grid lg:grid-cols-[220px_1fr_auto] gap-3 items-end border-2 border-dashed border-[#171717] bg-white p-3">
+                <BrutalInput
+                  label="New Platform"
+                  placeholder="YouTube, TikTok, Website"
+                  value={newSocialLink.platform}
+                  onChange={(e: any) => setNewSocialLink({ ...newSocialLink, platform: e.target.value })}
+                />
+                <BrutalInput
+                  label="New URL"
+                  placeholder="https://..."
+                  value={newSocialLink.url}
+                  onChange={(e: any) => setNewSocialLink({ ...newSocialLink, url: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={addSocialLink}
+                  className="h-[52px] px-4 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                >
+                  Add Link
+                </button>
+              </div>
+            </div>
             <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Social Links"}
             </BrutalButton>

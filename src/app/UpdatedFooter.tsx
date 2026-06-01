@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Github, Linkedin, Twitter, Facebook, Instagram, Mail } from "lucide-react";
+import { Facebook, Github, Globe, Instagram, Linkedin, Mail, Twitter } from "lucide-react";
 import { useSiteSettings } from "../lib/siteSettings";
 
 const fonts = {
@@ -14,16 +14,31 @@ const DiscordIcon = ({ size = 18 }: { size?: number }) => (
   </svg>
 );
 
+const getSocialIcon = (platform: string) => {
+  const key = platform.toLowerCase();
+  if (key.includes("github")) return <Github size={18} />;
+  if (key.includes("linkedin")) return <Linkedin size={18} />;
+  if (key.includes("twitter") || key === "x") return <Twitter size={18} />;
+  if (key.includes("facebook")) return <Facebook size={18} />;
+  if (key.includes("instagram")) return <Instagram size={18} />;
+  if (key.includes("discord")) return <DiscordIcon size={18} />;
+  return <Globe size={18} />;
+};
+
+const formatSocialLabel = (platform: string) =>
+  platform
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
 export function UpdatedFooter() {
   const settings = useSiteSettings();
 
   const socialLinks = [
-    { icon: <Github size={18} />, url: settings.socialLinks.github, label: "GitHub" },
-    { icon: <Linkedin size={18} />, url: settings.socialLinks.linkedin, label: "LinkedIn" },
-    { icon: <Twitter size={18} />, url: settings.socialLinks.twitter, label: "Twitter" },
-    { icon: <Facebook size={18} />, url: settings.socialLinks.facebook, label: "Facebook" },
-    { icon: <Instagram size={18} />, url: settings.socialLinks.instagram, label: "Instagram" },
-    { icon: <DiscordIcon size={18} />, url: settings.socialLinks.discord, label: "Discord" },
+    ...Object.entries(settings.socialLinks || {}).map(([platform, url]) => ({
+      icon: getSocialIcon(platform),
+      url,
+      label: formatSocialLabel(platform),
+    })),
     { icon: <Mail size={18} />, url: `mailto:${settings.contactEmail}`, label: "Email" },
   ].filter((social) => social.url && social.url !== "mailto:");
 

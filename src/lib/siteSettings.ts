@@ -7,14 +7,7 @@ export interface SiteSettings {
   contactEmail: string;
   contactPhone: string;
   address: string;
-  socialLinks: {
-    github: string;
-    linkedin: string;
-    twitter: string;
-    facebook: string;
-    instagram: string;
-    discord: string;
-  };
+  socialLinks: Record<string, string>;
 }
 
 export const defaultSiteSettings: SiteSettings = {
@@ -34,13 +27,12 @@ export const defaultSiteSettings: SiteSettings = {
 };
 
 export function mergeSiteSettings(value?: Partial<SiteSettings> | null): SiteSettings {
+  const hasSavedSocialLinks = Boolean(value && Object.prototype.hasOwnProperty.call(value, "socialLinks"));
+
   return {
     ...defaultSiteSettings,
     ...(value || {}),
-    socialLinks: {
-      ...defaultSiteSettings.socialLinks,
-      ...(value?.socialLinks || {}),
-    },
+    socialLinks: hasSavedSocialLinks ? { ...(value?.socialLinks || {}) } : defaultSiteSettings.socialLinks,
   };
 }
 
