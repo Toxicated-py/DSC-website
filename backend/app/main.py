@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from .auth import get_current_profile, require_admin
+from .auth import get_current_profile, get_current_user, profile_roles, require_admin
 from .config import Settings, get_settings
 from .schemas import (
     ApiStatus,
@@ -15,12 +15,14 @@ from .schemas import (
     CertificateIssue,
     CertificateUpdate,
     ContactMessageCreate,
+    EventStaffUpdate,
     EventProposalCreate,
     GallerySubmissionCreate,
     GenericPayload,
     ProjectCreate,
     SiteSettingsUpdate,
     StatusUpdate,
+    TicketScan,
 )
 from .supabase_rest import SupabaseRestClient, SupabaseRestError
 
@@ -81,6 +83,41 @@ def normalize_certificate(row: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(row.get("signature_data"), list):
         row["signature_data"] = []
     return row
+
+
+async def optional_profile(
+    authorization: str | None,
+    settings: Settings,
+    client: SupabaseRestClient,
+) -> dict[str, Any] | None:
+    if not authorization:
+        return None
+    try:
+        user = await get_current_user(authorization=authorization, settings=settings)
+    except HTTPException:
+        return None
+    user_id = user.get("id")
+    if not user_id:
+        return None
+    return await select_one(client, "profiles", {"id": f"eq.{user_id}"})
+
+
+async def can_manage_event(client: SupabaseRestClient, profile: dict[str, Any], event: dict[str, Any]) -> bool:
+    if profile_roles(profile) & {"admin", "president"}:
+        return True
+    if event.get("created_by") == profile.get("id"):
+        return True
+    staff_rows = await client.select(
+        "event_staff",
+        columns="id,email,user_id,can_scan",
+        filters={"event_id": f"eq.{event.get('id')}"},
+    )
+    profile_email = str(profile.get("email") or "").lower()
+    return any(
+        row.get("can_scan")
+        and (row.get("user_id") == profile.get("id") or str(row.get("email") or "").lower() == profile_email)
+        for row in staff_rows
+    )
 
 
 async def generate_verification_code(client: SupabaseRestClient) -> str:
@@ -164,6 +201,7 @@ ADMIN_TABLES = {
     "designation-options": "designation_options",
     "certificates": "certificates",
     "contact-messages": "contact_messages",
+    "event-registrations": "event_registrations",
 }
 
 RESOURCE_ORDER = {
@@ -178,6 +216,7 @@ RESOURCE_ORDER = {
     "designation_options": "sort_order.asc",
     "certificates": "created_at.desc",
     "contact_messages": "created_at.desc",
+    "event_registrations": "registered_at.desc",
 }
 
 app.add_middleware(
@@ -229,6 +268,132 @@ async def list_events(
         )
     except SupabaseRestError as exc:
         raise supabase_http_error(exc) from exc
+
+
+@app.get("/api/events/{event_id}/workspace")
+async def event_workspace(
+    event_id: str,
+    authorization: str | None = Header(default=None),
+    settings: Settings = Depends(get_settings),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> dict[str, Any]:
+    event = await select_one(
+        client,
+        "events",
+        {"id": f"eq.{event_id}"},
+    )
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+
+    count_rows = await client.select(
+        "event_registrations",
+        columns="id",
+        filters={"event_id": f"eq.{event_id}", "status": "eq.registered"},
+    )
+    profile = await optional_profile(authorization, settings, client)
+    manager = await can_manage_event(client, profile, event) if profile else False
+    attendees: list[dict[str, Any]] = []
+    if manager:
+        registrations = await client.select(
+            "event_registrations",
+            columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+            filters={"event_id": f"eq.{event_id}"},
+            order="registered_at.desc",
+        )
+        profile_ids = [row["user_id"] for row in registrations if row.get("user_id")]
+        profile_rows = []
+        for profile_id in profile_ids:
+            found = await select_one(client, "profiles", {"id": f"eq.{profile_id}"})
+            if found:
+                profile_rows.append(found)
+        profiles_by_id = {row["id"]: row for row in profile_rows}
+        attendees = [{**row, "profiles": profiles_by_id.get(row.get("user_id"))} for row in registrations]
+
+    return {
+        "event": {**event, "registeredCount": len(count_rows or [])},
+        "can_manage": manager,
+        "attendees": attendees,
+    }
+
+
+@app.post("/api/events/{event_id}/reserve", status_code=201)
+async def reserve_event_spot(
+    event_id: str,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> dict[str, Any]:
+    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    if not event.get("registration_open") or event.get("status") == "archived":
+        raise HTTPException(status_code=400, detail="Registration is closed for this event.")
+    start_time = event.get("start_time")
+    if start_time and str(start_time) < date.today().isoformat():
+        raise HTTPException(status_code=400, detail="This event has ended.")
+    existing = await client.select(
+        "event_registrations",
+        columns="id",
+        filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
+        limit=1,
+    )
+    if existing:
+        return {"message": "Already registered.", "registration": existing[0]}
+    registered = await client.select(
+        "event_registrations",
+        columns="id",
+        filters={"event_id": f"eq.{event_id}", "status": "eq.registered"},
+    )
+    if event.get("capacity") and len(registered or []) >= int(event.get("capacity")):
+        raise HTTPException(status_code=400, detail="This event is full.")
+    rows = await client.insert(
+        "event_registrations",
+        {"event_id": event_id, "user_id": profile["id"], "status": "registered"},
+    )
+    return {"message": "Registered.", "registration": rows[0] if rows else None}
+
+
+@app.patch("/api/events/{event_id}/registrations/{registration_id}/check-in")
+async def check_in_registration(
+    event_id: str,
+    registration_id: str,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> dict[str, Any]:
+    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    if not await can_manage_event(client, profile, event):
+        raise HTTPException(status_code=403, detail="You are not allowed to manage this event.")
+    rows = await client.update(
+        "event_registrations",
+        {"status": "checked_in", "checked_in_at": datetime.now(timezone.utc).isoformat()},
+        filters={"id": f"eq.{registration_id}", "event_id": f"eq.{event_id}"},
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="Registration not found.")
+    return rows[0]
+
+
+@app.post("/api/events/{event_id}/scan")
+async def scan_event_ticket(
+    event_id: str,
+    payload: TicketScan,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> dict[str, Any]:
+    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    if not await can_manage_event(client, profile, event):
+        raise HTTPException(status_code=403, detail="You are not allowed to scan for this event.")
+    rows = await client.update(
+        "event_registrations",
+        {"status": "checked_in", "checked_in_at": datetime.now(timezone.utc).isoformat()},
+        filters={"event_id": f"eq.{event_id}", "ticket_code": f"eq.{payload.ticket_code.strip()}"},
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="Ticket not found for this event.")
+    return rows[0]
 
 
 @app.get("/api/projects")
@@ -357,6 +522,21 @@ async def verify_certificate(
     return row
 
 
+@app.get("/api/certificates/{certificate_id}")
+async def get_certificate(
+    certificate_id: str,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> dict[str, Any]:
+    row = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
+    if not row:
+        raise HTTPException(status_code=404, detail="Certificate not found.")
+    is_admin = profile.get("role") in {"admin", "president"} or "admin" in (profile.get("roles") or [])
+    if not is_admin and row.get("member_id") != profile["id"] and row.get("recipient_id") != profile["id"]:
+        raise HTTPException(status_code=403, detail="You do not have access to this certificate.")
+    return normalize_certificate(row)
+
+
 @app.get("/api/me")
 async def get_me(profile: dict[str, Any] = Depends(get_current_profile)) -> dict[str, Any]:
     return profile
@@ -407,6 +587,25 @@ async def get_my_submissions(
         "gallery_submissions": gallery,
         "certificates": [normalize_certificate(row) for row in certificates],
     }
+
+
+@app.get("/api/me/certificates")
+async def get_my_certificates(
+    profile: dict[str, Any] = Depends(get_current_profile),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> list[dict[str, Any]]:
+    rows = await client.select(
+        "certificates",
+        filters={"member_id": f"eq.{profile['id']}"},
+        order="created_at.desc",
+    )
+    if not rows:
+        rows = await client.select(
+            "certificates",
+            filters={"recipient_id": f"eq.{profile['id']}"},
+            order="created_at.desc",
+        )
+    return [normalize_certificate(row) for row in rows]
 
 
 @app.post("/api/submissions/event-proposals", status_code=201)
@@ -547,6 +746,120 @@ async def admin_delete_resource(
     return {"message": "Deleted."}
 
 
+@app.get("/api/admin/events/{event_id}/staff")
+async def admin_event_staff(
+    event_id: str,
+    _: dict[str, Any] = Depends(require_admin),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> list[dict[str, Any]]:
+    return await client.select(
+        "event_staff",
+        columns="id,event_id,user_id,email,staff_role,can_scan,created_by,created_at",
+        filters={"event_id": f"eq.{event_id}"},
+        order="created_at.asc",
+    )
+
+
+@app.put("/api/admin/events/{event_id}/staff")
+async def admin_replace_event_staff(
+    event_id: str,
+    payload: EventStaffUpdate,
+    profile: dict[str, Any] = Depends(require_admin),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> list[dict[str, Any]]:
+    await client.delete("event_staff", filters={"event_id": f"eq.{event_id}", "staff_role": "eq.coordinator"})
+    rows = [
+        {
+            "event_id": event_id,
+            "email": str(email).lower(),
+            "staff_role": "coordinator",
+            "can_scan": True,
+            "created_by": profile["id"],
+        }
+        for email in payload.emails
+    ]
+    if not rows:
+        return []
+
+    created: list[dict[str, Any]] = []
+    for row in rows:
+        created.extend(await client.upsert("event_staff", row, on_conflict="event_id,email") or [])
+    return created
+
+
+@app.post("/api/admin/event-proposals/{proposal_id}/create-event")
+async def admin_create_event_from_proposal(
+    proposal_id: str,
+    profile: dict[str, Any] = Depends(require_admin),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> dict[str, Any]:
+    proposal = await select_one(client, "event_proposals", {"id": f"eq.{proposal_id}"})
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found.")
+    if proposal.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="This proposal has already been reviewed.")
+
+    proposed_start = proposal.get("proposed_date")
+    duplicate_filters = {"title": f"eq.{proposal.get('title')}"}
+    if proposed_start:
+        duplicate_filters["start_time"] = f"eq.{proposed_start}"
+    existing = await client.select("events", columns="id", filters=duplicate_filters, limit=1)
+    if existing:
+        await client.update("event_proposals", {"status": "approved"}, filters={"id": f"eq.{proposal_id}"})
+        return {"event_id": existing[0]["id"], "status": "already_exists"}
+
+    slug = str(proposal.get("title") or "event").lower()
+    slug = "".join(ch if ch.isalnum() else "-" for ch in slug).strip("-")
+    slug = f"{slug}-{proposal_id[:8]}"
+    event_rows = await client.insert(
+        "events",
+        {
+            "title": proposal.get("title"),
+            "slug": slug,
+            "event_type": proposal.get("event_type") or "WORKSHOP",
+            "short_description": (proposal.get("summary") or "")[:160],
+            "description": proposal.get("summary") or "",
+            "start_time": proposed_start,
+            "venue": proposal.get("venue"),
+            "capacity": proposal.get("capacity") or 40,
+            "status": "approved",
+            "registration_open": True,
+            "created_by": proposal.get("proposed_by") or profile["id"],
+        },
+    )
+    event_row = event_rows[0]
+
+    proposer = await select_one(client, "profiles", {"id": f"eq.{proposal.get('proposed_by')}"}) if proposal.get("proposed_by") else None
+    staff_rows = []
+    proposer_email = (proposer or {}).get("email") or profile.get("email")
+    if proposer_email:
+        staff_rows.append(
+            {
+                "event_id": event_row["id"],
+                "user_id": proposal.get("proposed_by"),
+                "email": proposer_email,
+                "staff_role": "organizer",
+                "can_scan": True,
+                "created_by": profile["id"],
+            }
+        )
+    for email in proposal.get("coordinator_emails") or []:
+        staff_rows.append(
+            {
+                "event_id": event_row["id"],
+                "email": str(email).lower(),
+                "staff_role": "coordinator",
+                "can_scan": True,
+                "created_by": profile["id"],
+            }
+        )
+    for staff in staff_rows:
+        await client.upsert("event_staff", staff, on_conflict="event_id,email")
+
+    await client.update("event_proposals", {"status": "approved"}, filters={"id": f"eq.{proposal_id}"})
+    return {"event_id": event_row["id"], "status": "created", "event": event_row}
+
+
 @app.put("/api/admin/site-settings")
 async def admin_update_site_settings(
     payload: SiteSettingsUpdate,
@@ -639,9 +952,14 @@ async def admin_issue_certificate(
 @app.post("/api/admin/certificates/issue-checked-in")
 async def admin_issue_checked_in_certificates(
     payload: CertificateBulkIssue,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    event = await select_one(client, "events", {"id": f"eq.{payload.event_id}"})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    if not await can_manage_event(client, profile, event):
+        raise HTTPException(status_code=403, detail="You are not allowed to issue certificates for this event.")
     registrations = await client.select(
         "event_registrations",
         columns="user_id,status,checked_in_at,profiles:user_id(full_name,email)",
@@ -678,6 +996,20 @@ async def admin_issue_checked_in_certificates(
                 failed.append(f"{label}: {exc.detail}")
 
     return {"success": success, "skipped": skipped, "failed": failed}
+
+
+@app.get("/api/admin/events/{event_id}/certificates")
+async def admin_event_certificates(
+    event_id: str,
+    _: dict[str, Any] = Depends(require_admin),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> list[dict[str, Any]]:
+    rows = await client.select(
+        "certificates",
+        filters={"event_id": f"eq.{event_id}"},
+        order="created_at.desc",
+    )
+    return [normalize_certificate(row) for row in rows]
 
 
 @app.patch("/api/admin/certificates/{certificate_id}")

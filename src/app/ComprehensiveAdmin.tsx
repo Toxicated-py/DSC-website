@@ -20,7 +20,21 @@ import {
   Mail, Phone, Globe, Github, Linkedin, Twitter, Instagram, Facebook,
   Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare
 } from "lucide-react";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import {
+  adminCreateResource,
+  adminCreateEventFromProposal,
+  adminDeleteContact,
+  adminDeleteResource,
+  adminListContacts,
+  adminListResource,
+  adminListEventStaff,
+  adminReplaceEventStaff,
+  adminSaveSiteSettings,
+  adminUpdateContactStatus,
+  adminUpdateResource,
+  adminUpdateResourceStatus,
+} from "../lib/adminApi";
+import { apiGet } from "../lib/apiClient";
 import { ContactItem, defaultSiteSettings, FAQItem, mergeSiteSettings, TeamMember } from "../lib/siteSettings";
 import {
   deleteCertificate as deleteCertificateRecord,
@@ -99,12 +113,6 @@ const BrutalSelect = ({ label, options, ...props }: any) => (
 
 // ─── Main Admin Panel ──────────────────────────────────────────────────────────
 
-const createCertificateCode = () => {
-  const bytes = new Uint8Array(9);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 12).toUpperCase();
-};
-
 const isCertificateSchemaError = (message = "") =>
   ["verification_code", "recipient_name_snapshot", "event_title_snapshot", "template_style", "revoked_at", "signature_data"].some((field) =>
     message.includes(field)
@@ -121,9 +129,6 @@ const certificateTemplateOptions = [
   { value: "modern", label: "Modern", accent: "bg-[#2563EB]", surface: "bg-[#F4EFEB]", text: "text-[#171717]" },
   { value: "classic", label: "Classic", accent: "bg-[#FFE800]", surface: "bg-white", text: "text-[#171717]" },
 ];
-
-const certificateCredentialSelect = "id,member_id,event_id,certificate_title,certificate_type,issuer_name,issued_date,status,verification_code,recipient_name_snapshot,event_title_snapshot,template,signature_data,external_pdf_url,description,created_at,profiles:member_id(full_name,email),events:event_id(title)";
-const certificateLegacySelect = "id,recipient_id,event_id,title,certificate_type,issuer_name,issued_at,status,certificate_url,description,created_at,profiles:recipient_id(full_name,email),events:event_id(title)";
 
 export function ComprehensiveAdminPanel() {
   const navigate = useNavigate();
@@ -293,17 +298,8 @@ export function ComprehensiveAdminPanel() {
     let mounted = true;
 
     async function loadAdminData() {
-      if (!isSupabaseConfigured || !supabase) return;
-
-      const { data: userData } = await supabase.auth.getUser();
-      if (!mounted || !userData.user) return;
-
-      const { data: myProfile } = await supabase
-        .from("profiles")
-        .select("id,role,email")
-        .eq("id", userData.user.id)
-        .maybeSingle();
-
+      const myProfile = await apiGet<any>("/api/me", { auth: true }).catch(() => null);
+      if (!mounted || !myProfile) return;
       setAdminProfile(myProfile);
       const isAdmin = myProfile?.role === "admin";
       const isOrganizer = myProfile?.role === "organizer";
@@ -311,90 +307,43 @@ export function ComprehensiveAdminPanel() {
       setIsCertificateAdmin(canManage);
       if (!canManage) return;
 
-      let projectQuery = supabase
-        .from("projects")
-        .select("id,title,category,team,technologies,summary,content,thumbnail_url,status,submitted_at,published_at,author_id,profiles:author_id(full_name,email)")
-        .order("submitted_at", { ascending: false });
-      let blogQuery = supabase
-        .from("blog_posts")
-        .select("id,title,summary,tags,content,cover_image_url,status,published_at,author_id,profiles:author_id(full_name,email)")
-        .order("published_at", { ascending: false });
-      let eventQuery = supabase
-        .from("events")
-        .select("id,title,event_type,start_time,end_time,venue,capacity,status,registration_open,created_by,created_at")
-        .order("start_time", { ascending: false, nullsFirst: false });
-
-      if (!isAdmin && isOrganizer) {
-        projectQuery = projectQuery.eq("author_id", userData.user.id);
-        blogQuery = blogQuery.eq("author_id", userData.user.id);
-        eventQuery = eventQuery.eq("created_by", userData.user.id);
-      }
-
-      const [{ data: profiles }, { data: certs, error: certsError }, { data: projectRows }, { data: proposalRows }, { data: eventRows }, { data: designationRows }, { data: blogRows }, { data: galleryRows }, { data: partnerRows }, { data: resourceRows }, { data: registrationRows }, { data: settingsRow, error: settingsError }, { data: contactRows, error: contactError }] = await Promise.all([
-        isAdmin
-          ? supabase
-              .from("profiles")
-              .select("id,full_name,email,role,membership_status,designation,designation_status,batch_year,created_at")
-              .order("full_name", { ascending: true })
-          : supabase
-              .from("profiles")
-              .select("id,full_name,email,role,membership_status,designation,designation_status,batch_year,created_at")
-              .eq("id", userData.user.id),
-        supabase
-          .from("certificates")
-          .select(certificateCredentialSelect)
-          .order("created_at", { ascending: false }),
-        projectQuery,
-        supabase
-          .from("event_proposals")
-          .select("id,proposed_by,title,event_type,proposed_date,venue,capacity,host,summary,coordinator_emails,status,submitted_at,profiles:proposed_by(full_name,email)")
-          .order("submitted_at", { ascending: false }),
-        eventQuery,
-        supabase
-          .from("designation_options")
-          .select("id,label,is_active,sort_order")
-          .order("sort_order", { ascending: true })
-          .order("label", { ascending: true }),
-        blogQuery,
-        supabase
-          .from("gallery_submissions")
-          .select("id,title,image_url,event_name,status,created_at")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("partner_submissions")
-          .select("id,name,website_url,logo_url,category,description,status,created_at")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("learning_materials")
-          .select("id,title,description,resource_url,category,status,created_at")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("event_registrations")
-          .select("id,event_id,user_id,status,registered_at,checked_in_at,profiles:user_id(id,full_name,email)"),
-        supabase
-          .from("site_settings")
-          .select("value")
-          .eq("key", "site")
-          .maybeSingle(),
-        isAdmin
-          ? supabase
-              .from("contact_messages")
-              .select("id,name,email,subject,message,status,created_at")
-              .order("created_at", { ascending: false })
-          : Promise.resolve({ data: [], error: null }),
+      const [
+        profileRows,
+        certs,
+        projectRowsRaw,
+        proposalRows,
+        eventRowsRaw,
+        designationRows,
+        blogRowsRaw,
+        galleryRows,
+        partnerRows,
+        resourceRows,
+        registrationRows,
+        settingsValue,
+        contactRows,
+      ] = await Promise.all([
+        isAdmin ? adminListResource<any>("profiles") : Promise.resolve([myProfile]),
+        adminListResource<any>("certificates"),
+        adminListResource<any>("projects"),
+        adminListResource<any>("event-proposals"),
+        adminListResource<any>("events"),
+        adminListResource<any>("designation-options"),
+        adminListResource<any>("blog-posts"),
+        adminListResource<any>("gallery"),
+        adminListResource<any>("partners"),
+        adminListResource<any>("learning-materials"),
+        adminListResource<any>("event-registrations"),
+        apiGet<any>("/api/site-settings").catch(() => null),
+        isAdmin ? adminListContacts<any>().catch(() => []) : Promise.resolve([]),
       ]);
 
       if (!mounted) return;
-      let certificateRows = certs || [];
-      if (certsError) {
-        setCertificateStatus(formatCertificateError(certsError.message));
-        const { data: legacyCerts } = await supabase
-          .from("certificates")
-          .select(certificateLegacySelect)
-          .order("created_at", { ascending: false });
-        if (!mounted) return;
-        certificateRows = legacyCerts || [];
-      }
+      const profiles = profileRows || [];
+      const profileById = new Map(profiles.map((profile: any) => [profile.id, profile]));
+      const projectRows = isAdmin ? projectRowsRaw : (projectRowsRaw || []).filter((project: any) => project.author_id === myProfile.id);
+      const blogRows = isAdmin ? blogRowsRaw : (blogRowsRaw || []).filter((post: any) => post.author_id === myProfile.id);
+      const eventRows = isAdmin ? eventRowsRaw : (eventRowsRaw || []).filter((event: any) => event.created_by === myProfile.id);
+      const certificateRows = certs || [];
       const mappedProfiles = (profiles || []).map((profile) => ({
         id: profile.id,
         name: profile.full_name || profile.email || "Member",
@@ -412,7 +361,7 @@ export function ComprehensiveAdminPanel() {
       setDesignationOptions(designationRows || []);
       setIssuedCertificates(certificateRows);
       setProjects((projectRows || []).map((project) => {
-        const author = Array.isArray(project.profiles) ? project.profiles[0] : project.profiles;
+        const author = profileById.get(project.author_id);
         return {
           ...project,
           author: author?.full_name || author?.email || "Member",
@@ -421,7 +370,7 @@ export function ComprehensiveAdminPanel() {
         };
       }));
       setBlogPosts((blogRows || []).map((post) => {
-        const author = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
+        const author = profileById.get(post.author_id);
         return {
           ...post,
           author: author?.full_name || author?.email || "Member",
@@ -434,27 +383,11 @@ export function ComprehensiveAdminPanel() {
       setLearningMaterials(resourceRows || []);
       setContactMessages(contactRows || []);
       setEventRegistrations(registrationRows || []);
-      if (settingsRow?.value) {
-        setSiteSettings(mergeSiteSettings(settingsRow.value));
-      }
-      if (settingsError) {
-        const message = settingsError.message || "";
-        setSettingsStatus(
-          message.includes("site_settings") || message.includes("schema cache")
-            ? "Site settings are not installed in Supabase yet. Run the latest site settings migration, then try again."
-            : message
-        );
-      }
-      if (contactError) {
-        const message = contactError.message || "";
-        setAdminStatus(
-          message.includes("contact_messages") || message.includes("schema cache")
-            ? "Contact inbox is not installed in Supabase yet. Run the latest contact messages migration."
-            : message
-        );
+      if (settingsValue) {
+        setSiteSettings(mergeSiteSettings(settingsValue));
       }
       setEventProposals((proposalRows || []).map((proposal) => {
-        const author = Array.isArray(proposal.profiles) ? proposal.profiles[0] : proposal.profiles;
+        const author = profileById.get(proposal.proposed_by);
         return {
           ...proposal,
           proposer: author?.full_name || author?.email || "Member",
@@ -484,15 +417,9 @@ export function ComprehensiveAdminPanel() {
 
   const saveSiteSettings = async () => {
     setSettingsStatus("");
-    if (!isSupabaseConfigured || !supabase) {
-      setSettingsStatus("Settings cannot be saved until Supabase is configured.");
-      return;
-    }
 
     setSavingSettings(true);
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
       const firstEmail = siteSettings.contactItems.find((item) => item.type === "email")?.value || siteSettings.contactEmail;
       const firstPhone = siteSettings.contactItems.find((item) => item.type === "phone")?.value || siteSettings.contactPhone;
       const firstAddress = siteSettings.contactItems.find((item) => item.type === "address")?.value || siteSettings.address;
@@ -503,16 +430,7 @@ export function ComprehensiveAdminPanel() {
         address: firstAddress,
       };
 
-      const { error } = await supabase
-        .from("site_settings")
-        .upsert({
-          key: "site",
-          value: normalizedSettings,
-          updated_by: userData.user?.id || null,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "key" });
-
-      if (error) throw error;
+      await adminSaveSiteSettings(normalizedSettings as unknown as Record<string, unknown>);
       setSiteSettings(normalizedSettings);
       setSettingsStatus("Settings saved and connected to the public footer.");
     } catch (error: any) {
@@ -657,16 +575,12 @@ export function ComprehensiveAdminPanel() {
   };
 
   const updateContactMessageStatus = async (id: string, status: "new" | "read" | "archived") => {
-    if (!isSupabaseConfigured || !supabase) return;
     setAdminStatus("");
 
-    const { error } = await supabase
-      .from("contact_messages")
-      .update({ status })
-      .eq("id", id);
-
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminUpdateContactStatus(id, status);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not update message.");
       return;
     }
 
@@ -677,13 +591,13 @@ export function ComprehensiveAdminPanel() {
   };
 
   const deleteContactMessage = async (id: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
     if (!window.confirm("Delete this contact message permanently?")) return;
     setAdminStatus("");
 
-    const { error } = await supabase.from("contact_messages").delete().eq("id", id);
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminDeleteContact(id);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not delete message.");
       return;
     }
 
@@ -744,11 +658,11 @@ export function ComprehensiveAdminPanel() {
   };
 
   const updateProfile = async (id: string, patch: Record<string, unknown>) => {
-    if (!isSupabaseConfigured || !supabase) return;
     setAdminStatus("");
-    const { error } = await supabase.from("profiles").update(patch).eq("id", id);
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminUpdateResource("profiles", id, patch);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not update user.");
       return;
     }
     setUsers(users.map((user) => user.id === id ? {
@@ -762,20 +676,17 @@ export function ComprehensiveAdminPanel() {
 
   const addDesignationOption = async () => {
     const label = newDesignationLabel.trim();
-    if (!label || !isSupabaseConfigured || !supabase) return;
+    if (!label) return;
     setAdminStatus("");
 
     const nextSortOrder = designationOptions.length
       ? Math.max(...designationOptions.map((option) => Number(option.sort_order) || 0)) + 10
       : 10;
-    const { data, error } = await supabase
-      .from("designation_options")
-      .insert({ label, sort_order: nextSortOrder })
-      .select("id,label,is_active,sort_order")
-      .single();
-
-    if (error) {
-      setAdminStatus(error.message);
+    let data: any;
+    try {
+      data = await adminCreateResource("designation-options", { label, sort_order: nextSortOrder });
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not add designation option.");
       return;
     }
 
@@ -785,12 +696,12 @@ export function ComprehensiveAdminPanel() {
   };
 
   const removeDesignationOption = async (id: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
     setAdminStatus("");
 
-    const { error } = await supabase.from("designation_options").delete().eq("id", id);
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminDeleteResource("designation-options", id);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not remove designation option.");
       return;
     }
 
@@ -972,8 +883,8 @@ export function ComprehensiveAdminPanel() {
       coordinatorEmails: "",
     });
 
-    if (event?.id && isSupabaseConfigured && supabase) {
-      const { data } = await supabase.from("event_staff").select("email").eq("event_id", event.id);
+    if (event?.id) {
+      const data = await adminListEventStaff<any>(event.id).catch(() => []);
       setEventForm((current) => ({
         ...current,
         coordinatorEmails: (data || []).map((staff) => staff.email).join(", "),
@@ -984,12 +895,7 @@ export function ComprehensiveAdminPanel() {
 
   const saveEvent = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!isSupabaseConfigured || !supabase) {
-      setShowEventModal(false);
-      return;
-    }
 
-    const { data: userData } = await supabase.auth.getUser();
     const slug = `${eventForm.title}-${editingItem?.id || Date.now()}`
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
@@ -1006,15 +912,16 @@ export function ComprehensiveAdminPanel() {
       capacity: Number(eventForm.capacity) || 40,
       status: eventForm.status,
       registration_open: eventForm.registrationOpen,
-      created_by: editingItem?.created_by || userData.user?.id || null,
+      created_by: editingItem?.created_by || adminProfile?.id || null,
     };
 
-    const { data: savedEvent, error } = editingItem?.id
-      ? await supabase.from("events").update(payload).eq("id", editingItem.id).select("id,title,event_type,start_time,end_time,venue,capacity,status,registration_open,created_by,created_at").single()
-      : await supabase.from("events").insert(payload).select("id,title,event_type,start_time,end_time,venue,capacity,status,registration_open,created_by,created_at").single();
-
-    if (error) {
-      setAdminStatus(error.message);
+    let savedEvent: any;
+    try {
+      savedEvent = editingItem?.id
+        ? await adminUpdateResource("events", editingItem.id, payload)
+        : await adminCreateResource("events", payload);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not save event.");
       return;
     }
 
@@ -1022,18 +929,7 @@ export function ComprehensiveAdminPanel() {
       .split(/[,\n]/)
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean);
-    if (coordinatorEmails.length) {
-      await supabase.from("event_staff").upsert(
-        coordinatorEmails.map((email) => ({
-          event_id: savedEvent.id,
-          email,
-          staff_role: "coordinator",
-          can_scan: true,
-          created_by: userData.user?.id || null,
-        })),
-        { onConflict: "event_id,email" }
-      );
-    }
+    await adminReplaceEventStaff(savedEvent.id, coordinatorEmails);
 
     const mapped = {
       ...savedEvent,
@@ -1050,20 +946,20 @@ export function ComprehensiveAdminPanel() {
   };
 
   const handleArchiveEvent = async (id: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
-    const { error } = await supabase.from("events").update({ status: "archived" }).eq("id", id);
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminUpdateResourceStatus("events", id, "archived");
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not archive event.");
       return;
     }
     setEvents(events.map(e => e.id === id ? { ...e, status: "archived" } : e));
   };
 
   const updateEventStatus = async (id: string, status: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
-    const { error } = await supabase.from("events").update({ status }).eq("id", id);
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminUpdateResourceStatus("events", id, status);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not update event.");
       return;
     }
     setEvents(events.map((event) => event.id === id ? { ...event, status, featured: status === "published" } : event));
@@ -1071,24 +967,24 @@ export function ComprehensiveAdminPanel() {
   };
 
   const toggleEventRegistration = async (event: any) => {
-    if (!isSupabaseConfigured || !supabase) return;
     const next = !event.registration_open;
-    const { error } = await supabase.from("events").update({ registration_open: next }).eq("id", event.id);
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminUpdateResource("events", event.id, { registration_open: next });
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not update registration.");
       return;
     }
     setEvents(events.map((row) => row.id === event.id ? { ...row, registration_open: next } : row));
   };
 
   const updateProjectStatus = async (id: string, status: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
-    const { error } = await supabase
-      .from("projects")
-      .update({ status, published_at: status === "published" ? new Date().toISOString() : null })
-      .eq("id", id);
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminUpdateResource("projects", id, {
+        status,
+        published_at: status === "published" ? new Date().toISOString() : null,
+      });
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not update project.");
       return;
     }
     setProjects(projects.map(p => p.id === id ? { ...p, status } : p));
@@ -1112,7 +1008,7 @@ export function ComprehensiveAdminPanel() {
 
   const saveProject = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!editingProjectId || !isSupabaseConfigured || !supabase) return;
+    if (!editingProjectId) return;
     const technologies = projectForm.technologies
       .split(",")
       .map((tag) => tag.trim())
@@ -1128,14 +1024,11 @@ export function ComprehensiveAdminPanel() {
       status: projectForm.status,
       published_at: projectForm.status === "published" ? new Date().toISOString() : null,
     };
-    const { data, error } = await supabase
-      .from("projects")
-      .update(payload)
-      .eq("id", editingProjectId)
-      .select("id,title,category,team,technologies,summary,content,thumbnail_url,status,submitted_at,published_at,author_id,profiles:author_id(full_name,email)")
-      .single();
-    if (error) {
-      setAdminStatus(error.message);
+    let data: any;
+    try {
+      data = await adminUpdateResource("projects", editingProjectId, payload);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not update project.");
       return;
     }
     const author = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
@@ -1152,83 +1045,29 @@ export function ComprehensiveAdminPanel() {
   };
 
   const updateProposalStatus = async (id: string, status: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
-    const { error } = await supabase.from("event_proposals").update({ status }).eq("id", id);
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminUpdateResourceStatus("event-proposals", id, status);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not update proposal.");
       return;
     }
     setEventProposals(eventProposals.map(p => p.id === id ? { ...p, status } : p));
   };
 
   const createEventFromProposal = async (proposal: any) => {
-    if (!isSupabaseConfigured || !supabase) return;
     if (proposal.status !== "pending") {
       setAdminStatus("This proposal has already been reviewed.");
       return;
     }
-    const { data: userData } = await supabase.auth.getUser();
-    const proposedStart = proposal.proposed_date ? new Date(proposal.proposed_date).toISOString() : null;
-    const duplicateQuery = supabase
-      .from("events")
-      .select("id")
-      .eq("title", proposal.title)
-      .maybeSingle();
-    const { data: existingEvent } = proposedStart
-      ? await duplicateQuery.eq("start_time", proposedStart)
-      : await duplicateQuery.is("start_time", null);
-    if (existingEvent?.id) {
-      await updateProposalStatus(proposal.id, "approved");
-      setAdminStatus("Proposal was already created as an event. Marked approved.");
+    let result: any;
+    try {
+      result = await adminCreateEventFromProposal(proposal.id);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not create event from proposal.");
       return;
     }
-    const slug = `${proposal.title}-${Date.now()}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    const { data: eventRow, error } = await supabase.from("events").insert({
-      title: proposal.title,
-      slug,
-      event_type: proposal.event_type,
-      short_description: proposal.summary.slice(0, 160),
-      description: proposal.summary,
-      start_time: proposedStart,
-      venue: proposal.venue,
-      capacity: proposal.capacity || 40,
-      status: "approved",
-      created_by: proposal.proposed_by || userData.user?.id || null,
-    }).select("id").single();
-    if (error) {
-      setAdminStatus(error.message);
-      return;
-    }
-    const proposer = Array.isArray(proposal.profiles) ? proposal.profiles[0] : proposal.profiles;
-    const staffRows = [
-      proposal.proposed_by || proposer?.email
-        ? {
-            event_id: eventRow.id,
-            user_id: proposal.proposed_by || null,
-            email: proposer?.email || adminProfile?.email || "",
-            staff_role: "organizer",
-            can_scan: true,
-            created_by: userData.user?.id || null,
-          }
-        : null,
-      ...(proposal.coordinator_emails || []).map((email: string) => ({
-        event_id: eventRow.id,
-        user_id: null,
-        email,
-        staff_role: "coordinator",
-        can_scan: true,
-        created_by: userData.user?.id || null,
-      })),
-    ].filter((row: any) => row?.email);
-    if (staffRows.length) {
-      await supabase.from("event_staff").upsert(staffRows, { onConflict: "event_id,email" });
-    }
-    await updateProposalStatus(proposal.id, "approved");
-    const { data: createdEvent } = await supabase
-      .from("events")
-      .select("id,title,event_type,start_time,end_time,venue,capacity,status,registration_open,created_by,created_at")
-      .eq("id", eventRow.id)
-      .single();
+    setEventProposals(eventProposals.map((row) => row.id === proposal.id ? { ...row, status: "approved" } : row));
+    const createdEvent = result.event;
     if (createdEvent) {
       setEvents([{
         ...createdEvent,
@@ -1239,14 +1078,14 @@ export function ComprehensiveAdminPanel() {
         featured: createdEvent.status === "published",
       }, ...events]);
     }
-    setAdminStatus("Event created from proposal.");
+    setAdminStatus(result.status === "already_exists" ? "Proposal was already created as an event. Marked approved." : "Event created from proposal.");
   };
 
   const updateBlogStatus = async (id: string, status: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
-    const { error } = await supabase.from("blog_posts").update({ status }).eq("id", id);
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminUpdateResourceStatus("blog-posts", id, status);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not update blog post.");
       return;
     }
     setBlogPosts(blogPosts.map((post) => post.id === id ? { ...post, status } : post));
@@ -1268,8 +1107,6 @@ export function ComprehensiveAdminPanel() {
 
   const saveBlogPost = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!isSupabaseConfigured || !supabase) return;
-    const { data: userData } = await supabase.auth.getUser();
     const tags = blogForm.tags
       .split(",")
       .map((tag) => tag.trim())
@@ -1283,20 +1120,13 @@ export function ComprehensiveAdminPanel() {
       status: blogForm.status,
       published_at: blogForm.status === "published" ? new Date().toISOString() : new Date().toISOString(),
     };
-    const { data, error } = editingBlogId
-      ? await supabase
-          .from("blog_posts")
-          .update(payload)
-          .eq("id", editingBlogId)
-          .select("id,title,summary,tags,content,cover_image_url,status,published_at,author_id,profiles:author_id(full_name,email)")
-          .single()
-      : await supabase
-          .from("blog_posts")
-          .insert({ ...payload, author_id: userData.user?.id || null })
-          .select("id,title,summary,tags,content,cover_image_url,status,published_at,author_id,profiles:author_id(full_name,email)")
-          .single();
-    if (error) {
-      setAdminStatus(error.message);
+    let data: any;
+    try {
+      data = editingBlogId
+        ? await adminUpdateResource("blog-posts", editingBlogId, payload)
+        : await adminCreateResource("blog-posts", payload);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not save blog post.");
       return;
     }
     const author = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
@@ -1313,14 +1143,14 @@ export function ComprehensiveAdminPanel() {
   };
 
   const updateSubmissionStatus = async (table: "gallery_submissions" | "partner_submissions", id: string, status: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from(table)
-      .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: userData.user?.id || null })
-      .eq("id", id);
-    if (error) {
-      setAdminStatus(error.message);
+    const resource = table === "gallery_submissions" ? "gallery" : "partners";
+    try {
+      await adminUpdateResource(resource, id, {
+        status,
+        reviewed_at: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not update submission.");
       return;
     }
     if (table === "gallery_submissions") {
@@ -1358,8 +1188,6 @@ export function ComprehensiveAdminPanel() {
 
   const savePartner = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!isSupabaseConfigured || !supabase) return;
-    const { data: userData } = await supabase.auth.getUser();
     const payload = {
       name: partnerForm.name.trim(),
       website_url: partnerForm.websiteUrl.trim() || null,
@@ -1367,15 +1195,15 @@ export function ComprehensiveAdminPanel() {
       category: partnerForm.category.trim() || "Partner",
       description: partnerForm.description.trim(),
       status: partnerForm.status,
-      submitted_by: userData.user?.id || null,
-      reviewed_by: userData.user?.id || null,
       reviewed_at: new Date().toISOString(),
     };
-    const { data, error } = editingPartnerId
-      ? await supabase.from("partner_submissions").update(payload).eq("id", editingPartnerId).select("id,name,website_url,logo_url,category,description,status,created_at").single()
-      : await supabase.from("partner_submissions").insert(payload).select("id,name,website_url,logo_url,category,description,status,created_at").single();
-    if (error) {
-      setAdminStatus(error.message);
+    let data: any;
+    try {
+      data = editingPartnerId
+        ? await adminUpdateResource("partners", editingPartnerId, payload)
+        : await adminCreateResource("partners", payload);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not save partner.");
       return;
     }
     setPartnerSubmissions(editingPartnerId
@@ -1387,11 +1215,11 @@ export function ComprehensiveAdminPanel() {
   };
 
   const deletePartner = async (id: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
     if (!window.confirm("Delete this partner?")) return;
-    const { error } = await supabase.from("partner_submissions").delete().eq("id", id);
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminDeleteResource("partners", id);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not delete partner.");
       return;
     }
     setPartnerSubmissions(partnerSubmissions.filter((partner) => partner.id !== id));
@@ -1412,22 +1240,17 @@ export function ComprehensiveAdminPanel() {
 
   const addLearningMaterial = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!isSupabaseConfigured || !supabase) return;
-    const { data: userData } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from("learning_materials")
-      .insert({
+    let data: any;
+    try {
+      data = await adminCreateResource("learning-materials", {
         title: resourceForm.title,
         category: resourceForm.category,
         description: resourceForm.description,
         resource_url: resourceForm.resourceUrl,
         status: "published",
-        created_by: userData.user?.id || null,
-      })
-      .select("id,title,description,resource_url,category,status,created_at")
-      .single();
-    if (error) {
-      setAdminStatus(error.message);
+      });
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not publish learning material.");
       return;
     }
     setLearningMaterials([data, ...learningMaterials]);
@@ -1436,11 +1259,11 @@ export function ComprehensiveAdminPanel() {
   };
 
   const deleteLearningMaterial = async (id: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
     if (!window.confirm("Delete this learning material?")) return;
-    const { error } = await supabase.from("learning_materials").delete().eq("id", id);
-    if (error) {
-      setAdminStatus(error.message);
+    try {
+      await adminDeleteResource("learning-materials", id);
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not delete learning material.");
       return;
     }
     setLearningMaterials(learningMaterials.filter((material) => material.id !== id));
@@ -1637,7 +1460,7 @@ export function ComprehensiveAdminPanel() {
       if (revoked) {
         await revokeCertificate(certificate.id);
       } else {
-        if (supabase) await supabase.from("certificates").update({ status: "valid" }).eq("id", certificate.id);
+        await adminUpdateResource("certificates", certificate.id, { status: "valid" });
       }
       setIssuedCertificates(issuedCertificates.map((row) => row.id === certificate.id ? { ...row, status: revoked ? "revoked" : "valid" } : row));
       setCertificateStatus(revoked ? "Certificate revoked." : "Certificate restored.");

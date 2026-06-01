@@ -1,7 +1,7 @@
 import { isSupabaseConfigured, supabase } from "./supabase";
 
 type ApiOptions = RequestInit & {
-  auth?: boolean;
+  auth?: boolean | "optional";
 };
 
 export class ApiError extends Error {
@@ -29,10 +29,17 @@ async function authHeader(auth?: boolean): Promise<Record<string, string>> {
   return { Authorization: `Bearer ${token}` };
 }
 
+async function optionalAuthHeader(): Promise<Record<string, string>> {
+  if (!isSupabaseConfigured || !supabase) return {};
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function apiRequest<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const headers = {
     "Content-Type": "application/json",
-    ...(await authHeader(options.auth)),
+    ...(options.auth === "optional" ? await optionalAuthHeader() : await authHeader(options.auth)),
     ...(options.headers || {}),
   };
 

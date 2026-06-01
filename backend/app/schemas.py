@@ -27,6 +27,14 @@ class StatusUpdate(BaseModel):
     status: str = Field(min_length=2, max_length=40)
 
 
+class EventStaffUpdate(BaseModel):
+    emails: list[EmailStr] = []
+
+
+class TicketScan(BaseModel):
+    ticket_code: str = Field(min_length=3, max_length=120)
+
+
 class SiteSettingsUpdate(BaseModel):
     value: dict[str, Any]
 

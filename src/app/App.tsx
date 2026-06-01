@@ -12,6 +12,8 @@ import { UpdatedAboutPage } from "./UpdatedAbout";
 import { UpdatedFooter } from "./UpdatedFooter";
 import { getPersistenceLabel, publishBlogPost, submitEventProposal, submitProject } from "../lib/contentApi";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { apiGet, apiPatch, apiPost } from "../lib/apiClient";
+import { issueCheckedInBulk } from "../services/certificateService";
 
 // ─── Custom Discord Icon ───────────────────────────────────────────────────────
 const DiscordIcon = ({ size = 18 }: { size?: number }) => (
@@ -76,12 +78,6 @@ const BrutalBadge = ({ children, color = "bg-[#FB7185]", text="text-white", clas
     {children}
   </span>
 );
-
-const createCertificateCode = () => {
-  const bytes = new Uint8Array(9);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 12).toUpperCase();
-};
 
 const formatCertificateError = (message: string) =>
   ["verification_code", "recipient_name_snapshot", "event_title_snapshot", "template_style", "revoked_at", "signature_data"].some((field) => message.includes(field))
@@ -1284,60 +1280,22 @@ function EventDetailPage() {
     let mounted = true;
 
     async function loadEventWorkspace() {
-      if (!isUuidEvent || !isSupabaseConfigured || !supabase || !id) {
+      if (!isUuidEvent || !id) {
         setLoadingEvent(false);
         return;
       }
 
-      const { data: userData } = await supabase.auth.getUser();
-      const [{ data: eventRow }, { count }] = await Promise.all([
-        supabase
-          .from("events")
-          .select("id,title,event_type,description,short_description,start_time,end_time,venue,capacity,status,registration_open,created_by")
-          .eq("id", id)
-          .maybeSingle(),
-        supabase
-          .from("event_registrations")
-          .select("id", { count: "exact", head: true })
-          .eq("event_id", id)
-          .eq("status", "registered"),
-      ]);
+      const workspace = await apiGet<any>(`/api/events/${id}/workspace`, { auth: "optional" }).catch(() => null);
       if (!mounted) return;
-      if (!eventRow) {
+      if (!workspace?.event) {
         setLoadingEvent(false);
         return;
       }
 
-      setEventInfo({ ...eventRow, registeredCount: count || 0 });
+      setEventInfo(workspace.event);
+      setCanManageEvent(Boolean(workspace.can_manage));
+      setAttendees(workspace.attendees || []);
       setLoadingEvent(false);
-
-      if (!userData.user) return;
-
-      const [{ data: profile }, { data: staffRows }] = await Promise.all([
-        supabase.from("profiles").select("role,email").eq("id", userData.user.id).maybeSingle(),
-        supabase.from("event_staff").select("id,email,staff_role,can_scan").eq("event_id", id),
-      ]);
-
-      const isManager =
-        profile?.role === "admin" ||
-        eventRow.created_by === userData.user.id ||
-        (staffRows || []).some((staff) => {
-          const staffEmail = staff.email?.toLowerCase();
-          return staff.can_scan && staffEmail && staffEmail === (profile?.email || userData.user.email || "").toLowerCase();
-        });
-
-      setCanManageEvent(Boolean(isManager));
-
-      if (isManager) {
-        const { data: registrations } = await supabase
-          .from("event_registrations")
-          .select("id,user_id,ticket_code,status,registered_at,checked_in_at,profiles:user_id(full_name,email)")
-          .eq("event_id", id)
-          .order("registered_at", { ascending: false });
-
-        if (!mounted) return;
-        setAttendees(registrations || []);
-      }
     }
 
     loadEventWorkspace();
@@ -1348,80 +1306,49 @@ function EventDetailPage() {
   }, [id, isUuidEvent]);
 
   const checkInAttendee = async (registrationId: string) => {
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!id) return;
     setManagerStatus("");
-    const { error } = await supabase
-      .from("event_registrations")
-      .update({ status: "checked_in", checked_in_at: new Date().toISOString() })
-      .eq("id", registrationId);
-    if (error) {
-      setManagerStatus(error.message);
+    const checkedInAt = new Date().toISOString();
+    try {
+      await apiPatch(`/api/events/${id}/registrations/${registrationId}/check-in`, {}, { auth: true });
+    } catch (error: any) {
+      setManagerStatus(error.message || "Could not check in attendee.");
       return;
     }
     setAttendees(attendees.map((attendee) => attendee.id === registrationId ? {
       ...attendee,
       status: "checked_in",
-      checked_in_at: new Date().toISOString(),
+      checked_in_at: checkedInAt,
     } : attendee));
   };
 
   const issueBulkCertificates = async () => {
-    if (!isSupabaseConfigured || !supabase || !id) return;
+    if (!id) return;
     const checkedIn = attendees.filter((attendee) => attendee.status === "checked_in" || attendee.checked_in_at);
     if (!checkedIn.length) {
       setManagerStatus("No checked-in attendees found.");
       return;
     }
-    const { data: userData } = await supabase.auth.getUser();
-    const rows = checkedIn.map((attendee) => ({
-      recipient_id: attendee.profiles?.id || attendee.user_id,
-      event_id: id,
-      issued_by: userData.user?.id || null,
-      title: `${eventInfo?.title || "Event"} Participation Certificate`,
-      certificate_type: "Event",
-      issuer_name: "Data Science Club",
-      issued_at: new Date().toISOString().slice(0, 10),
-      verification_code: createCertificateCode(),
-      recipient_name_snapshot: attendee.profiles?.full_name || attendee.profiles?.email || "Participant",
-      event_title_snapshot: eventInfo?.title || "Event",
-      template_style: "event",
-      signature_data: [
-        { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR" },
-        { name: "DIRECTOR_NAME", title: "DIRECTOR" },
-        { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT" },
-      ],
-      description: `This certifies participation in ${eventInfo?.title || "the event"}.`,
-      status: "approved",
-    })).filter((row) => row.recipient_id);
-    if (!rows.length) {
-      setManagerStatus("Could not find attendee profile IDs for certificates.");
+    try {
+      const summary = await issueCheckedInBulk(id, {
+        certificate_title: `${eventInfo?.title || "Event"} Participation Certificate`,
+        certificate_type: "Participation",
+        template: "modern",
+        description: `This certifies participation in ${eventInfo?.title || "the event"}.`,
+        issuer_name: "Data Science Club",
+        issued_date: new Date().toISOString().slice(0, 10),
+        external_pdf_url: null,
+        signature_data: [
+          { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR", signature_image_url: "" },
+          { name: "DIRECTOR_NAME", title: "DIRECTOR", signature_image_url: "" },
+          { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT", signature_image_url: "" },
+        ],
+      });
+      setManagerStatus(`${summary.success.length} issued, ${summary.skipped.length} skipped, ${summary.failed.length} failed.`);
+    } catch (error: any) {
+      setManagerStatus(formatCertificateError(error.message || "Could not issue certificates."));
       return;
     }
-    const recipientIds = rows.map((row) => row.recipient_id);
-    const { data: existingCerts, error: existingError } = await supabase
-      .from("certificates")
-      .select("recipient_id")
-      .eq("event_id", id)
-      .in("recipient_id", recipientIds)
-      .neq("status", "archived");
-    if (existingError) {
-      setManagerStatus(formatCertificateError(existingError.message));
-      return;
-    }
-    const existingRecipients = new Set((existingCerts || []).map((certificate) => certificate.recipient_id));
-    const newRows = rows.filter((row) => !existingRecipients.has(row.recipient_id));
-    if (!newRows.length) {
-      setManagerStatus("Certificates were already issued for all checked-in attendees.");
-      return;
-    }
-
-    const { error } = await supabase.from("certificates").insert(newRows);
-    if (error) {
-      setManagerStatus(formatCertificateError(error.message));
-      return;
-    }
-    const skipped = rows.length - newRows.length;
-    setManagerStatus(`Issued ${newRows.length} certificate${newRows.length === 1 ? "" : "s"}${skipped ? `, skipped ${skipped} duplicate${skipped === 1 ? "" : "s"}` : ""}.`);
   };
 
   const reserveSpot = async () => {
@@ -1431,46 +1358,19 @@ function EventDetailPage() {
       setReserveStatus("Invalid event.");
       return;
     }
-    if (!isSupabaseConfigured || !supabase || !isUuidEvent) {
+    if (!isUuidEvent) {
       navigate("/ticket");
       return;
     }
 
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      navigate(`/login?redirect=/events/${id}`);
-      return;
-    }
-
-    const [{ data: eventRow }, { count }] = await Promise.all([
-      supabase.from("events").select("id,capacity,registration_open,start_time,status").eq("id", id).maybeSingle(),
-      supabase.from("event_registrations").select("id", { count: "exact", head: true }).eq("event_id", id).eq("status", "registered"),
-    ]);
-
-    if (!eventRow) {
-      setReserveStatus("Event not found.");
-      return;
-    }
-    if (!eventRow.registration_open || eventRow.status === "archived") {
-      setReserveStatus("Registration is closed for this event.");
-      return;
-    }
-    if (eventRow.start_time && new Date(eventRow.start_time).getTime() < Date.now()) {
-      setReserveStatus("This event has ended.");
-      return;
-    }
-    if ((count || 0) >= eventRow.capacity) {
-      setReserveStatus("This event is full.");
-      return;
-    }
-
-    const { error } = await supabase.from("event_registrations").insert({
-      event_id: id,
-      user_id: userData.user.id,
-      status: "registered",
-    });
-    if (error && !error.message.toLowerCase().includes("duplicate")) {
-      setReserveStatus(error.message);
+    try {
+      await apiPost(`/api/events/${id}/reserve`, {}, { auth: true });
+    } catch (error: any) {
+      if (error?.status === 401) {
+        navigate(`/login?redirect=/events/${id}`);
+        return;
+      }
+      setReserveStatus(error.message || "Could not reserve a spot.");
       return;
     }
     navigate("/ticket");
@@ -2861,26 +2761,17 @@ function ScannerPage() {
         setScannerStatus("Open scanner from an event page.");
         return;
       }
-      if (!isSupabaseConfigured || !supabase) {
-        setScannerReady(false);
-        setScannerStatus("Scanner is unavailable right now.");
-        return;
-      }
-
-      const { data: userData } = await supabase.auth.getUser();
+      const workspace = await apiGet<any>(`/api/events/${eventId}/workspace`, { auth: true }).catch((error) => {
+        if (error?.status === 401) {
+          navigate(`/login?redirect=/scanner?event=${eventId}`);
+          return null;
+        }
+        setScannerStatus(error.message || "Scanner is unavailable right now.");
+        return null;
+      });
       if (!mounted) return;
-      if (!userData.user) {
-        navigate(`/login?redirect=/scanner?event=${eventId}`);
-        return;
-      }
-
-      const [{ data: eventRow }, { data: profile }, { data: staffRows }] = await Promise.all([
-        supabase.from("events").select("id,title,end_time,created_by,status").eq("id", eventId).maybeSingle(),
-        supabase.from("profiles").select("role,email").eq("id", userData.user.id).maybeSingle(),
-        supabase.from("event_staff").select("email,user_id,can_scan").eq("event_id", eventId),
-      ]);
-
-      if (!mounted) return;
+      if (!workspace) return;
+      const eventRow = workspace.event;
       if (!eventRow) {
         setScannerStatus("Event not found.");
         return;
@@ -2890,16 +2781,8 @@ function ScannerPage() {
         return;
       }
 
-      const canScan =
-        profile?.role === "admin" ||
-        eventRow.created_by === userData.user.id ||
-        (staffRows || []).some((staff) =>
-          staff.can_scan &&
-          (staff.user_id === userData.user?.id || staff.email?.toLowerCase() === (profile?.email || userData.user?.email || "").toLowerCase())
-        );
-
-      setScannerReady(Boolean(canScan));
-      setScannerStatus(canScan ? `Scanner active for ${eventRow.title}.` : "You are not allowed to scan for this event.");
+      setScannerReady(Boolean(workspace.can_manage));
+      setScannerStatus(workspace.can_manage ? `Scanner active for ${eventRow.title}.` : "You are not allowed to scan for this event.");
     }
 
     checkScannerAccess();
@@ -2911,24 +2794,10 @@ function ScannerPage() {
 
   const scanTicket = async () => {
     if (!scannerReady || !eventId || !ticketCode.trim()) return;
-    if (!isSupabaseConfigured || !supabase) {
-      setScannerStatus("Scanner is unavailable right now.");
-      return;
-    }
-    const { data, error } = await supabase
-      .from("event_registrations")
-      .update({ status: "checked_in", checked_in_at: new Date().toISOString() })
-      .eq("event_id", eventId)
-      .eq("ticket_code", ticketCode.trim())
-      .select("id")
-      .maybeSingle();
-
-    if (error) {
-      setScannerStatus(error.message);
-      return;
-    }
-    if (!data) {
-      setScannerStatus("Ticket not found for this event.");
+    try {
+      await apiPost(`/api/events/${eventId}/scan`, { ticket_code: ticketCode.trim() }, { auth: true });
+    } catch (error: any) {
+      setScannerStatus(error.message || "Ticket not found for this event.");
       return;
     }
     setTicketCode("");
