@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Database, Menu, X, Users, ArrowRight, ArrowLeft, Search, Camera, Check, Calendar, MapPin, Tag, QrCode, Trophy, TrendingUp, Bell, Zap, Target, Star, Award, Clock, BookOpen, Code, GitBranch, Home, Github, Linkedin, Twitter, Instagram, Mail, Facebook, UserCheck, GraduationCap, Shield, ChevronDown, Image, Handshake, LogOut, User, FileText, BookMarked } from "lucide-react";
-import { NewLoginPage, AdminPanelPage, UserBadge } from "./AuthAndAdmin";
+import { NewLoginPage, UserBadge } from "./AuthAndAdmin";
 import { ComprehensiveAdminPanel } from "./ComprehensiveAdmin";
 // New Pages
-import { ContactPage, ResourcesPage, CommentSection } from "./NewPages";
+import { ContactPage, ResourcesPage } from "./NewPages";
 import { MyCertificates } from "./MyCertificates";
 import { CertificateVerifyPage } from "./CertificateVerifyPage";
 import { GalleryPage, UserProfilePage, AchievementsPage, PartnersPage } from "./NewPages2";
@@ -2995,27 +2995,6 @@ function DashboardPage() {
             <div className="text-[9px] md:text-[10px] font-mono text-[#2563EB]">{stat.trend}</div>
           </BrutalCard>
         ))}
-      </div>
-
-      {/* Certificates Strip */}
-      <div
-        onClick={() => navigate("/certificates")}
-        className="mb-10 border-2 border-[#171717] bg-[#FFE800] p-5 flex items-center justify-between cursor-pointer brutal-shadow brutal-shadow-hover transition-all group"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#171717] flex items-center justify-center shrink-0">
-            <Award size={24} className="text-[#FFE800]" />
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-[#171717]/60" style={fonts.sans}>Your Achievements</p>
-            <p className="text-xl md:text-2xl font-bold uppercase leading-none" style={fonts.display}>
-              Certificates & Achievements
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 font-bold uppercase tracking-widest text-sm text-[#171717] group-hover:gap-4 transition-all">
-          View All <ArrowRight size={16} />
-        </div>
       </div>
 
       {/* Main Content Grid - Stacks on mobile, side-by-side on desktop */}
