@@ -43,6 +43,7 @@ import {
   issueSingleCertificate,
   revokeCertificate,
   updateCertificate,
+  uploadCertificateTemplateImage,
   uploadSignatureImage,
 } from "../services/certificateService";
 import { CertificateRenderer } from "./components/CertificateRenderer";
@@ -853,6 +854,22 @@ export function ComprehensiveAdminPanel() {
       setCertificateStatus("Signature uploaded.");
     } catch (error: any) {
       setCertificateStatus(error.message || "Could not upload signature.");
+    }
+  };
+
+  const uploadCertificateTemplate = async (file?: File) => {
+    if (!file) return;
+    try {
+      setCertificateStatus("Uploading certificate template...");
+      const publicUrl = await uploadCertificateTemplateImage(file);
+      setCertificateForm((current) => ({
+        ...current,
+        templateStyle: "custom-image",
+        templateBackgroundUrl: publicUrl,
+      }));
+      setCertificateStatus("Certificate template uploaded.");
+    } catch (error: any) {
+      setCertificateStatus(error.message || "Could not upload certificate template.");
     }
   };
 
@@ -2844,6 +2861,24 @@ export function ComprehensiveAdminPanel() {
                               onChange={(event: any) => setCertificateForm({ ...certificateForm, templateBackgroundUrl: event.target.value })}
                               placeholder="https://.../blank-certificate.png"
                             />
+                            <div className="mb-4">
+                              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                Upload Blank Template
+                              </label>
+                              <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                onChange={(event) => uploadCertificateTemplate(event.target.files?.[0])}
+                                className="w-full border-2 border-[#171717] bg-white p-2 font-mono text-xs"
+                              />
+                              {certificateForm.templateBackgroundUrl && (
+                                <img
+                                  src={certificateForm.templateBackgroundUrl}
+                                  alt="Certificate template preview"
+                                  className="mt-3 aspect-[1.414/1] w-full max-w-lg border-2 border-[#171717] bg-white object-cover"
+                                />
+                              )}
+                            </div>
                             <div className="grid md:grid-cols-3 gap-3">
                               <BrutalInput
                                 label="Name X %"

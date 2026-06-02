@@ -126,4 +126,23 @@ export async function uploadSignatureImage(file: File): Promise<string> {
   return data.publicUrl;
 }
 
+export async function uploadCertificateTemplateImage(file: File): Promise<string> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error("Supabase storage is not configured.");
+  }
+
+  const extension = file.name.split(".").pop() || "png";
+  const path = `${crypto.randomUUID()}.${extension}`;
+
+  const { error } = await supabase.storage.from("certificate-templates").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+
+  if (error) throw new Error(`Could not upload certificate template: ${error.message}`);
+
+  const { data } = supabase.storage.from("certificate-templates").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export type { Certificate, CertificateFormData, PublicCertificate, SignatureData };
