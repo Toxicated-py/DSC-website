@@ -21,6 +21,7 @@ class SupabaseRestClient:
 
         self.base_url = settings.supabase_url.rstrip("/")
         bearer_token = auth_token or settings.supabase_key
+        self.admin_rpc_secret = settings.admin_rpc_secret
         self.headers = {
             "apikey": settings.supabase_key,
             "authorization": f"Bearer {bearer_token}",
@@ -88,6 +89,9 @@ class SupabaseRestClient:
             "prefer": "return=representation",
         }
         return await self._request("DELETE", table, params=filters, headers=headers)
+
+    async def rpc(self, function_name: str, payload: dict[str, Any] | None = None) -> Any:
+        return await self._request("POST", f"rpc/{function_name}", json=payload or {})
 
     async def _request(
         self,

@@ -314,8 +314,10 @@ export function ComprehensiveAdminPanel() {
     { id: "logs", label: "Logs", icon: <ListFilter size={16} /> },
   ];
   const isFullAdmin = isFullAdminProfile(adminProfile);
+  const isOrganizerAdmin = isOrganizerProfile(adminProfile);
+  const canAccessAdmin = isFullAdmin || isOrganizerAdmin;
   const activeTab = isFullAdmin ? selectedTab : "events";
-  const visibleTabs = isFullAdmin ? tabs : tabs.filter((tab) => tab.id === "events");
+  const visibleTabs = isFullAdmin ? tabs : isOrganizerAdmin ? tabs.filter((tab) => tab.id === "events") : [];
   const openAdminTab = (tabId: string, replace = false) => {
     setSelectedTab(tabId);
     navigate(tabId === "overview" ? "/admin" : `/admin/${tabId}`, { replace });
@@ -331,16 +333,28 @@ export function ComprehensiveAdminPanel() {
   }, [adminTab]);
 
   useEffect(() => {
-    if (!adminProfile) return;
+    if (!adminProfile || !canAccessAdmin) return;
     if (!visibleTabs.some((tab) => tab.id === selectedTab)) {
       openAdminTab(visibleTabs[0]?.id || "overview", true);
     }
-  }, [adminProfile, selectedTab, visibleTabs]);
+  }, [adminProfile, selectedTab, visibleTabs, canAccessAdmin]);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadAdminData() {
+      const safeList = async <T,>(loader: Promise<T[]>, label: string): Promise<T[]> => {
+        try {
+          return await loader;
+        } catch (error: any) {
+          console.error(`Could not load ${label}`, error);
+          if (mounted) {
+            setAdminStatus(`Could not load ${label}: ${error.message || "request failed"}`);
+          }
+          return [];
+        }
+      };
+
       const myProfile = await apiGet<any>("/api/me", { auth: true }).catch(() => null);
       if (!mounted || !myProfile) return;
       setAdminProfile(myProfile);
@@ -366,20 +380,20 @@ export function ComprehensiveAdminPanel() {
         contactRows,
         auditRows,
       ] = await Promise.all([
-        isAdmin ? adminListResource<any>("profiles") : Promise.resolve([myProfile]),
-        isAdmin ? adminListResource<any>("certificates") : Promise.resolve([]),
-        adminListResource<any>("projects"),
-        adminListResource<any>("event-proposals"),
-        adminListResource<any>("events"),
-        adminListResource<any>("designation-options"),
-        adminListResource<any>("blog-posts"),
-        adminListResource<any>("gallery"),
-        adminListResource<any>("partners"),
-        adminListResource<any>("learning-materials"),
-        adminListResource<any>("event-registrations"),
+        isAdmin ? safeList(adminListResource<any>("profiles"), "users") : Promise.resolve([myProfile]),
+        isAdmin ? safeList(adminListResource<any>("certificates"), "certificates") : Promise.resolve([]),
+        safeList(adminListResource<any>("projects"), "projects"),
+        safeList(adminListResource<any>("event-proposals"), "event proposals"),
+        safeList(adminListResource<any>("events"), "events"),
+        safeList(adminListResource<any>("designation-options"), "designation options"),
+        safeList(adminListResource<any>("blog-posts"), "blogs"),
+        safeList(adminListResource<any>("gallery"), "gallery"),
+        safeList(adminListResource<any>("partners"), "partners"),
+        safeList(adminListResource<any>("learning-materials"), "learning materials"),
+        safeList(adminListResource<any>("event-registrations"), "event registrations"),
         apiGet<any>("/api/site-settings").catch(() => null),
-        isAdmin ? adminListContacts<any>().catch(() => []) : Promise.resolve([]),
-        isAdmin ? adminListAuditLogs<any>().catch(() => []) : Promise.resolve([]),
+        isAdmin ? safeList(adminListContacts<any>(), "contact messages") : Promise.resolve([]),
+        isAdmin ? safeList(adminListAuditLogs<any>(), "audit logs") : Promise.resolve([]),
       ]);
 
       if (!mounted) return;
@@ -1862,6 +1876,38 @@ export function ComprehensiveAdminPanel() {
       </BrutalCard>
     );
   };
+
+  if (adminProfile && !canAccessAdmin) {
+    return (
+      <div className="pt-32 pb-20 px-4 md:px-6 max-w-4xl mx-auto min-h-screen bg-[#F4EFEB]">
+        <BrutalCard>
+          <BrutalBadge color="bg-[#FB7185]" className="mb-4 inline-flex items-center gap-1">
+            <Shield size={10} /> ACCESS REQUIRED
+          </BrutalBadge>
+          <h1 className="text-4xl md:text-6xl uppercase leading-none" style={fonts.display}>
+            Admin access required
+          </h1>
+          <p className="mt-4 text-slate-600">
+            Your account is logged in, but it does not have an admin, president, or organizer role yet.
+          </p>
+          <div className="mt-6 flex gap-3 flex-wrap">
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="px-4 py-2 border-2 border-[#171717] bg-white hover:bg-[#F4EFEB] transition-all font-bold uppercase tracking-widest text-xs md:text-sm"
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate("/")}
+              className="px-4 py-2 border-2 border-[#171717] bg-[#FFE800] hover:bg-white transition-all font-bold uppercase tracking-widest text-xs md:text-sm"
+            >
+              View Site
+            </button>
+          </div>
+        </BrutalCard>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-32 pb-20 px-4 md:px-6 max-w-[1600px] mx-auto min-h-screen bg-[#F4EFEB]">

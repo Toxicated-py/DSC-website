@@ -38,6 +38,10 @@ def get_supabase(settings: Settings = Depends(get_settings)) -> SupabaseRestClie
         raise supabase_http_error(exc) from exc
 
 
+def get_user_supabase(settings: Settings, profile: dict[str, Any]) -> SupabaseRestClient:
+    return SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
+
+
 async def select_one(
     client: SupabaseRestClient,
     table: str,
@@ -227,6 +231,13 @@ async def list_accessible_resource(
     table = table_for_resource(resource)
     filters = {"status": f"eq.{status}"} if status else None
     if is_full_admin(profile):
+        if resource == "profiles":
+            if not client.admin_rpc_secret:
+                raise HTTPException(status_code=503, detail="Admin profile listing is not configured.")
+            rows = await client.rpc("admin_list_profiles", {"request_secret": client.admin_rpc_secret})
+            if status:
+                return [row for row in rows if row.get("membership_status") == status or row.get("status") == status]
+            return rows
         return await client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
     await require_resource_access(client, profile, resource)
     owner_column = RESOURCE_OWNER_COLUMNS.get(resource)
@@ -1005,18 +1016,22 @@ async def admin_list_resource(
     resource: str,
     status: str | None = None,
     profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
-    return await list_accessible_resource(client, profile, resource, status)
+    user_client = get_user_supabase(settings, profile)
+    return await list_accessible_resource(user_client, profile, resource, status)
 
 
 @app.get("/api/admin/audit-logs")
 async def admin_list_audit_logs(
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(require_admin),
+    settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
+    user_client = get_user_supabase(settings, profile)
     try:
-        return await client.select("audit_logs", order="created_at.desc", limit=250)
+        return await user_client.select("audit_logs", order="created_at.desc", limit=250)
     except SupabaseRestError as exc:
         if exc.status_code in {404, 400}:
             return []
@@ -1028,9 +1043,11 @@ async def admin_create_resource(
     resource: str,
     payload: GenericPayload,
     profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
-    await require_resource_access(client, profile, resource, action="create")
+    user_client = get_user_supabase(settings, profile)
+    await require_resource_access(user_client, profile, resource, action="create")
     table = table_for_resource(resource)
     data = dict(payload.data)
     if not is_full_admin(profile):
@@ -1040,10 +1057,10 @@ async def admin_create_resource(
             data["author_id"] = profile["id"]
         elif resource == "event-proposals":
             data["proposed_by"] = profile["id"]
-    rows = await client.insert(table, data)
+    rows = await user_client.insert(table, data)
     row = rows[0] if rows else {}
     await write_audit_log(
-        client,
+        user_client,
         profile,
         action="create",
         resource=resource,
@@ -1060,9 +1077,11 @@ async def admin_update_resource(
     item_id: str,
     payload: GenericPayload,
     profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
-    await require_resource_access(client, profile, resource, item_id=item_id, action="update")
+    user_client = get_user_supabase(settings, profile)
+    await require_resource_access(user_client, profile, resource, item_id=item_id, action="update")
     table = table_for_resource(resource)
     data = dict(payload.data)
     if not is_full_admin(profile):
@@ -1072,12 +1091,12 @@ async def admin_update_resource(
             data["status"] = "submitted"
         if resource == "events":
             data.pop("status", None)
-    rows = await client.update(table, data, filters={"id": f"eq.{item_id}"})
+    rows = await user_client.update(table, data, filters={"id": f"eq.{item_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Item not found.")
     row = rows[0]
     await write_audit_log(
-        client,
+        user_client,
         profile,
         action="update",
         resource=resource,
@@ -1094,18 +1113,20 @@ async def admin_update_resource_status(
     item_id: str,
     payload: StatusUpdate,
     profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
-    await require_resource_access(client, profile, resource, item_id=item_id, action="status")
+    user_client = get_user_supabase(settings, profile)
+    await require_resource_access(user_client, profile, resource, item_id=item_id, action="status")
     if not is_full_admin(profile):
         raise HTTPException(status_code=403, detail="Only admins can approve, publish, archive, or restore items.")
     table = table_for_resource(resource)
-    rows = await client.update(table, {"status": payload.status}, filters={"id": f"eq.{item_id}"})
+    rows = await user_client.update(table, {"status": payload.status}, filters={"id": f"eq.{item_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Item not found.")
     row = rows[0]
     await write_audit_log(
-        client,
+        user_client,
         profile,
         action="status_update",
         resource=resource,
@@ -1121,15 +1142,17 @@ async def admin_delete_resource(
     resource: str,
     item_id: str,
     profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, str]:
-    await require_resource_access(client, profile, resource, item_id=item_id, action="delete")
+    user_client = get_user_supabase(settings, profile)
+    await require_resource_access(user_client, profile, resource, item_id=item_id, action="delete")
     if not is_full_admin(profile) and resource not in {"events", "projects", "blog-posts"}:
         raise HTTPException(status_code=403, detail="Only admins can delete this item.")
     table = table_for_resource(resource)
-    await client.delete(table, filters={"id": f"eq.{item_id}"})
+    await user_client.delete(table, filters={"id": f"eq.{item_id}"})
     await write_audit_log(
-        client,
+        user_client,
         profile,
         action="delete",
         resource=resource,
