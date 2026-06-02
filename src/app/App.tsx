@@ -726,39 +726,20 @@ function HomePage() {
     let mounted = true;
 
     async function loadHomePageData() {
-      if (!isSupabaseConfigured || !supabase) return;
-
-      const [eventsList, eventCount, projectCount, memberCount, latestProject] = await Promise.all([
-        supabase
-          .from("events")
-          .select("id,title,event_type,start_time,capacity")
-          .in("status", ["approved", "published"])
-          .order("start_time", { ascending: true })
-          .limit(4),
-        supabase
-          .from("events")
-          .select("id", { count: "exact", head: true })
-          .in("status", ["approved", "published"]),
-        supabase
-          .from("projects")
-          .select("id", { count: "exact", head: true })
-          .in("status", ["approved", "published"]),
-        supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true })
-          .in("membership_status", ["approved", "published"]),
-        supabase
-          .from("projects")
-          .select("id,title,category,technologies")
-          .in("status", ["approved", "published"])
-          .order("published_at", { ascending: false, nullsFirst: false })
-          .limit(1),
+      const [approvedEvents, publishedEvents, summary] = await Promise.all([
+        apiGet<any[]>("/api/events?status=approved").catch(() => []),
+        apiGet<any[]>("/api/events?status=published").catch(() => []),
+        apiGet<any>("/api/home-summary").catch(() => null),
       ]);
 
       if (!mounted) return;
 
+      const events = [...approvedEvents, ...publishedEvents]
+        .filter((event, index, list) => list.findIndex((item) => item.id === event.id) === index)
+        .sort((a, b) => String(a.start_time || "").localeCompare(String(b.start_time || "")))
+        .slice(0, 4);
       const colors = ["bg-[#2563EB]", "bg-[#FB7185]", "bg-[#171717]", "bg-[#7C3AED]"];
-      setHomeEvents((eventsList.data || []).map((event, index) => {
+      setHomeEvents(events.map((event, index) => {
         const start = event.start_time ? new Date(event.start_time) : null;
         return {
           id: event.id,
@@ -767,14 +748,15 @@ function HomePage() {
           label: event.title,
           type: (event.event_type || "EVENT").toUpperCase(),
           capacity: event.capacity,
+          registeredCount: event.registeredCount || event.registered_count || 0,
           color: colors[index % colors.length],
         };
       }));
-      setHomeProject(latestProject.data?.[0] || null);
+      setHomeProject(summary?.featured_project || null);
       setHomeStats({
-        members: memberCount.count || 0,
-        events: eventCount.count || 0,
-        projects: projectCount.count || 0,
+        members: summary?.counts?.members || 0,
+        events: summary?.counts?.events || events.length,
+        projects: summary?.counts?.projects || 0,
       });
     }
 
@@ -860,7 +842,7 @@ function HomePage() {
               </div>
               <p className="text-sm font-bold mt-3 text-[#171717] uppercase" style={fonts.display}>{nextEvent?.label || "Approved events will appear here"}</p>
               <div className="flex items-center gap-1 text-xs font-mono text-slate-400 mt-1">
-                <Users size={12} /> {nextEvent?.capacity ? `${nextEvent.capacity} spots` : "Club event"}
+                <Users size={12} /> {nextEvent?.capacity ? `${nextEvent.registeredCount || 0}/${nextEvent.capacity} spots` : "Club event"}
               </div>
             </Link>
 
@@ -1077,29 +1059,28 @@ function EventsPage() {
     let mounted = true;
     async function loadEvents() {
       setLoadingEvents(true);
-      if (!isSupabaseConfigured || !supabase) {
-        setAllEvents([]);
-        setLoadingEvents(false);
-        return;
-      }
-      const { data } = await supabase
-        .from("events")
-        .select("id,title,description,event_type,start_time,capacity,status,created_at")
-        .in("status", ["approved", "published"])
-        .order("start_time", { ascending: true });
+      const [approvedEvents, publishedEvents] = await Promise.all([
+        apiGet<any[]>("/api/events?status=approved").catch(() => []),
+        apiGet<any[]>("/api/events?status=published").catch(() => []),
+      ]);
       if (!mounted) return;
+      const data = [...approvedEvents, ...publishedEvents]
+        .filter((event, index, list) => list.findIndex((item) => item.id === event.id) === index)
+        .sort((a, b) => String(a.start_time || "").localeCompare(String(b.start_time || "")));
       const colors = ["bg-[#2563EB]", "bg-[#FB7185]", "bg-[#171717]", "bg-[#7C3AED]"];
       const today = new Date();
-      setAllEvents((data || []).map((event, index) => {
+      setAllEvents(data.map((event, index) => {
         const start = event.start_time ? new Date(event.start_time) : new Date(event.created_at || Date.now());
+        const total = Number(event.capacity || 0);
+        const filled = Number(event.registeredCount || event.registered_count || 0);
         return {
           id: event.id,
           title: event.title,
           date: start.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }).toUpperCase(),
           dateSort: start.toISOString().slice(0, 10),
           type: (event.event_type || "EVENT").toUpperCase(),
-          total: event.capacity || 0,
-          filled: 0,
+          total,
+          filled,
           color: colors[index % colors.length],
           status: start >= today ? "upcoming" : "past",
         };
@@ -1215,7 +1196,7 @@ function EventsPage() {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {paginated.map(ev => {
-            const pct = Math.round((ev.filled / ev.total) * 100);
+            const pct = ev.total ? Math.round((ev.filled / ev.total) * 100) : 0;
             return (
               <div
                 key={ev.id}

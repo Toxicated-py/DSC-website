@@ -105,6 +105,24 @@ ADMIN_ONLY_RESOURCES = {
 }
 
 
+async def active_registration_count(client: SupabaseRestClient, event_id: str) -> int:
+    rows = await client.select(
+        "event_registrations",
+        columns="id",
+        filters={"event_id": f"eq.{event_id}", "status": "in.(registered,checked_in)"},
+    )
+    return len(rows or [])
+
+
+async def attach_event_counts(client: SupabaseRestClient, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    enriched: list[dict[str, Any]] = []
+    for event in events:
+        event_id = event.get("id")
+        registered_count = await active_registration_count(client, event_id) if event_id else 0
+        enriched.append({**event, "registeredCount": registered_count, "registered_count": registered_count})
+    return enriched
+
+
 async def managed_event_ids(client: SupabaseRestClient, profile: dict[str, Any]) -> set[str]:
     if is_full_admin(profile):
         rows = await client.select("events", columns="id")
@@ -356,11 +374,12 @@ async def list_events(
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
     try:
-        return await client.select(
+        events = await client.select(
             "events",
             filters={"status": f"eq.{status}"},
             order="start_time.asc",
         )
+        return await attach_event_counts(client, events)
     except SupabaseRestError as exc:
         raise supabase_http_error(exc) from exc
 
@@ -380,11 +399,7 @@ async def event_workspace(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
 
-    count_rows = await client.select(
-        "event_registrations",
-        columns="id",
-        filters={"event_id": f"eq.{event_id}", "status": "eq.registered"},
-    )
+    registered_count = await active_registration_count(client, event_id)
     profile = await optional_profile(authorization, settings, client)
     manager = await can_manage_event(client, profile, event) if profile else False
     attendees: list[dict[str, Any]] = []
@@ -405,7 +420,7 @@ async def event_workspace(
         attendees = [{**row, "profiles": profiles_by_id.get(row.get("user_id"))} for row in registrations]
 
     return {
-        "event": {**event, "registeredCount": len(count_rows or [])},
+        "event": {**event, "registeredCount": registered_count, "registered_count": registered_count},
         "can_manage": manager,
         "attendees": attendees,
     }
@@ -433,12 +448,8 @@ async def reserve_event_spot(
     )
     if existing:
         return {"message": "Already registered.", "registration": existing[0]}
-    registered = await client.select(
-        "event_registrations",
-        columns="id",
-        filters={"event_id": f"eq.{event_id}", "status": "eq.registered"},
-    )
-    if event.get("capacity") and len(registered or []) >= int(event.get("capacity")):
+    registered_count = await active_registration_count(client, event_id)
+    if event.get("capacity") and registered_count >= int(event.get("capacity")):
         raise HTTPException(status_code=400, detail="This event is full.")
     rows = await client.insert(
         "event_registrations",
@@ -573,12 +584,18 @@ async def get_home_summary(client: SupabaseRestClient = Depends(get_supabase)) -
     projects = await list_projects(status="published", client=client)
     posts = await list_blog_posts(status="published", client=client)
     partners = await list_partners(client=client)
+    members = await client.select(
+        "profiles",
+        columns="id",
+        filters={"membership_status": "in.(approved,published)"},
+    )
     return {
         "counts": {
             "events": len(events),
             "projects": len(projects),
             "blog_posts": len(posts),
             "partners": len(partners),
+            "members": len(members or []),
         },
         "next_event": events[0] if events else None,
         "featured_project": projects[0] if projects else None,
