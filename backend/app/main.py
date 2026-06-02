@@ -650,16 +650,48 @@ async def scan_event_ticket(
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
+    if event.get("end_time") and str(event.get("end_time")) < datetime.now(timezone.utc).isoformat():
+        raise HTTPException(status_code=400, detail="Scanner is closed because this event has ended.")
     if not await can_manage_event(client, profile, event):
         raise HTTPException(status_code=403, detail="You are not allowed to scan for this event.")
+    ticket_code = payload.ticket_code.strip()
+    if not ticket_code:
+        raise HTTPException(status_code=400, detail="Ticket code is required.")
+    registrations = await client.select(
+        "event_registrations",
+        columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+        filters={"event_id": f"eq.{event_id}", "ticket_code": f"eq.{ticket_code}"},
+        limit=1,
+    )
+    if not registrations:
+        raise HTTPException(status_code=404, detail="Ticket not found for this event.")
+    registration = registrations[0]
+    attendee = await select_one(
+        client,
+        "profiles",
+        {"id": f"eq.{registration.get('user_id')}"},
+        columns="id,full_name,email",
+    ) if registration.get("user_id") else None
+    if registration.get("checked_in_at") or registration.get("status") == "checked_in":
+        return {
+            "message": "Ticket was already checked in.",
+            "already_checked_in": True,
+            "registration": registration,
+            "profile": attendee,
+        }
     rows = await client.update(
         "event_registrations",
         {"status": "checked_in", "checked_in_at": datetime.now(timezone.utc).isoformat()},
-        filters={"event_id": f"eq.{event_id}", "ticket_code": f"eq.{payload.ticket_code.strip()}"},
+        filters={"id": f"eq.{registration['id']}"},
     )
     if not rows:
         raise HTTPException(status_code=404, detail="Ticket not found for this event.")
-    return rows[0]
+    return {
+        "message": "Ticket checked in.",
+        "already_checked_in": False,
+        "registration": rows[0],
+        "profile": attendee,
+    }
 
 
 @app.get("/api/projects")
