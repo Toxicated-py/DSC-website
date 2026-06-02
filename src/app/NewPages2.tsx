@@ -255,6 +255,7 @@ export function UserProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [saveStatus, setSaveStatus] = useState("");
   const [newSkill, setNewSkill] = useState("");
+  const [newProfileLink, setNewProfileLink] = useState({ label: "", url: "" });
   const [designationOptions, setDesignationOptions] = useState<string[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [profile, setProfile] = useState({
@@ -267,7 +268,8 @@ export function UserProfilePage() {
     major: "",
     skills: ["Python", "Machine Learning", "Data Viz", "SQL"],
     github: "",
-    linkedin: ""
+    linkedin: "",
+    profileLinks: [] as Array<{ id?: string; label: string; url: string }>,
   });
 
   useEffect(() => {
@@ -318,6 +320,7 @@ export function UserProfilePage() {
         major: data?.major || "",
         github: data?.github_username || "",
         linkedin: data?.linkedin_username || "",
+        profileLinks: Array.isArray(data?.profile_links) ? data.profile_links : [],
         skills: data?.skills?.length ? data.skills : current.skills,
       }));
       setSubmissions([
@@ -362,6 +365,9 @@ export function UserProfilePage() {
           major: profile.major,
           github_username: profile.github,
           linkedin_username: profile.linkedin,
+          profile_links: profile.profileLinks
+            .map((link) => ({ label: link.label.trim(), url: link.url.trim() }))
+            .filter((link) => link.label && link.url),
           skills: profile.skills,
           },
         }, { auth: true });
@@ -384,6 +390,36 @@ export function UserProfilePage() {
 
   const removeSkill = (skill: string) => {
     setProfile({ ...profile, skills: profile.skills.filter((item) => item !== skill) });
+  };
+
+  const addProfileLink = () => {
+    const label = newProfileLink.label.trim();
+    const url = newProfileLink.url.trim();
+    if (!label || !url) return;
+    setProfile({
+      ...profile,
+      profileLinks: [...profile.profileLinks, { id: `link-${Date.now()}`, label, url }],
+    });
+    setNewProfileLink({ label: "", url: "" });
+  };
+
+  const updateProfileLink = (index: number, patch: Partial<{ label: string; url: string }>) => {
+    setProfile({
+      ...profile,
+      profileLinks: profile.profileLinks.map((link, linkIndex) => linkIndex === index ? { ...link, ...patch } : link),
+    });
+  };
+
+  const removeProfileLink = (index: number) => {
+    setProfile({
+      ...profile,
+      profileLinks: profile.profileLinks.filter((_, linkIndex) => linkIndex !== index),
+    });
+  };
+
+  const ensureUrl = (url: string) => {
+    if (!url) return "";
+    return /^https?:\/\//i.test(url) ? url : `https://${url}`;
   };
 
   const stats = {
@@ -594,25 +630,96 @@ export function UserProfilePage() {
                   value={profile.linkedin}
                   onChange={(e: any) => setProfile({ ...profile, linkedin: e.target.value })}
                 />
+                <div className="mt-4 space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Custom Links</p>
+                  {profile.profileLinks.map((link, index) => (
+                    <div key={link.id || index} className="grid md:grid-cols-[180px_1fr_auto] gap-3 items-end border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                      <BrutalInput
+                        label="Label"
+                        value={link.label}
+                        onChange={(e: any) => updateProfileLink(index, { label: e.target.value })}
+                        placeholder="YouTube, Website, Portfolio"
+                      />
+                      <BrutalInput
+                        label="URL"
+                        value={link.url}
+                        onChange={(e: any) => updateProfileLink(index, { url: e.target.value })}
+                        placeholder="https://..."
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeProfileLink(index)}
+                        className="h-[52px] px-4 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase tracking-widest text-xs brutal-shadow"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <div className="grid md:grid-cols-[180px_1fr_auto] gap-3 items-end border-2 border-dashed border-[#171717] bg-white p-3">
+                    <BrutalInput
+                      label="New Label"
+                      value={newProfileLink.label}
+                      onChange={(e: any) => setNewProfileLink({ ...newProfileLink, label: e.target.value })}
+                      placeholder="YouTube"
+                    />
+                    <BrutalInput
+                      label="New URL"
+                      value={newProfileLink.url}
+                      onChange={(e: any) => setNewProfileLink({ ...newProfileLink, url: e.target.value })}
+                      onKeyDown={(event: any) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          addProfileLink();
+                        }
+                      }}
+                      placeholder="https://youtube.com/@yourchannel"
+                    />
+                    <button
+                      type="button"
+                      onClick={addProfileLink}
+                      className="h-[52px] px-4 border-2 border-[#171717] bg-[#22C55E] text-white font-bold uppercase tracking-widest text-xs brutal-shadow"
+                    >
+                      Add Link
+                    </button>
+                  </div>
+                </div>
               </>
             ) : (
-              <div className="flex gap-3">
-                <a
-                  href={`https://github.com/${profile.github}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-[#171717] text-white border-2 border-[#171717] font-bold uppercase text-xs hover:bg-[#000] transition-all flex items-center gap-2"
-                >
-                  <Github size={14} /> GitHub
-                </a>
-                <a
-                  href={`https://linkedin.com/in/${profile.linkedin}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-[#2563EB] text-white border-2 border-[#171717] font-bold uppercase text-xs hover:bg-[#1D4ED8] transition-all flex items-center gap-2"
-                >
-                  <Linkedin size={14} /> LinkedIn
-                </a>
+              <div className="flex flex-wrap gap-3">
+                {profile.github && (
+                  <a
+                    href={ensureUrl(profile.github.startsWith("http") ? profile.github : `github.com/${profile.github.replace(/^@/, "")}`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-[#171717] text-white border-2 border-[#171717] font-bold uppercase text-xs hover:bg-[#000] transition-all flex items-center gap-2"
+                  >
+                    <Github size={14} /> GitHub
+                  </a>
+                )}
+                {profile.linkedin && (
+                  <a
+                    href={ensureUrl(profile.linkedin.startsWith("http") ? profile.linkedin : `linkedin.com/in/${profile.linkedin.replace(/^@/, "")}`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-[#2563EB] text-white border-2 border-[#171717] font-bold uppercase text-xs hover:bg-[#1D4ED8] transition-all flex items-center gap-2"
+                  >
+                    <Linkedin size={14} /> LinkedIn
+                  </a>
+                )}
+                {profile.profileLinks.map((link, index) => (
+                  <a
+                    key={link.id || `${link.label}-${index}`}
+                    href={ensureUrl(link.url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-white text-[#171717] border-2 border-[#171717] font-bold uppercase text-xs hover:bg-[#FFE800] transition-all flex items-center gap-2"
+                  >
+                    <ExternalLink size={14} /> {link.label}
+                  </a>
+                ))}
+                {!profile.github && !profile.linkedin && profile.profileLinks.length === 0 && (
+                  <p className="text-sm font-mono text-slate-500">No links added yet.</p>
+                )}
               </div>
             )}
           </BrutalCard>

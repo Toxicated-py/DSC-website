@@ -394,7 +394,7 @@ async def get_site_settings(client: SupabaseRestClient = Depends(get_supabase)) 
                 client,
                 "profiles",
                 {"id": f"eq.{profile_id}"},
-                columns="id,email,full_name,avatar_url,bio,designation,major,github_username,linkedin_username",
+                columns="id,email,full_name,avatar_url,bio,designation,major,github_username,linkedin_username,profile_links",
             )
             if profile:
                 profiles.append(profile)
@@ -403,7 +403,7 @@ async def get_site_settings(client: SupabaseRestClient = Depends(get_supabase)) 
                 client,
                 "profiles",
                 {"email": f"eq.{profile_email}"},
-                columns="id,email,full_name,avatar_url,bio,designation,major,github_username,linkedin_username",
+                columns="id,email,full_name,avatar_url,bio,designation,major,github_username,linkedin_username,profile_links",
             )
             if profile:
                 profiles.append(profile)
@@ -428,6 +428,7 @@ async def get_site_settings(client: SupabaseRestClient = Depends(get_supabase)) 
                     "email": member.get("email") or profile.get("email") or "",
                     "linkedin": member.get("linkedin") or profile.get("linkedin_username") or "",
                     "github": member.get("github") or profile.get("github_username") or "",
+                    "profileLinks": profile.get("profile_links") if isinstance(profile.get("profile_links"), list) else [],
                 })
             else:
                 resolved_members.append(member)
@@ -736,6 +737,7 @@ async def update_me(
         "major",
         "github_username",
         "linkedin_username",
+        "profile_links",
         "skills",
         "student_email",
         "is_sms_student",

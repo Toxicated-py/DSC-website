@@ -64,8 +64,20 @@ export function TeamPage() {
           <a href={profileUrl(member.github, "github")} target="_blank" rel="noopener noreferrer" className="border-2 border-[#171717] bg-[#171717] p-2 text-white" title="GitHub">
             <Github size={16} />
           </a>
-          )}
-        </div>
+        )}
+        {(member.profileLinks || []).map((link: any, index: number) => (
+          <a
+            key={`${link.label}-${index}`}
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="border-2 border-[#171717] bg-white p-2 text-[#171717]"
+            title={link.label || "Link"}
+          >
+            <ExternalLink size={16} />
+          </a>
+        ))}
+      </div>
       </BrutalCard>
     );
   };

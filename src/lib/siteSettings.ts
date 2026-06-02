@@ -41,6 +41,13 @@ export interface TeamMember {
   email: string;
   linkedin: string;
   github: string;
+  profileLinks?: ProfileLink[];
+}
+
+export interface ProfileLink {
+  id?: string;
+  label: string;
+  url: string;
 }
 
 export const defaultSiteSettings: SiteSettings = {

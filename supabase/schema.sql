@@ -23,6 +23,7 @@ create table public.profiles (
   major text,
   github_username text,
   linkedin_username text,
+  profile_links jsonb not null default '[]'::jsonb,
   skills text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
