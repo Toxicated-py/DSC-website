@@ -15,12 +15,14 @@ const normalizeCertificate = (row: any): Certificate => ({
   issued_date: row.issued_date || row.issued_at || row.created_at,
   external_pdf_url: row.external_pdf_url || row.certificate_url || null,
   signature_data: Array.isArray(row.signature_data) ? row.signature_data : [],
+  template_data: row.template_data && typeof row.template_data === "object" ? row.template_data : {},
   member_id: row.member_id || row.recipient_id,
 });
 
 const normalizePublicCertificate = (row: any): PublicCertificate => ({
   ...row,
   signature_data: Array.isArray(row.signature_data) ? row.signature_data : [],
+  template_data: row.template_data && typeof row.template_data === "object" ? row.template_data : {},
 });
 
 export async function generateVerificationCode(): Promise<string> {

@@ -24,10 +24,106 @@ export const CertificateRenderer = forwardRef<HTMLDivElement, CertificateRendere
     const isModern = certificate.template === "modern";
     const verifyUrl = `${baseUrl()}/verify/${certificate.verification_code}`;
     const revoked = certificate.status === "revoked";
+    const templateData = certificate.template_data || {};
+    const hasCustomBackground = Boolean(templateData.background_image_url);
     const typeLabel = (certificate.certificate_type || "Participation").replace(/^of\s+/i, "");
     const heading = certificate.certificate_title?.toUpperCase().includes("CERTIFICATE")
       ? "CERTIFICATE"
       : certificate.certificate_title || "CERTIFICATE";
+
+    if (hasCustomBackground) {
+      const recipientX = templateData.recipient_x ?? 50;
+      const recipientY = templateData.recipient_y ?? 45;
+      const detailY = templateData.detail_y ?? 57;
+      const recipientSize = templateData.recipient_font_size ?? 74;
+      const recipientColor = templateData.recipient_color || "#0066B3";
+      const detailColor = templateData.detail_color || "#073B91";
+      const showTitle = templateData.show_title !== false;
+      const showDescription = templateData.show_description !== false;
+      const showEvent = templateData.show_event !== false;
+      const showSignatures = templateData.show_signatures !== false;
+      const showVerification = templateData.show_verification !== false;
+
+      return (
+        <div
+          ref={ref}
+          className={`certificate-renderer relative mx-auto aspect-[1.414/1] w-full max-w-6xl overflow-hidden bg-white text-[#073B91] ${className}`}
+        >
+          <img
+            src={templateData.background_image_url}
+            alt="Certificate template"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {revoked && (
+            <div className="absolute inset-0 z-30 flex rotate-[-18deg] items-center justify-center text-8xl font-black uppercase tracking-widest text-red-600/25">
+              Revoked
+            </div>
+          )}
+          {showTitle && (
+            <div
+              className="absolute left-1/2 top-[15%] w-[60%] -translate-x-1/2 text-center"
+              style={{ color: detailColor }}
+            >
+              <p className="text-[clamp(1.75rem,4.2vw,4.25rem)] font-black uppercase leading-none tracking-[0.08em]">
+                {heading}
+              </p>
+              <p className="mt-2 text-[clamp(1rem,2.1vw,2.25rem)] italic uppercase">OF {typeLabel}</p>
+            </div>
+          )}
+          <div
+            className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center leading-none"
+            style={{
+              left: `${recipientX}%`,
+              top: `${recipientY}%`,
+              color: recipientColor,
+              fontFamily: "'Brush Script MT', 'Segoe Script', cursive",
+              fontSize: `clamp(2.2rem, ${recipientSize / 10}vw, ${recipientSize}px)`,
+            }}
+          >
+            {certificate.recipient_name_snapshot}
+          </div>
+          <div
+            className="absolute left-1/2 w-[72%] -translate-x-1/2 text-center"
+            style={{ top: `${detailY}%`, color: detailColor }}
+          >
+            {showDescription && (
+              <p className="text-[clamp(0.9rem,1.7vw,1.7rem)] leading-snug">{certificate.description}</p>
+            )}
+            {showEvent && (
+              <p className="mt-3 text-[clamp(0.75rem,1.1vw,1.05rem)] font-bold uppercase tracking-wide">
+                {certificate.event_title_snapshot} - {formatDate(certificate.issued_date)}
+              </p>
+            )}
+          </div>
+          {showSignatures && (
+            <div className="absolute bottom-[8.3%] left-[14.2%] right-[9.2%] grid grid-cols-3 gap-[7%]">
+              {(certificate.signature_data.length ? certificate.signature_data : [{ name: certificate.issuer_name, title: "ISSUER", signature_image_url: "" }])
+                .slice(0, 3)
+                .map((signature, index) => (
+                <div key={`${signature.name}-${index}`} className="text-center" style={{ color: detailColor }}>
+                  <div className="mx-auto mb-[3%] flex h-12 items-end justify-center">
+                    {signature.signature_image_url ? (
+                      <img src={signature.signature_image_url} alt={`${signature.name} signature`} className="max-h-12 max-w-[210px] object-contain" />
+                    ) : null}
+                  </div>
+                  <div className="mx-auto mb-[4%] h-[2px] w-full" style={{ backgroundColor: detailColor }} />
+                  <p className="text-[clamp(0.72rem,1.35vw,1.25rem)] font-medium uppercase leading-tight">{signature.name || "SIGNER_NAME"}</p>
+                  <p className="mt-[2%] text-[clamp(0.62rem,1.1vw,1rem)] uppercase leading-tight">{signature.title || "SIGNER"}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {showVerification && (
+            <div className="absolute bottom-[2.4%] right-[3%] flex items-center gap-2 bg-white/80 p-1">
+              <QRCodeCanvas value={verifyUrl} size={34} includeMargin />
+              <p className="max-w-[240px] font-mono text-[8px] uppercase tracking-widest" style={{ color: detailColor }}>
+                {certificate.verification_code}
+              </p>
+            </div>
+          )}
+        </div>
+      );
+    }
 
     return (
       <div

@@ -96,6 +96,7 @@ class CertificateIssue(BaseModel):
     issued_date: str
     external_pdf_url: str | None = None
     signature_data: list[SignatureData] = []
+    template_data: dict[str, Any] = {}
     event_title_snapshot: str | None = None
     recipient_name_snapshot: str | None = None
 
@@ -110,6 +111,7 @@ class CertificateBulkIssue(BaseModel):
     issued_date: str
     external_pdf_url: str | None = None
     signature_data: list[SignatureData] = []
+    template_data: dict[str, Any] = {}
 
 
 class CertificateUpdate(BaseModel):
@@ -121,6 +123,7 @@ class CertificateUpdate(BaseModel):
     issued_date: str | None = None
     external_pdf_url: str | None = None
     signature_data: list[SignatureData] | None = None
+    template_data: dict[str, Any] | None = None
     event_title_snapshot: str | None = None
     recipient_name_snapshot: str | None = None
 

@@ -195,6 +195,8 @@ async def list_accessible_resource(
 def normalize_certificate(row: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(row.get("signature_data"), list):
         row["signature_data"] = []
+    if not isinstance(row.get("template_data"), dict):
+        row["template_data"] = {}
     return row
 
 

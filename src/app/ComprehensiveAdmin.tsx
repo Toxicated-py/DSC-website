@@ -146,6 +146,7 @@ const formatCertificateError = (message: string) =>
 const certificateTemplateOptions = [
   { value: "modern", label: "Modern", accent: "bg-[#2563EB]", surface: "bg-[#F4EFEB]", text: "text-[#171717]" },
   { value: "classic", label: "Classic", accent: "bg-[#FFE800]", surface: "bg-white", text: "text-[#171717]" },
+  { value: "custom-image", label: "Custom Image", accent: "bg-[#7C3AED]", surface: "bg-white", text: "text-[#171717]" },
 ];
 
 export function ComprehensiveAdminPanel() {
@@ -169,6 +170,13 @@ export function ComprehensiveAdminPanel() {
     issuedAt: "",
     certificateUrl: "",
     templateStyle: "modern",
+    templateBackgroundUrl: "",
+    templateNameX: 50,
+    templateNameY: 45,
+    templateNameSize: 74,
+    templateDetailY: 57,
+    templateNameColor: "#0066B3",
+    templateDetailColor: "#073B91",
     eventTitleSnapshot: "",
     recipientNameSnapshot: "",
     description: "For actively participating in this program and demonstrating commitment and enthusiasm.",
@@ -758,6 +766,13 @@ export function ComprehensiveAdminPanel() {
       issuedAt: "",
       certificateUrl: "",
       templateStyle: "modern",
+      templateBackgroundUrl: "",
+      templateNameX: 50,
+      templateNameY: 45,
+      templateNameSize: 74,
+      templateDetailY: 57,
+      templateNameColor: "#0066B3",
+      templateDetailColor: "#073B91",
       eventTitleSnapshot: "",
       recipientNameSnapshot: "",
       description: "For actively participating in this program and demonstrating commitment and enthusiasm.",
@@ -840,6 +855,21 @@ export function ComprehensiveAdminPanel() {
       setCertificateStatus(error.message || "Could not upload signature.");
     }
   };
+
+  const buildCertificateTemplateData = () => ({
+    background_image_url: certificateForm.templateBackgroundUrl.trim(),
+    recipient_x: Number(certificateForm.templateNameX) || 50,
+    recipient_y: Number(certificateForm.templateNameY) || 45,
+    recipient_font_size: Number(certificateForm.templateNameSize) || 74,
+    recipient_color: certificateForm.templateNameColor || "#0066B3",
+    detail_y: Number(certificateForm.templateDetailY) || 57,
+    detail_color: certificateForm.templateDetailColor || "#073B91",
+    show_title: true,
+    show_description: true,
+    show_event: true,
+    show_signatures: true,
+    show_verification: true,
+  });
 
   const resetEventForm = () => {
     setEditingItem(null);
@@ -1307,6 +1337,10 @@ export function ComprehensiveAdminPanel() {
       setCertificateStatus("Issued date is required.");
       return;
     }
+    if (certificateForm.templateStyle === "custom-image" && !certificateForm.templateBackgroundUrl.trim()) {
+      setCertificateStatus("Add a blank template image URL before issuing a custom-image certificate.");
+      return;
+    }
 
     const selectedRegistration = eventRegistrations.find((registration) =>
       registration.event_id === certificateForm.eventId &&
@@ -1328,6 +1362,7 @@ export function ComprehensiveAdminPanel() {
         signature_image_url: signature.signature_image_url || "",
       }))
       .filter((signature) => signature.name || signature.title);
+    const templateData = buildCertificateTemplateData();
 
     try {
       if (editingCertificateId) {
@@ -1340,6 +1375,7 @@ export function ComprehensiveAdminPanel() {
           issued_date: certificateForm.issuedAt,
           external_pdf_url: certificateForm.certificateUrl || null,
           signature_data: signatureData,
+          template_data: templateData,
           event_title_snapshot: certificateForm.eventTitleSnapshot.trim() || undefined,
           recipient_name_snapshot: certificateForm.recipientNameSnapshot.trim() || undefined,
         });
@@ -1356,6 +1392,7 @@ export function ComprehensiveAdminPanel() {
           issued_date: certificateForm.issuedAt,
           external_pdf_url: certificateForm.certificateUrl || null,
           signature_data: signatureData,
+          template_data: templateData,
           event_title_snapshot: certificateForm.eventTitleSnapshot.trim() || undefined,
           recipient_name_snapshot: certificateForm.recipientNameSnapshot.trim() || undefined,
         });
@@ -1384,6 +1421,10 @@ export function ComprehensiveAdminPanel() {
       setCertificateStatus("Issued date is required.");
       return;
     }
+    if (certificateForm.templateStyle === "custom-image" && !certificateForm.templateBackgroundUrl.trim()) {
+      setCertificateStatus("Add a blank template image URL before issuing custom-image certificates.");
+      return;
+    }
 
     const attendeesForEvent = eventRegistrations.filter((registration) =>
       registration.event_id === certificateForm.eventId &&
@@ -1406,6 +1447,7 @@ export function ComprehensiveAdminPanel() {
         signature_image_url: signature.signature_image_url || "",
       }))
       .filter((signature) => signature.name || signature.title);
+    const templateData = buildCertificateTemplateData();
 
     try {
       const summary = await issueCheckedInBulk(certificateForm.eventId, {
@@ -1417,6 +1459,7 @@ export function ComprehensiveAdminPanel() {
         issued_date: certificateForm.issuedAt,
         external_pdf_url: certificateForm.certificateUrl || null,
         signature_data: signatureData,
+        template_data: templateData,
       });
       const refreshed = await getCertificatesByEvent(certificateForm.eventId);
       setIssuedCertificates(refreshed);
@@ -1432,6 +1475,7 @@ export function ComprehensiveAdminPanel() {
   };
 
   const editCertificate = (certificate: any) => {
+    const templateData = certificate.template_data && typeof certificate.template_data === "object" ? certificate.template_data : {};
     setEditingCertificateId(certificate.id);
     setCertificateForm({
       recipientId: certificate.member_id || certificate.recipient_id || "",
@@ -1442,6 +1486,13 @@ export function ComprehensiveAdminPanel() {
       issuedAt: certificate.issued_date || certificate.issued_at || "",
       certificateUrl: certificate.external_pdf_url || certificate.certificate_url || "",
       templateStyle: certificate.template || certificate.template_style || "modern",
+      templateBackgroundUrl: templateData.background_image_url || "",
+      templateNameX: templateData.recipient_x ?? 50,
+      templateNameY: templateData.recipient_y ?? 45,
+      templateNameSize: templateData.recipient_font_size ?? 74,
+      templateDetailY: templateData.detail_y ?? 57,
+      templateNameColor: templateData.recipient_color || "#0066B3",
+      templateDetailColor: templateData.detail_color || "#073B91",
       eventTitleSnapshot: certificate.event_title_snapshot || (Array.isArray(certificate.events) ? certificate.events[0]?.title : certificate.events?.title) || "",
       recipientNameSnapshot: certificate.recipient_name_snapshot || "",
       description: certificate.description || "For actively participating in this program and demonstrating commitment and enthusiasm.",
@@ -1618,6 +1669,7 @@ export function ComprehensiveAdminPanel() {
     issued_date: certificateForm.issuedAt || new Date().toISOString().slice(0, 10),
     external_pdf_url: certificateForm.certificateUrl || null,
     signature_data: certificateForm.signatures,
+    template_data: buildCertificateTemplateData(),
     verification_code: "CLUB-YYYY-00000",
     event_title_snapshot: certificateForm.eventTitleSnapshot || selectedCertificateEvent?.title || "Selected Event",
     recipient_name_snapshot: certificatePreviewName,
@@ -1636,6 +1688,7 @@ export function ComprehensiveAdminPanel() {
     issued_date: certificate.issued_date || certificate.issued_at || "",
     external_pdf_url: certificate.external_pdf_url || certificate.certificate_url || null,
     signature_data: Array.isArray(certificate.signature_data) ? certificate.signature_data : [],
+    template_data: certificate.template_data && typeof certificate.template_data === "object" ? certificate.template_data : {},
     verification_code: certificate.verification_code || "CLUB-YYYY-00000",
     event_title_snapshot: certificate.event_title_snapshot || certificate.events?.title || "Event",
     recipient_name_snapshot: certificate.recipient_name_snapshot || "Participant",
@@ -2777,6 +2830,60 @@ export function ComprehensiveAdminPanel() {
                           onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateUrl: event.target.value })}
                           placeholder="https://..."
                         />
+                        {certificateForm.templateStyle === "custom-image" && (
+                          <div className="mt-4 border-2 border-[#171717] bg-[#F4EFEB] p-4">
+                            <div className="mb-3">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Blank Template Overlay</p>
+                              <p className="mt-1 text-xs font-mono text-slate-600">
+                                Add a blank certificate image URL. The website writes the recipient name and details on top.
+                              </p>
+                            </div>
+                            <BrutalInput
+                              label="Blank Template Image URL"
+                              value={certificateForm.templateBackgroundUrl}
+                              onChange={(event: any) => setCertificateForm({ ...certificateForm, templateBackgroundUrl: event.target.value })}
+                              placeholder="https://.../blank-certificate.png"
+                            />
+                            <div className="grid md:grid-cols-3 gap-3">
+                              <BrutalInput
+                                label="Name X %"
+                                type="number"
+                                value={certificateForm.templateNameX}
+                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameX: Number(event.target.value) })}
+                              />
+                              <BrutalInput
+                                label="Name Y %"
+                                type="number"
+                                value={certificateForm.templateNameY}
+                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameY: Number(event.target.value) })}
+                              />
+                              <BrutalInput
+                                label="Name Size"
+                                type="number"
+                                value={certificateForm.templateNameSize}
+                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameSize: Number(event.target.value) })}
+                              />
+                              <BrutalInput
+                                label="Detail Y %"
+                                type="number"
+                                value={certificateForm.templateDetailY}
+                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateDetailY: Number(event.target.value) })}
+                              />
+                              <BrutalInput
+                                label="Name Color"
+                                type="color"
+                                value={certificateForm.templateNameColor}
+                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameColor: event.target.value })}
+                              />
+                              <BrutalInput
+                                label="Detail Color"
+                                type="color"
+                                value={certificateForm.templateDetailColor}
+                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateDetailColor: event.target.value })}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
