@@ -2038,12 +2038,14 @@ export function ComprehensiveAdminPanel() {
                   >
                     {event.registration_open ? "Close Reg" : "Open Reg"}
                   </button>
-                  <button
-                    onClick={() => handleArchiveEvent(event.id)}
-                    className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs"
-                  >
-                    Archive
-                  </button>
+                  {isFullAdmin && (
+                    <button
+                      onClick={() => handleArchiveEvent(event.id)}
+                      className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs"
+                    >
+                      Archive
+                    </button>
+                  )}
                 </div>
               </BrutalCard>
             ))}
@@ -2286,7 +2288,7 @@ export function ComprehensiveAdminPanel() {
                       >
                         Edit
                       </button>
-                      {project.status !== "published" && (
+                      {isFullAdmin && project.status !== "published" && (
                         <button
                           onClick={() => updateProjectStatus(project.id, "published")}
                           className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs"
@@ -2294,12 +2296,14 @@ export function ComprehensiveAdminPanel() {
                           Publish
                         </button>
                       )}
-                      <button
-                        onClick={() => updateProjectStatus(project.id, "rejected")}
-                        className="px-3 py-1 border-2 border-[#171717] bg-[#FFE800] hover:bg-[#FCD34D] transition-all font-bold uppercase text-xs"
-                      >
-                        Reject
-                      </button>
+                      {isFullAdmin && (
+                        <button
+                          onClick={() => updateProjectStatus(project.id, "rejected")}
+                          className="px-3 py-1 border-2 border-[#171717] bg-[#FFE800] hover:bg-[#FCD34D] transition-all font-bold uppercase text-xs"
+                        >
+                          Reject
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2320,7 +2324,7 @@ export function ComprehensiveAdminPanel() {
                   <div className="flex gap-2 flex-wrap">
                     <BrutalBadge color="bg-green-500">{project.status}</BrutalBadge>
                     <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
-                    <button onClick={() => updateProjectStatus(project.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs">Archive</button>
+                    {isFullAdmin && <button onClick={() => updateProjectStatus(project.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs">Archive</button>}
                   </div>
                 </div>
               </BrutalCard>
@@ -2340,7 +2344,7 @@ export function ComprehensiveAdminPanel() {
                   <div className="flex gap-2 flex-wrap">
                     <BrutalBadge color="bg-[#FB7185]">{project.status}</BrutalBadge>
                     <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
-                    <button onClick={() => updateProjectStatus(project.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs">Unarchive</button>
+                    {isFullAdmin && <button onClick={() => updateProjectStatus(project.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs">Unarchive</button>}
                   </div>
                 </div>
               </BrutalCard>
@@ -2397,10 +2401,10 @@ export function ComprehensiveAdminPanel() {
                           View
                         </button>
                         <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        {post.status !== "published" && (
+                        {isFullAdmin && post.status !== "published" && (
                           <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Publish</button>
                         )}
-                        <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>
+                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>}
                       </div>
                     </div>
                   </BrutalCard>
@@ -2420,7 +2424,7 @@ export function ComprehensiveAdminPanel() {
                       <div className="flex gap-2 flex-wrap">
                         <BrutalBadge color="bg-green-500">{post.status}</BrutalBadge>
                         <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>
+                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>}
                       </div>
                     </div>
                   </BrutalCard>
@@ -2439,7 +2443,7 @@ export function ComprehensiveAdminPanel() {
                       <div className="flex gap-2 flex-wrap">
                         <BrutalBadge color="bg-[#FB7185]">{post.status}</BrutalBadge>
                         <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
+                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>}
                       </div>
                     </div>
                   </BrutalCard>
