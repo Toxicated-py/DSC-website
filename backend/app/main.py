@@ -79,6 +79,100 @@ def table_for_resource(resource: str) -> str:
     return table
 
 
+def is_full_admin(profile: dict[str, Any]) -> bool:
+    return bool(profile_roles(profile) & {"admin", "president"})
+
+
+def is_organizer(profile: dict[str, Any]) -> bool:
+    return bool(profile_roles(profile) & {"organizer"})
+
+
+RESOURCE_OWNER_COLUMNS = {
+    "events": "created_by",
+    "event-proposals": "proposed_by",
+    "projects": "author_id",
+    "blog-posts": "author_id",
+}
+
+ADMIN_ONLY_RESOURCES = {
+    "profiles",
+    "designation-options",
+    "gallery",
+    "partners",
+    "learning-materials",
+    "contact-messages",
+}
+
+
+async def managed_event_ids(client: SupabaseRestClient, profile: dict[str, Any]) -> set[str]:
+    if is_full_admin(profile):
+        rows = await client.select("events", columns="id")
+        return {row["id"] for row in rows if row.get("id")}
+    own_events = await client.select("events", columns="id", filters={"created_by": f"eq.{profile['id']}"})
+    staff_rows = await client.select(
+        "event_staff",
+        columns="event_id",
+        filters={"email": f"eq.{str(profile.get('email') or '').lower()}"},
+    )
+    return {
+        *(row["id"] for row in own_events if row.get("id")),
+        *(row["event_id"] for row in staff_rows if row.get("event_id")),
+    }
+
+
+async def require_resource_access(
+    client: SupabaseRestClient,
+    profile: dict[str, Any],
+    resource: str,
+    *,
+    item_id: str | None = None,
+    action: str = "read",
+) -> dict[str, Any] | None:
+    if is_full_admin(profile):
+        return None
+    if not is_organizer(profile):
+        raise HTTPException(status_code=403, detail="Admin or organizer access required.")
+    if resource in ADMIN_ONLY_RESOURCES:
+        raise HTTPException(status_code=403, detail="This area is restricted to admins.")
+
+    table = table_for_resource(resource)
+    if item_id:
+        row = await select_one(client, table, {"id": f"eq.{item_id}"})
+        if not row:
+            raise HTTPException(status_code=404, detail="Item not found.")
+        owner_column = RESOURCE_OWNER_COLUMNS.get(resource)
+        if owner_column and row.get(owner_column) == profile["id"]:
+            return row
+        if resource in {"certificates", "event-registrations"} and row.get("event_id") in await managed_event_ids(client, profile):
+            return row
+        raise HTTPException(status_code=403, detail="You can only manage your own items.")
+    return None
+
+
+async def list_accessible_resource(
+    client: SupabaseRestClient,
+    profile: dict[str, Any],
+    resource: str,
+    status: str | None = None,
+) -> list[dict[str, Any]]:
+    table = table_for_resource(resource)
+    filters = {"status": f"eq.{status}"} if status else None
+    if is_full_admin(profile):
+        return await client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
+    await require_resource_access(client, profile, resource)
+    owner_column = RESOURCE_OWNER_COLUMNS.get(resource)
+    if owner_column:
+        scoped_filters = {**(filters or {}), owner_column: f"eq.{profile['id']}"}
+        return await client.select(table, filters=scoped_filters, order=RESOURCE_ORDER.get(table))
+    if resource in {"certificates", "event-registrations"}:
+        ids = await managed_event_ids(client, profile)
+        if not ids:
+            return []
+        rows = await client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
+        return [row for row in rows if row.get("event_id") in ids]
+    raise HTTPException(status_code=403, detail="This area is restricted to admins.")
+
+
 def normalize_certificate(row: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(row.get("signature_data"), list):
         row["signature_data"] = []
@@ -684,23 +778,30 @@ async def submit_gallery(
 async def admin_list_resource(
     resource: str,
     status: str | None = None,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
-    table = table_for_resource(resource)
-    filters = {"status": f"eq.{status}"} if status else None
-    return await client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
+    return await list_accessible_resource(client, profile, resource, status)
 
 
 @app.post("/api/admin/resources/{resource}", status_code=201)
 async def admin_create_resource(
     resource: str,
     payload: GenericPayload,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    await require_resource_access(client, profile, resource, action="create")
     table = table_for_resource(resource)
-    rows = await client.insert(table, payload.data)
+    data = dict(payload.data)
+    if not is_full_admin(profile):
+        if resource == "events":
+            data["created_by"] = profile["id"]
+        elif resource in {"projects", "blog-posts"}:
+            data["author_id"] = profile["id"]
+        elif resource == "event-proposals":
+            data["proposed_by"] = profile["id"]
+    rows = await client.insert(table, data)
     return rows[0] if rows else {}
 
 
@@ -709,11 +810,20 @@ async def admin_update_resource(
     resource: str,
     item_id: str,
     payload: GenericPayload,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    await require_resource_access(client, profile, resource, item_id=item_id, action="update")
     table = table_for_resource(resource)
-    rows = await client.update(table, payload.data, filters={"id": f"eq.{item_id}"})
+    data = dict(payload.data)
+    if not is_full_admin(profile):
+        for protected_key in ("created_by", "author_id", "proposed_by", "reviewed_by", "role", "roles"):
+            data.pop(protected_key, None)
+        if resource in {"projects", "blog-posts"} and data.get("status") == "published":
+            data["status"] = "submitted"
+        if resource == "events":
+            data.pop("status", None)
+    rows = await client.update(table, data, filters={"id": f"eq.{item_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Item not found.")
     return rows[0]
@@ -724,9 +834,12 @@ async def admin_update_resource_status(
     resource: str,
     item_id: str,
     payload: StatusUpdate,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    await require_resource_access(client, profile, resource, item_id=item_id, action="status")
+    if not is_full_admin(profile):
+        raise HTTPException(status_code=403, detail="Only admins can approve, publish, archive, or restore items.")
     table = table_for_resource(resource)
     rows = await client.update(table, {"status": payload.status}, filters={"id": f"eq.{item_id}"})
     if not rows:
@@ -738,9 +851,12 @@ async def admin_update_resource_status(
 async def admin_delete_resource(
     resource: str,
     item_id: str,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, str]:
+    await require_resource_access(client, profile, resource, item_id=item_id, action="delete")
+    if not is_full_admin(profile) and resource not in {"events", "projects", "blog-posts"}:
+        raise HTTPException(status_code=403, detail="Only admins can delete this item.")
     table = table_for_resource(resource)
     await client.delete(table, filters={"id": f"eq.{item_id}"})
     return {"message": "Deleted."}
@@ -749,9 +865,14 @@ async def admin_delete_resource(
 @app.get("/api/admin/events/{event_id}/staff")
 async def admin_event_staff(
     event_id: str,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
+    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    if not await can_manage_event(client, profile, event):
+        raise HTTPException(status_code=403, detail="You can only manage staff for your own events.")
     return await client.select(
         "event_staff",
         columns="id,event_id,user_id,email,staff_role,can_scan,created_by,created_at",
@@ -764,9 +885,14 @@ async def admin_event_staff(
 async def admin_replace_event_staff(
     event_id: str,
     payload: EventStaffUpdate,
-    profile: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
+    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    if not await can_manage_event(client, profile, event):
+        raise HTTPException(status_code=403, detail="You can only manage staff for your own events.")
     await client.delete("event_staff", filters={"event_id": f"eq.{event_id}", "staff_role": "eq.coordinator"})
     rows = [
         {
@@ -908,9 +1034,14 @@ async def admin_delete_contact(
 @app.get("/api/admin/events/{event_id}/certificate-queue")
 async def admin_certificate_queue(
     event_id: str,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    if not await can_manage_event(client, profile, event):
+        raise HTTPException(status_code=403, detail="You can only view certificate queues for your own events.")
     registrations = await client.select(
         "event_registrations",
         columns="id,event_id,user_id,status,checked_in_at,profiles:user_id(id,full_name,email)",
@@ -943,9 +1074,14 @@ async def admin_certificate_queue(
 @app.post("/api/admin/certificates/issue", status_code=201)
 async def admin_issue_certificate(
     payload: CertificateIssue,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    event = await select_one(client, "events", {"id": f"eq.{payload.event_id}"})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    if not await can_manage_event(client, profile, event):
+        raise HTTPException(status_code=403, detail="You are not allowed to issue certificates for this event.")
     return await issue_certificate_row(client, payload)
 
 
@@ -1001,9 +1137,14 @@ async def admin_issue_checked_in_certificates(
 @app.get("/api/admin/events/{event_id}/certificates")
 async def admin_event_certificates(
     event_id: str,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
+    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    if not await can_manage_event(client, profile, event):
+        raise HTTPException(status_code=403, detail="You can only view certificates for your own events.")
     rows = await client.select(
         "certificates",
         filters={"event_id": f"eq.{event_id}"},
@@ -1016,9 +1157,15 @@ async def admin_event_certificates(
 async def admin_update_certificate(
     certificate_id: str,
     payload: CertificateUpdate,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    certificate = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
+    if not certificate:
+        raise HTTPException(status_code=404, detail="Certificate not found.")
+    event = await select_one(client, "events", {"id": f"eq.{certificate.get('event_id')}"}) if certificate.get("event_id") else None
+    if not event or not await can_manage_event(client, profile, event):
+        raise HTTPException(status_code=403, detail="You can only update certificates for your own events.")
     data = payload.model_dump(exclude_unset=True)
     if "signature_data" in data and data["signature_data"] is not None:
         data["signature_data"] = [signature.model_dump() for signature in payload.signature_data or []]
@@ -1031,9 +1178,15 @@ async def admin_update_certificate(
 @app.post("/api/admin/certificates/{certificate_id}/revoke")
 async def admin_revoke_certificate(
     certificate_id: str,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    certificate = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
+    if not certificate:
+        raise HTTPException(status_code=404, detail="Certificate not found.")
+    event = await select_one(client, "events", {"id": f"eq.{certificate.get('event_id')}"}) if certificate.get("event_id") else None
+    if not event or not await can_manage_event(client, profile, event):
+        raise HTTPException(status_code=403, detail="You can only revoke certificates for your own events.")
     rows = await client.update("certificates", {"status": "revoked"}, filters={"id": f"eq.{certificate_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Certificate not found.")
@@ -1043,12 +1196,15 @@ async def admin_revoke_certificate(
 @app.delete("/api/admin/certificates/{certificate_id}")
 async def admin_delete_certificate(
     certificate_id: str,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(get_current_profile),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, str]:
     cert = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found.")
+    event = await select_one(client, "events", {"id": f"eq.{cert.get('event_id')}"}) if cert.get("event_id") else None
+    if not event or not await can_manage_event(client, profile, event):
+        raise HTTPException(status_code=403, detail="You can only delete certificates for your own events.")
     if cert.get("status") != "revoked":
         raise HTTPException(status_code=400, detail="Only revoked certificates can be deleted.")
     await client.delete("certificates", filters={"id": f"eq.{certificate_id}"})
