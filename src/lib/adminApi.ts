@@ -41,6 +41,10 @@ export function adminListContacts<T>() {
   return apiGet<T[]>("/api/admin/contacts", { auth: true });
 }
 
+export function adminListAuditLogs<T>() {
+  return apiGet<T[]>("/api/admin/audit-logs", { auth: true });
+}
+
 export function adminUpdateContactStatus<T>(id: string, status: string) {
   return apiPatch<T>(`/api/admin/contacts/${id}/status`, { status }, { auth: true });
 }

@@ -77,6 +77,51 @@ async def ensure_not_duplicate(
         )
 
 
+def audit_summary(action: str, resource: str, row: dict[str, Any] | None = None, resource_id: str | None = None) -> str:
+    title = ""
+    if row:
+        title = str(
+            row.get("title")
+            or row.get("full_name")
+            or row.get("name")
+            or row.get("subject")
+            or row.get("certificate_title")
+            or row.get("email")
+            or ""
+        )
+    label = title or resource_id or resource.replace("-", " ")
+    return f"{action.replace('_', ' ').title()} {resource.replace('-', ' ')}: {label}"
+
+
+async def write_audit_log(
+    client: SupabaseRestClient,
+    profile: dict[str, Any],
+    *,
+    action: str,
+    resource: str,
+    resource_id: str | None = None,
+    summary: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    try:
+        await client.insert(
+            "audit_logs",
+            {
+                "actor_id": profile.get("id"),
+                "actor_email": profile.get("email"),
+                "action": action,
+                "resource": resource,
+                "resource_id": resource_id,
+                "summary": summary or audit_summary(action, resource, None, resource_id),
+                "metadata": metadata or {},
+            },
+        )
+    except SupabaseRestError:
+        # Audit logs are useful but should not break normal admin actions if the
+        # migration has not been applied yet or Supabase is temporarily stale.
+        return
+
+
 def table_for_resource(resource: str) -> str:
     table = ADMIN_TABLES.get(resource)
     if not table:
@@ -872,6 +917,19 @@ async def admin_list_resource(
     return await list_accessible_resource(client, profile, resource, status)
 
 
+@app.get("/api/admin/audit-logs")
+async def admin_list_audit_logs(
+    _: dict[str, Any] = Depends(require_admin),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> list[dict[str, Any]]:
+    try:
+        return await client.select("audit_logs", order="created_at.desc", limit=250)
+    except SupabaseRestError as exc:
+        if exc.status_code in {404, 400}:
+            return []
+        raise supabase_http_error(exc) from exc
+
+
 @app.post("/api/admin/resources/{resource}", status_code=201)
 async def admin_create_resource(
     resource: str,
@@ -890,7 +948,17 @@ async def admin_create_resource(
         elif resource == "event-proposals":
             data["proposed_by"] = profile["id"]
     rows = await client.insert(table, data)
-    return rows[0] if rows else {}
+    row = rows[0] if rows else {}
+    await write_audit_log(
+        client,
+        profile,
+        action="create",
+        resource=resource,
+        resource_id=str(row.get("id") or ""),
+        summary=audit_summary("create", resource, row),
+        metadata={"table": table},
+    )
+    return row
 
 
 @app.patch("/api/admin/resources/{resource}/{item_id}")
@@ -914,7 +982,17 @@ async def admin_update_resource(
     rows = await client.update(table, data, filters={"id": f"eq.{item_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Item not found.")
-    return rows[0]
+    row = rows[0]
+    await write_audit_log(
+        client,
+        profile,
+        action="update",
+        resource=resource,
+        resource_id=item_id,
+        summary=audit_summary("update", resource, row, item_id),
+        metadata={"table": table, "changed_fields": sorted(data.keys())},
+    )
+    return row
 
 
 @app.patch("/api/admin/resources/{resource}/{item_id}/status")
@@ -932,7 +1010,17 @@ async def admin_update_resource_status(
     rows = await client.update(table, {"status": payload.status}, filters={"id": f"eq.{item_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Item not found.")
-    return rows[0]
+    row = rows[0]
+    await write_audit_log(
+        client,
+        profile,
+        action="status_update",
+        resource=resource,
+        resource_id=item_id,
+        summary=f"Set {resource.replace('-', ' ')} status to {payload.status}",
+        metadata={"table": table, "status": payload.status},
+    )
+    return row
 
 
 @app.delete("/api/admin/resources/{resource}/{item_id}")
@@ -947,6 +1035,15 @@ async def admin_delete_resource(
         raise HTTPException(status_code=403, detail="Only admins can delete this item.")
     table = table_for_resource(resource)
     await client.delete(table, filters={"id": f"eq.{item_id}"})
+    await write_audit_log(
+        client,
+        profile,
+        action="delete",
+        resource=resource,
+        resource_id=item_id,
+        summary=audit_summary("delete", resource, None, item_id),
+        metadata={"table": table},
+    )
     return {"message": "Deleted."}
 
 
@@ -998,6 +1095,15 @@ async def admin_replace_event_staff(
     created: list[dict[str, Any]] = []
     for row in rows:
         created.extend(await client.upsert("event_staff", row, on_conflict="event_id,email") or [])
+    await write_audit_log(
+        client,
+        profile,
+        action="update_staff",
+        resource="events",
+        resource_id=event_id,
+        summary=f"Updated event coordinators for {event.get('title') or event_id}",
+        metadata={"emails": [row["email"] for row in rows]},
+    )
     return created
 
 
@@ -1071,6 +1177,15 @@ async def admin_create_event_from_proposal(
         await client.upsert("event_staff", staff, on_conflict="event_id,email")
 
     await client.update("event_proposals", {"status": "approved"}, filters={"id": f"eq.{proposal_id}"})
+    await write_audit_log(
+        client,
+        profile,
+        action="create_from_proposal",
+        resource="events",
+        resource_id=str(event_row.get("id") or ""),
+        summary=f"Created event from proposal: {event_row.get('title') or proposal_id}",
+        metadata={"proposal_id": proposal_id},
+    )
     return {"event_id": event_row["id"], "status": "created", "event": event_row}
 
 
@@ -1085,7 +1200,17 @@ async def admin_update_site_settings(
         {"key": "site", "value": payload.value, "updated_by": profile["id"]},
         on_conflict="key",
     )
-    return rows[0] if rows else {"key": "site", "value": payload.value}
+    row = rows[0] if rows else {"key": "site", "value": payload.value}
+    await write_audit_log(
+        client,
+        profile,
+        action="update",
+        resource="site-settings",
+        resource_id="site",
+        summary="Updated site settings",
+        metadata={"sections": sorted(payload.value.keys()) if isinstance(payload.value, dict) else []},
+    )
+    return row
 
 
 @app.get("/api/admin/contacts")
@@ -1100,22 +1225,40 @@ async def admin_list_contacts(
 async def admin_update_contact_status(
     message_id: str,
     payload: StatusUpdate,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     rows = await client.update("contact_messages", {"status": payload.status}, filters={"id": f"eq.{message_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Message not found.")
-    return rows[0]
+    row = rows[0]
+    await write_audit_log(
+        client,
+        profile,
+        action="status_update",
+        resource="contact-messages",
+        resource_id=message_id,
+        summary=f"Set contact message status to {payload.status}",
+        metadata={"status": payload.status},
+    )
+    return row
 
 
 @app.delete("/api/admin/contacts/{message_id}")
 async def admin_delete_contact(
     message_id: str,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, str]:
     await client.delete("contact_messages", filters={"id": f"eq.{message_id}"})
+    await write_audit_log(
+        client,
+        profile,
+        action="delete",
+        resource="contact-messages",
+        resource_id=message_id,
+        summary=f"Deleted contact message {message_id}",
+    )
     return {"message": "Deleted."}
 
 
@@ -1160,19 +1303,29 @@ async def admin_certificate_queue(
 @app.post("/api/admin/certificates/issue", status_code=201)
 async def admin_issue_certificate(
     payload: CertificateIssue,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     event = await select_one(client, "events", {"id": f"eq.{payload.event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
-    return await issue_certificate_row(client, payload)
+    certificate = await issue_certificate_row(client, payload)
+    await write_audit_log(
+        client,
+        profile,
+        action="issue",
+        resource="certificates",
+        resource_id=str(certificate.get("id") or ""),
+        summary=f"Issued certificate {certificate.get('verification_code') or ''} to {certificate.get('recipient_name_snapshot') or payload.member_id}",
+        metadata={"event_id": payload.event_id, "member_id": payload.member_id},
+    )
+    return certificate
 
 
 @app.post("/api/admin/certificates/issue-checked-in")
 async def admin_issue_checked_in_certificates(
     payload: CertificateBulkIssue,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     event = await select_one(client, "events", {"id": f"eq.{payload.event_id}"})
@@ -1213,6 +1366,15 @@ async def admin_issue_checked_in_certificates(
             else:
                 failed.append(f"{label}: {exc.detail}")
 
+    await write_audit_log(
+        client,
+        profile,
+        action="bulk_issue",
+        resource="certificates",
+        resource_id=payload.event_id,
+        summary=f"Bulk certificate issue: {len(success)} issued, {len(skipped)} skipped, {len(failed)} failed",
+        metadata={"event_id": payload.event_id, "issued": len(success), "skipped": skipped, "failed": failed},
+    )
     return {"success": success, "skipped": skipped, "failed": failed}
 
 
@@ -1237,7 +1399,7 @@ async def admin_event_certificates(
 async def admin_update_certificate(
     certificate_id: str,
     payload: CertificateUpdate,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     certificate = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
@@ -1249,13 +1411,23 @@ async def admin_update_certificate(
     rows = await client.update("certificates", data, filters={"id": f"eq.{certificate_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Certificate not found.")
-    return normalize_certificate(rows[0])
+    certificate = normalize_certificate(rows[0])
+    await write_audit_log(
+        client,
+        profile,
+        action="update",
+        resource="certificates",
+        resource_id=certificate_id,
+        summary=f"Updated certificate {certificate.get('verification_code') or certificate_id}",
+        metadata={"changed_fields": sorted(data.keys())},
+    )
+    return certificate
 
 
 @app.post("/api/admin/certificates/{certificate_id}/revoke")
 async def admin_revoke_certificate(
     certificate_id: str,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     certificate = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
@@ -1264,13 +1436,22 @@ async def admin_revoke_certificate(
     rows = await client.update("certificates", {"status": "revoked"}, filters={"id": f"eq.{certificate_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Certificate not found.")
-    return normalize_certificate(rows[0])
+    certificate = normalize_certificate(rows[0])
+    await write_audit_log(
+        client,
+        profile,
+        action="revoke",
+        resource="certificates",
+        resource_id=certificate_id,
+        summary=f"Revoked certificate {certificate.get('verification_code') or certificate_id}",
+    )
+    return certificate
 
 
 @app.delete("/api/admin/certificates/{certificate_id}")
 async def admin_delete_certificate(
     certificate_id: str,
-    _: dict[str, Any] = Depends(require_admin),
+    profile: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, str]:
     cert = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
@@ -1279,4 +1460,12 @@ async def admin_delete_certificate(
     if cert.get("status") != "revoked":
         raise HTTPException(status_code=400, detail="Only revoked certificates can be deleted.")
     await client.delete("certificates", filters={"id": f"eq.{certificate_id}"})
+    await write_audit_log(
+        client,
+        profile,
+        action="delete",
+        resource="certificates",
+        resource_id=certificate_id,
+        summary=f"Deleted revoked certificate {cert.get('verification_code') or certificate_id}",
+    )
     return {"message": "Deleted."}

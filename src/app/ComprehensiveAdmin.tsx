@@ -18,13 +18,14 @@ import {
   Check, Shield, User, UserCheck, GraduationCap, Settings, Search, Edit, Trash2, Crown,
   Calendar, MapPin, Users, Trophy, TrendingUp, Save, X, Plus, Eye, EyeOff, 
   Mail, Phone, Globe, Github, Linkedin, Twitter, Instagram, Facebook,
-  Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare
+  Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare, ListFilter
 } from "lucide-react";
 import {
   adminCreateResource,
   adminCreateEventFromProposal,
   adminDeleteContact,
   adminDeleteResource,
+  adminListAuditLogs,
   adminListContacts,
   adminListResource,
   adminListEventStaff,
@@ -157,6 +158,7 @@ export function ComprehensiveAdminPanel() {
   const { adminTab } = useParams();
   const [selectedTab, setSelectedTab] = useState(adminTab || "overview");
   const [searchQuery, setSearchQuery] = useState("");
+  const [logSearchQuery, setLogSearchQuery] = useState("");
   const [adminProfile, setAdminProfile] = useState<any>(null);
   const [isCertificateAdmin, setIsCertificateAdmin] = useState(false);
   const [certificateStatus, setCertificateStatus] = useState("");
@@ -198,6 +200,7 @@ export function ComprehensiveAdminPanel() {
   const [partnerSubmissions, setPartnerSubmissions] = useState<any[]>([]);
   const [learningMaterials, setLearningMaterials] = useState<any[]>([]);
   const [contactMessages, setContactMessages] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [resourceForm, setResourceForm] = useState({
     title: "",
     category: "General",
@@ -308,8 +311,9 @@ export function ComprehensiveAdminPanel() {
     { id: "contacts", label: "Contact", icon: <Mail size={16} /> },
     { id: "settings", label: "Settings", icon: <Settings size={16} /> },
     { id: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
+    { id: "logs", label: "Logs", icon: <ListFilter size={16} /> },
   ];
-  const adminOnlyTabs = ["users", "gallery", "partners", "resources", "certificates", "contacts", "settings", "analytics"];
+  const adminOnlyTabs = ["users", "gallery", "partners", "resources", "certificates", "contacts", "settings", "analytics", "logs"];
   const isFullAdmin = isFullAdminProfile(adminProfile);
   const visibleTabs = isFullAdmin ? tabs : tabs.filter((tab) => !adminOnlyTabs.includes(tab.id));
   const openAdminTab = (tabId: string, replace = false) => {
@@ -360,6 +364,7 @@ export function ComprehensiveAdminPanel() {
         registrationRows,
         settingsValue,
         contactRows,
+        auditRows,
       ] = await Promise.all([
         isAdmin ? adminListResource<any>("profiles") : Promise.resolve([myProfile]),
         isAdmin ? adminListResource<any>("certificates") : Promise.resolve([]),
@@ -374,6 +379,7 @@ export function ComprehensiveAdminPanel() {
         adminListResource<any>("event-registrations"),
         apiGet<any>("/api/site-settings").catch(() => null),
         isAdmin ? adminListContacts<any>().catch(() => []) : Promise.resolve([]),
+        isAdmin ? adminListAuditLogs<any>().catch(() => []) : Promise.resolve([]),
       ]);
 
       if (!mounted) return;
@@ -422,6 +428,7 @@ export function ComprehensiveAdminPanel() {
       setPartnerSubmissions(partnerRows || []);
       setLearningMaterials(resourceRows || []);
       setContactMessages(contactRows || []);
+      setAuditLogs(auditRows || []);
       setEventRegistrations(registrationRows || []);
       if (settingsValue) {
         setSiteSettings(mergeSiteSettings(settingsValue));
@@ -1678,6 +1685,23 @@ export function ComprehensiveAdminPanel() {
     return date && new Date(date).toISOString().slice(0, 7) === thisMonth;
   }).length;
   const postsThisMonth = blogPosts.filter((post) => post.published_at && new Date(post.published_at).toISOString().slice(0, 7) === thisMonth).length;
+  const activeMemberCount = users.filter((user) => {
+    const roles = Array.isArray(user.roles) ? user.roles : [user.role];
+    return user.membershipStatus === "approved" || roles.includes("member") || roles.includes("student") || roles.includes("organizer") || roles.includes("admin") || roles.includes("president");
+  }).length;
+  const activeEventCount = events.filter((event) => event.status === "approved" || event.status === "published").length;
+  const upcomingEventCount = events.filter((event) => {
+    const eventTime = event.start_time || event.startTime;
+    return (event.status === "approved" || event.status === "published") && eventTime && new Date(eventTime) >= now;
+  }).length;
+  const pendingReviewCount = pendingEventProposals.length + pendingProjects.length + pendingBlogs.length + pendingGallery.length;
+  const contentStatusStats = [
+    { label: "Projects", active: activeProjects.length, pending: pendingProjects.length, archived: rejectedProjects.length },
+    { label: "Blogs", active: activeBlogs.length, pending: pendingBlogs.length, archived: archivedBlogs.length },
+    { label: "Gallery", active: approvedGallery.length, pending: pendingGallery.length, archived: rejectedGallery.length },
+    { label: "Partners", active: activePartners.length, pending: 0, archived: archivedPartners.length },
+    { label: "Resources", active: learningMaterials.filter((item) => item.status === "published" || item.status === "approved").length, pending: learningMaterials.filter((item) => item.status === "pending" || item.status === "submitted" || item.status === "draft").length, archived: learningMaterials.filter((item) => item.status === "archived" || item.status === "rejected").length },
+  ];
   const monthLabels = Array.from({ length: 6 }, (_, index) => {
     const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
     return {
@@ -1694,6 +1718,38 @@ export function ComprehensiveAdminPanel() {
     .filter((event) => event.status === "approved" || event.status === "published")
     .sort((a, b) => (b.attendees || 0) - (a.attendees || 0))
     .slice(0, 5);
+  const eventUtilization = [...events]
+    .filter((event) => event.status !== "archived" && event.status !== "rejected")
+    .map((event) => {
+      const capacity = Number(event.capacity || 0);
+      const attendees = Number(event.attendees || event.registeredCount || event.registered_count || 0);
+      const checkedIn = Number(event.checkedIn || 0);
+      return {
+        ...event,
+        capacity,
+        attendees,
+        checkedIn,
+        fillRate: capacity ? Math.min(100, Math.round((attendees / capacity) * 100)) : 0,
+      };
+    })
+    .sort((a, b) => b.attendees - a.attendees)
+    .slice(0, 6);
+  const recentAuditLogs = auditLogs.slice(0, 6);
+  const filteredAuditLogs = auditLogs.filter((log) => {
+    const query = logSearchQuery.trim().toLowerCase();
+    if (!query) return true;
+    return [
+      log.actor_email,
+      log.action,
+      log.resource,
+      log.resource_id,
+      log.summary,
+      log.created_at,
+      JSON.stringify(log.metadata || {}),
+    ].some((value) => String(value || "").toLowerCase().includes(query));
+  });
+  const todayAuditCount = auditLogs.filter((log) => log.created_at && new Date(log.created_at).toDateString() === now.toDateString()).length;
+  const destructiveAuditCount = auditLogs.filter((log) => ["delete", "revoke"].includes(log.action)).length;
   const selectedCertificateEvent = events.find((event) => event.id === certificateForm.eventId);
   const certificateEventRegistrations = eventRegistrations.filter((registration) =>
     registration.event_id === certificateForm.eventId
@@ -3741,74 +3797,233 @@ export function ComprehensiveAdminPanel() {
                 <Activity size={24} />
                 <TrendingUp size={16} />
               </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{users.length}</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Members</div>
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{activeMemberCount}</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Active Members</div>
+              <p className="mt-2 text-xs font-mono opacity-80">{users.length} total profiles</p>
             </BrutalCard>
             <BrutalCard color="bg-[#7C3AED]" className="text-white">
               <div className="flex items-center justify-between mb-2">
                 <Calendar size={24} />
                 <TrendingUp size={16} />
               </div>
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{activeEventCount}</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Active Events</div>
+              <p className="mt-2 text-xs font-mono opacity-80">{upcomingEventCount} upcoming</p>
+            </BrutalCard>
+            <BrutalCard color="bg-[#22C55E]" className="text-white">
+              <div className="flex items-center justify-between mb-2">
+                <UserCheck size={24} />
+                <Activity size={16} />
+              </div>
               <div className="text-4xl font-bold mb-1" style={fonts.display}>{attendanceRate}%</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Event Attendance</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Attendance</div>
+              <p className="mt-2 text-xs font-mono opacity-80">{checkedInCount}/{registrationsCount} checked in</p>
             </BrutalCard>
             <BrutalCard color="bg-[#FB7185]" className="text-white">
               <div className="flex items-center justify-between mb-2">
-                <Trophy size={24} />
-                <TrendingUp size={16} />
+                <Clock size={24} />
+                <MessageSquare size={16} />
               </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{projectsThisMonth}</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Projects This Month</div>
-            </BrutalCard>
-            <BrutalCard color="bg-[#FFE800]">
-              <div className="flex items-center justify-between mb-2">
-                <FileText size={24} />
-                <Activity size={16} />
-              </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{postsThisMonth}</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">Blog Posts This Month</div>
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{pendingReviewCount}</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Pending Review</div>
+              <p className="mt-2 text-xs font-mono opacity-80">{contactMessages.filter((message) => message.status === "new").length} new contacts</p>
             </BrutalCard>
           </div>
 
-          <BrutalCard className="mb-6">
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Member Growth</h2>
-            <div className="space-y-4">
-              {memberGrowth.map((month) => (
-                <div key={month.key} className="grid grid-cols-[64px_1fr_48px] items-center gap-3">
-                  <span className="text-xs font-bold uppercase tracking-widest">{month.label}</span>
-                  <div className="h-8 border-2 border-[#171717] bg-[#F4EFEB]">
-                    <div
-                      className="h-full bg-[#2563EB]"
-                      style={{ width: `${Math.max(6, (month.count / maxGrowth) * 100)}%` }}
-                    />
+          <div className="grid lg:grid-cols-2 gap-6 mb-6">
+            <BrutalCard>
+              <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Member Growth</h2>
+              <div className="space-y-4">
+                {memberGrowth.map((month) => (
+                  <div key={month.key} className="grid grid-cols-[64px_1fr_48px] items-center gap-3">
+                    <span className="text-xs font-bold uppercase tracking-widest">{month.label}</span>
+                    <div className="h-8 border-2 border-[#171717] bg-[#F4EFEB]">
+                      <div className="h-full bg-[#2563EB]" style={{ width: `${Math.max(6, (month.count / maxGrowth) * 100)}%` }} />
+                    </div>
+                    <span className="text-right text-sm font-bold font-mono">{month.count}</span>
                   </div>
-                  <span className="text-right text-sm font-bold font-mono">{month.count}</span>
+                ))}
+              </div>
+            </BrutalCard>
+
+            <BrutalCard>
+              <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>This Month</h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
+                  <Trophy size={20} className="mb-3 text-[#2563EB]" />
+                  <p className="text-3xl uppercase" style={fonts.display}>{projectsThisMonth}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-600">Projects submitted/published</p>
                 </div>
-              ))}
-            </div>
-          </BrutalCard>
+                <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
+                  <FileText size={20} className="mb-3 text-[#7C3AED]" />
+                  <p className="text-3xl uppercase" style={fonts.display}>{postsThisMonth}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-600">Blog posts published</p>
+                </div>
+                <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
+                  <Award size={20} className="mb-3 text-[#2563EB]" />
+                  <p className="text-3xl uppercase" style={fonts.display}>{issuedCertificates.length}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-600">Certificates issued</p>
+                </div>
+                <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
+                  <Mail size={20} className="mb-3 text-[#FB7185]" />
+                  <p className="text-3xl uppercase" style={fonts.display}>{contactMessages.length}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-600">Contact messages</p>
+                </div>
+              </div>
+            </BrutalCard>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6 mb-6">
+            <BrutalCard>
+              <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Event Capacity</h2>
+              <div className="space-y-4">
+                {eventUtilization.map((event) => (
+                  <div key={event.id} className="border-2 border-[#171717] bg-white p-4">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <p className="font-bold text-sm uppercase">{event.title}</p>
+                        <p className="text-xs font-mono text-slate-500">{event.attendees}/{event.capacity || "unlimited"} registered - {event.checkedIn} checked in</p>
+                      </div>
+                      <BrutalBadge color={event.fillRate >= 90 ? "bg-[#FB7185]" : "bg-[#FFE800]"}>{event.fillRate}%</BrutalBadge>
+                    </div>
+                    <div className="h-4 border-2 border-[#171717] bg-[#F4EFEB]">
+                      <div className="h-full bg-[#2563EB]" style={{ width: `${event.fillRate}%` }} />
+                    </div>
+                  </div>
+                ))}
+                {eventUtilization.length === 0 && <p className="text-sm font-mono text-slate-500">Events will appear here after they are created.</p>}
+              </div>
+            </BrutalCard>
+
+            <BrutalCard>
+              <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Content Health</h2>
+              <div className="space-y-3">
+                {contentStatusStats.map((item) => (
+                  <div key={item.label} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 border-2 border-[#171717] bg-white p-3 text-xs font-bold uppercase tracking-widest">
+                    <span>{item.label}</span>
+                    <span className="text-[#22C55E]">{item.active} active</span>
+                    <span className="text-[#FB7185]">{item.pending} pending</span>
+                    <span className="text-slate-500">{item.archived} archived</span>
+                  </div>
+                ))}
+              </div>
+            </BrutalCard>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <BrutalCard>
+              <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Popular Events</h2>
+              <div className="space-y-4">
+                {popularEvents.map(event => (
+                  <div key={event.id} className="flex items-center justify-between p-4 border-2 border-slate-200">
+                    <div>
+                      <p className="font-bold text-sm">{event.title}</p>
+                      <p className="text-xs text-slate-500">{event.category}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold" style={fonts.display}>{event.attendees}</p>
+                      <p className="text-xs text-slate-500">attendees</p>
+                    </div>
+                  </div>
+                ))}
+                {popularEvents.length === 0 && <p className="text-sm font-mono text-slate-500">Approved events will appear here after registrations start.</p>}
+              </div>
+            </BrutalCard>
+
+            <BrutalCard>
+              <div className="flex items-center justify-between gap-3 mb-6">
+                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Recent Logs</h2>
+                <button onClick={() => openAdminTab("logs")} className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#FFE800] font-bold uppercase tracking-widest text-xs">View All</button>
+              </div>
+              <div className="space-y-3">
+                {recentAuditLogs.map((log) => (
+                  <div key={log.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                    <p className="text-xs font-bold uppercase tracking-widest">{log.action?.replaceAll("_", " ")} - {log.resource}</p>
+                    <p className="text-sm mt-1">{log.summary || log.resource_id}</p>
+                    <p className="text-[11px] font-mono text-slate-500 mt-2">{log.actor_email || "System"} - {log.created_at ? new Date(log.created_at).toLocaleString() : ""}</p>
+                  </div>
+                ))}
+                {recentAuditLogs.length === 0 && <p className="text-sm font-mono text-slate-500">No logs yet. Run the audit log migration, then admin actions will appear here.</p>}
+              </div>
+            </BrutalCard>
+          </div>
+        </>
+      )}
+
+      {selectedTab === "logs" && isFullAdmin && (
+        <div className="space-y-6">
+          <div className="grid sm:grid-cols-3 gap-4">
+            <BrutalCard color="bg-[#2563EB]" className="text-white">
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{auditLogs.length}</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Total Logs</div>
+            </BrutalCard>
+            <BrutalCard color="bg-[#FFE800]">
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{todayAuditCount}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">Today</div>
+            </BrutalCard>
+            <BrutalCard color="bg-[#FB7185]" className="text-white">
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{destructiveAuditCount}</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Delete / Revoke</div>
+            </BrutalCard>
+          </div>
 
           <BrutalCard>
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Popular Events</h2>
-            <div className="space-y-4">
-              {popularEvents.map(event => (
-                <div key={event.id} className="flex items-center justify-between p-4 border-2 border-slate-200">
-                  <div>
-                    <p className="font-bold text-sm">{event.title}</p>
-                    <p className="text-xs text-slate-500">{event.category}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold" style={fonts.display}>{event.attendees}</p>
-                    <p className="text-xs text-slate-500">attendees</p>
-                  </div>
-                </div>
-              ))}
-              {popularEvents.length === 0 && (
-                <p className="text-sm font-mono text-slate-500">Approved events will appear here after registrations start.</p>
-              )}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Activity Logs</h2>
+                <p className="text-sm text-slate-600">Search admin actions, resources, actors, and record ids.</p>
+              </div>
+              <div className="relative w-full lg:w-96">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input value={logSearchQuery} onChange={(event) => setLogSearchQuery(event.target.value)} placeholder="Search logs..." className="w-full pl-10 pr-4 py-3 border-2 border-[#171717] bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB] font-mono text-sm" />
+              </div>
             </div>
+
+            {filteredAuditLogs.length === 0 ? (
+              <div className="border-2 border-dashed border-[#171717] p-10 text-center">
+                <ListFilter size={36} className="mx-auto mb-3 text-[#2563EB]" />
+                <p className="font-bold uppercase tracking-widest">No logs found</p>
+                <p className="mt-2 text-sm text-slate-600">If this stays empty, apply the audit log migration to Supabase.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-2 border-[#171717] text-sm">
+                  <thead className="bg-[#171717] text-white">
+                    <tr>
+                      <th className="p-3 text-left uppercase tracking-widest text-xs">Time</th>
+                      <th className="p-3 text-left uppercase tracking-widest text-xs">Actor</th>
+                      <th className="p-3 text-left uppercase tracking-widest text-xs">Action</th>
+                      <th className="p-3 text-left uppercase tracking-widest text-xs">Resource</th>
+                      <th className="p-3 text-left uppercase tracking-widest text-xs">Summary</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAuditLogs.map((log) => (
+                      <tr key={log.id} className="border-t-2 border-[#171717] bg-white align-top">
+                        <td className="p-3 font-mono text-xs whitespace-nowrap">{log.created_at ? new Date(log.created_at).toLocaleString() : "-"}</td>
+                        <td className="p-3 font-mono text-xs">{log.actor_email || "System"}</td>
+                        <td className="p-3"><BrutalBadge color={["delete", "revoke"].includes(log.action) ? "bg-[#FB7185]" : "bg-[#FFE800]"}>{String(log.action || "").replaceAll("_", " ")}</BrutalBadge></td>
+                        <td className="p-3">
+                          <p className="font-bold uppercase">{log.resource}</p>
+                          {log.resource_id && <p className="text-[11px] font-mono text-slate-500 break-all">{log.resource_id}</p>}
+                        </td>
+                        <td className="p-3">
+                          <p>{log.summary || "-"}</p>
+                          {log.metadata && Object.keys(log.metadata).length > 0 && (
+                            <details className="mt-2 text-xs font-mono text-slate-500">
+                              <summary className="cursor-pointer font-bold uppercase">Details</summary>
+                              <pre className="mt-2 whitespace-pre-wrap break-words">{JSON.stringify(log.metadata, null, 2)}</pre>
+                            </details>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </BrutalCard>
-        </>
+        </div>
       )}
 
       {/* ─── MODALS ──────────────────────────────────────────────────────────── */}
