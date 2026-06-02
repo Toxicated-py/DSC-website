@@ -97,6 +97,7 @@ RESOURCE_OWNER_COLUMNS = {
 ADMIN_ONLY_RESOURCES = {
     "profiles",
     "designation-options",
+    "certificates",
     "gallery",
     "partners",
     "learning-materials",
@@ -1034,14 +1035,12 @@ async def admin_delete_contact(
 @app.get("/api/admin/events/{event_id}/certificate-queue")
 async def admin_certificate_queue(
     event_id: str,
-    profile: dict[str, Any] = Depends(get_current_profile),
+    _: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
-    if not await can_manage_event(client, profile, event):
-        raise HTTPException(status_code=403, detail="You can only view certificate queues for your own events.")
     registrations = await client.select(
         "event_registrations",
         columns="id,event_id,user_id,status,checked_in_at,profiles:user_id(id,full_name,email)",
@@ -1074,28 +1073,24 @@ async def admin_certificate_queue(
 @app.post("/api/admin/certificates/issue", status_code=201)
 async def admin_issue_certificate(
     payload: CertificateIssue,
-    profile: dict[str, Any] = Depends(get_current_profile),
+    _: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     event = await select_one(client, "events", {"id": f"eq.{payload.event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
-    if not await can_manage_event(client, profile, event):
-        raise HTTPException(status_code=403, detail="You are not allowed to issue certificates for this event.")
     return await issue_certificate_row(client, payload)
 
 
 @app.post("/api/admin/certificates/issue-checked-in")
 async def admin_issue_checked_in_certificates(
     payload: CertificateBulkIssue,
-    profile: dict[str, Any] = Depends(get_current_profile),
+    _: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     event = await select_one(client, "events", {"id": f"eq.{payload.event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
-    if not await can_manage_event(client, profile, event):
-        raise HTTPException(status_code=403, detail="You are not allowed to issue certificates for this event.")
     registrations = await client.select(
         "event_registrations",
         columns="user_id,status,checked_in_at,profiles:user_id(full_name,email)",
@@ -1137,14 +1132,12 @@ async def admin_issue_checked_in_certificates(
 @app.get("/api/admin/events/{event_id}/certificates")
 async def admin_event_certificates(
     event_id: str,
-    profile: dict[str, Any] = Depends(get_current_profile),
+    _: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
-    if not await can_manage_event(client, profile, event):
-        raise HTTPException(status_code=403, detail="You can only view certificates for your own events.")
     rows = await client.select(
         "certificates",
         filters={"event_id": f"eq.{event_id}"},
@@ -1157,15 +1150,12 @@ async def admin_event_certificates(
 async def admin_update_certificate(
     certificate_id: str,
     payload: CertificateUpdate,
-    profile: dict[str, Any] = Depends(get_current_profile),
+    _: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     certificate = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
     if not certificate:
         raise HTTPException(status_code=404, detail="Certificate not found.")
-    event = await select_one(client, "events", {"id": f"eq.{certificate.get('event_id')}"}) if certificate.get("event_id") else None
-    if not event or not await can_manage_event(client, profile, event):
-        raise HTTPException(status_code=403, detail="You can only update certificates for your own events.")
     data = payload.model_dump(exclude_unset=True)
     if "signature_data" in data and data["signature_data"] is not None:
         data["signature_data"] = [signature.model_dump() for signature in payload.signature_data or []]
@@ -1178,15 +1168,12 @@ async def admin_update_certificate(
 @app.post("/api/admin/certificates/{certificate_id}/revoke")
 async def admin_revoke_certificate(
     certificate_id: str,
-    profile: dict[str, Any] = Depends(get_current_profile),
+    _: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     certificate = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
     if not certificate:
         raise HTTPException(status_code=404, detail="Certificate not found.")
-    event = await select_one(client, "events", {"id": f"eq.{certificate.get('event_id')}"}) if certificate.get("event_id") else None
-    if not event or not await can_manage_event(client, profile, event):
-        raise HTTPException(status_code=403, detail="You can only revoke certificates for your own events.")
     rows = await client.update("certificates", {"status": "revoked"}, filters={"id": f"eq.{certificate_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Certificate not found.")
@@ -1196,15 +1183,12 @@ async def admin_revoke_certificate(
 @app.delete("/api/admin/certificates/{certificate_id}")
 async def admin_delete_certificate(
     certificate_id: str,
-    profile: dict[str, Any] = Depends(get_current_profile),
+    _: dict[str, Any] = Depends(require_admin),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, str]:
     cert = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found.")
-    event = await select_one(client, "events", {"id": f"eq.{cert.get('event_id')}"}) if cert.get("event_id") else None
-    if not event or not await can_manage_event(client, profile, event):
-        raise HTTPException(status_code=403, detail="You can only delete certificates for your own events.")
     if cert.get("status") != "revoked":
         raise HTTPException(status_code=400, detail="Only revoked certificates can be deleted.")
     await client.delete("certificates", filters={"id": f"eq.{certificate_id}"})

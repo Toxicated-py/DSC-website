@@ -270,7 +270,7 @@ export function ComprehensiveAdminPanel() {
     { id: "settings", label: "Settings", icon: <Settings size={16} /> },
     { id: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
   ];
-  const adminOnlyTabs = ["users", "gallery", "partners", "resources", "contacts", "settings", "analytics"];
+  const adminOnlyTabs = ["users", "gallery", "partners", "resources", "certificates", "contacts", "settings", "analytics"];
   const isFullAdmin = adminProfile?.role === "admin";
   const visibleTabs = isFullAdmin ? tabs : tabs.filter((tab) => !adminOnlyTabs.includes(tab.id));
   const openAdminTab = (tabId: string, replace = false) => {
@@ -304,7 +304,7 @@ export function ComprehensiveAdminPanel() {
       const isAdmin = myProfile?.role === "admin";
       const isOrganizer = myProfile?.role === "organizer";
       const canManage = isAdmin || isOrganizer;
-      setIsCertificateAdmin(canManage);
+      setIsCertificateAdmin(isAdmin);
       if (!canManage) return;
 
       const [
@@ -323,7 +323,7 @@ export function ComprehensiveAdminPanel() {
         contactRows,
       ] = await Promise.all([
         isAdmin ? adminListResource<any>("profiles") : Promise.resolve([myProfile]),
-        adminListResource<any>("certificates"),
+        isAdmin ? adminListResource<any>("certificates") : Promise.resolve([]),
         adminListResource<any>("projects"),
         adminListResource<any>("event-proposals"),
         adminListResource<any>("events"),
@@ -1639,7 +1639,7 @@ export function ComprehensiveAdminPanel() {
             {isFullAdmin ? "Admin Panel" : "Organizer Panel"}
           </h1>
           <p className="mt-4 font-mono text-xs md:text-sm text-slate-500">
-            {isFullAdmin ? "Manage all aspects of your Data Science Club website" : "Manage your events, projects, blogs, certificates, and check-ins"}
+            {isFullAdmin ? "Manage all aspects of your Data Science Club website" : "Manage your events, projects, blogs, and check-ins"}
           </p>
         </div>
         <div className="flex gap-3 flex-wrap">
@@ -2612,7 +2612,7 @@ export function ComprehensiveAdminPanel() {
             {!isCertificateAdmin ? (
               <div className="border-2 border-[#171717] bg-[#FFE800] p-4">
                 <p className="text-sm font-bold">
-                  Your profile must have the admin or organizer role before you can issue certificates.
+                  Only admins can issue certificates.
                 </p>
               </div>
             ) : (

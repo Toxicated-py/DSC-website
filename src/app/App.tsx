@@ -13,7 +13,6 @@ import { UpdatedFooter } from "./UpdatedFooter";
 import { getPersistenceLabel, publishBlogPost, submitEventProposal, submitProject } from "../lib/contentApi";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost } from "../lib/apiClient";
-import { issueCheckedInBulk } from "../services/certificateService";
 
 // ─── Custom Discord Icon ───────────────────────────────────────────────────────
 const DiscordIcon = ({ size = 18 }: { size?: number }) => (
@@ -78,13 +77,6 @@ const BrutalBadge = ({ children, color = "bg-[#FB7185]", text="text-white", clas
     {children}
   </span>
 );
-
-const formatCertificateError = (message: string) =>
-  ["verification_code", "recipient_name_snapshot", "event_title_snapshot", "template_style", "revoked_at", "signature_data"].some((field) => message.includes(field))
-    ? "Certificate verification is not installed in Supabase yet. Run the latest certificate migration, then try again."
-    : message.toLowerCase().includes("row-level security")
-      ? "Certificate issuing is blocked by Supabase permissions. Run the latest certificate event-manager policy migration, then try again."
-    : message;
 
 function requireLoginForAction(navigate: ReturnType<typeof useNavigate>, returnTo: string) {
   if (localStorage.getItem("dsc-auth-state") !== "logged-in") {
@@ -1322,35 +1314,6 @@ function EventDetailPage() {
     } : attendee));
   };
 
-  const issueBulkCertificates = async () => {
-    if (!id) return;
-    const checkedIn = attendees.filter((attendee) => attendee.status === "checked_in" || attendee.checked_in_at);
-    if (!checkedIn.length) {
-      setManagerStatus("No checked-in attendees found.");
-      return;
-    }
-    try {
-      const summary = await issueCheckedInBulk(id, {
-        certificate_title: `${eventInfo?.title || "Event"} Participation Certificate`,
-        certificate_type: "Participation",
-        template: "modern",
-        description: `This certifies participation in ${eventInfo?.title || "the event"}.`,
-        issuer_name: "Data Science Club",
-        issued_date: new Date().toISOString().slice(0, 10),
-        external_pdf_url: null,
-        signature_data: [
-          { name: "INSTRUCTOR_NAME", title: "INSTRUCTOR", signature_image_url: "" },
-          { name: "DIRECTOR_NAME", title: "DIRECTOR", signature_image_url: "" },
-          { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT", signature_image_url: "" },
-        ],
-      });
-      setManagerStatus(`${summary.success.length} issued, ${summary.skipped.length} skipped, ${summary.failed.length} failed.`);
-    } catch (error: any) {
-      setManagerStatus(formatCertificateError(error.message || "Could not issue certificates."));
-      return;
-    }
-  };
-
   const reserveSpot = async () => {
     setReserveStatus("");
     if (!requireLoginForAction(navigate, `/events/${id}`)) return;
@@ -1442,9 +1405,6 @@ function EventDetailPage() {
               <div className="mt-4 pt-4 border-t-2 border-[#171717] space-y-3">
                 <BrutalButton onClick={() => navigate(`/scanner?event=${id}`)} className="w-full text-xs" color="bg-[#171717]" text="text-white">
                   <QrCode size={14} className="inline mr-2" /> Scan Tickets
-                </BrutalButton>
-                <BrutalButton onClick={issueBulkCertificates} className="w-full text-xs" color="bg-[#FFE800]">
-                  <Award size={14} className="inline mr-2" /> Bulk Certificates
                 </BrutalButton>
               </div>
             )}
