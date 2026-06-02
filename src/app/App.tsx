@@ -86,6 +86,27 @@ function requireLoginForAction(navigate: ReturnType<typeof useNavigate>, returnT
   return true;
 }
 
+const getRoleSet = (profile: any) => {
+  const roles = new Set<string>();
+  if (typeof profile?.role === "string") roles.add(profile.role.toLowerCase());
+  if (Array.isArray(profile?.roles)) {
+    profile.roles.forEach((role: unknown) => {
+      if (typeof role === "string") roles.add(role.toLowerCase());
+    });
+  }
+  return roles;
+};
+
+const isFullAdminRole = (profile: any) => {
+  const roles = getRoleSet(profile);
+  return roles.has("admin") || roles.has("president");
+};
+
+const canOpenAdminPanel = (profile: any) => {
+  const roles = getRoleSet(profile);
+  return isFullAdminRole(profile) || roles.has("organizer");
+};
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [status, setStatus] = useState<"checking" | "allowed" | "blocked">("checking");
@@ -152,12 +173,12 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role,roles")
         .eq("id", userData.user.id)
         .maybeSingle();
 
       if (!mounted) return;
-      setStatus(profile?.role === "admin" || profile?.role === "organizer" ? "allowed" : "forbidden");
+      setStatus(canOpenAdminPanel(profile) ? "allowed" : "forbidden");
     }
 
     checkAdmin();
@@ -283,6 +304,7 @@ function Nav() {
   const [currentUser, setCurrentUser] = useState({
     name: "Member",
     role: "student",
+    roles: [] as string[],
     verified: false,
     designation: "",
   });
@@ -301,7 +323,7 @@ function Nav() {
         .forEach((key) => localStorage.removeItem(key));
       localStorage.setItem("dsc-auth-state", "logged-out");
       setIsLoggedIn(false);
-      setCurrentUser({ name: "Member", role: "student", verified: false, designation: "" });
+      setCurrentUser({ name: "Member", role: "student", roles: [], verified: false, designation: "" });
     };
     const syncSession = async (session: Awaited<ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>>["data"]["session"]) => {
       if (!mounted) return;
@@ -312,7 +334,7 @@ function Nav() {
       if (!session?.user) {
         localStorage.setItem("dsc-auth-state", "logged-out");
         setIsLoggedIn(false);
-        setCurrentUser({ name: "Member", role: "student", verified: false, designation: "" });
+        setCurrentUser({ name: "Member", role: "student", roles: [], verified: false, designation: "" });
         return;
       }
 
@@ -325,7 +347,7 @@ function Nav() {
       setIsLoggedIn(true);
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("full_name,email,role,membership_status,designation,designation_status")
+        .select("full_name,email,role,roles,membership_status,designation,designation_status")
         .eq("id", session.user.id)
         .maybeSingle();
       if (!mounted) return;
@@ -336,6 +358,7 @@ function Nav() {
       setCurrentUser({
         name: profile?.full_name || profile?.email || displayName,
         role: profile?.role || "student",
+        roles: Array.isArray(profile?.roles) ? profile.roles : [],
         verified: profile?.membership_status === "approved",
         designation: profile?.designation_status === "approved" ? profile?.designation || "" : "",
       });
@@ -408,7 +431,7 @@ function Nav() {
     navigate("/");
   };
 
-  const canOpenAdmin = currentUser.role === "admin" || currentUser.role === "organizer";
+  const canOpenAdmin = canOpenAdminPanel(currentUser);
 
   const dropdownActivePaths: Record<string, string[]> = {
     Resources: ["/resources"],
@@ -2026,11 +2049,12 @@ function BlogPage() {
       }
       const { data } = await supabase
         .from("blog_posts")
-        .select("id,title,summary,tags,content,cover_image_url,published_at,status")
+        .select("id,title,summary,tags,content,cover_image_url,published_at,status,profiles:author_id(full_name,email)")
         .in("status", ["approved", "published"])
         .order("published_at", { ascending: false, nullsFirst: false });
       if (!mounted) return;
       setAllPosts((data || []).map((post) => {
+        const author = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
         const date = post.published_at;
         const words = `${post.summary || ""} ${post.content || ""}`.trim().split(/\s+/).filter(Boolean).length;
         return {
@@ -2039,7 +2063,7 @@ function BlogPage() {
           date: date ? new Date(date).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" }) : "",
           dateSort: date ? new Date(date).toISOString().slice(0, 10) : "",
           category: (post.tags?.[0] || "NEWS").toUpperCase(),
-          author: "Data Science Club",
+          author: author?.full_name || author?.email || "Club Member",
           readTime: `${Math.max(1, Math.ceil(words / 220))} min`,
           excerpt: post.summary || post.content?.slice(0, 180) || "Post details will be updated soon.",
           coverImageUrl: post.cover_image_url,

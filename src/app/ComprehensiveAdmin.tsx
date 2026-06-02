@@ -47,6 +47,24 @@ import {
 } from "../services/certificateService";
 import { CertificateRenderer } from "./components/CertificateRenderer";
 
+const getRoleSet = (profile: any) => {
+  const roles = new Set<string>();
+  if (typeof profile?.role === "string") roles.add(profile.role.toLowerCase());
+  if (Array.isArray(profile?.roles)) {
+    profile.roles.forEach((role: unknown) => {
+      if (typeof role === "string") roles.add(role.toLowerCase());
+    });
+  }
+  return roles;
+};
+
+const isFullAdminProfile = (profile: any) => {
+  const roles = getRoleSet(profile);
+  return roles.has("admin") || roles.has("president");
+};
+
+const isOrganizerProfile = (profile: any) => getRoleSet(profile).has("organizer");
+
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
   serif: { fontFamily: "'Playfair Display', serif" },
@@ -271,7 +289,7 @@ export function ComprehensiveAdminPanel() {
     { id: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
   ];
   const adminOnlyTabs = ["users", "gallery", "partners", "resources", "certificates", "contacts", "settings", "analytics"];
-  const isFullAdmin = adminProfile?.role === "admin";
+  const isFullAdmin = isFullAdminProfile(adminProfile);
   const visibleTabs = isFullAdmin ? tabs : tabs.filter((tab) => !adminOnlyTabs.includes(tab.id));
   const openAdminTab = (tabId: string, replace = false) => {
     setSelectedTab(tabId);
@@ -301,8 +319,8 @@ export function ComprehensiveAdminPanel() {
       const myProfile = await apiGet<any>("/api/me", { auth: true }).catch(() => null);
       if (!mounted || !myProfile) return;
       setAdminProfile(myProfile);
-      const isAdmin = myProfile?.role === "admin";
-      const isOrganizer = myProfile?.role === "organizer";
+      const isAdmin = isFullAdminProfile(myProfile);
+      const isOrganizer = isOrganizerProfile(myProfile);
       const canManage = isAdmin || isOrganizer;
       setIsCertificateAdmin(isAdmin);
       if (!canManage) return;
