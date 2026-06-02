@@ -9,6 +9,7 @@ import { MyCertificates } from "./MyCertificates";
 import { CertificateVerifyPage } from "./CertificateVerifyPage";
 import { GalleryPage, UserProfilePage, AchievementsPage, PartnersPage } from "./NewPages2";
 import { UpdatedAboutPage } from "./UpdatedAbout";
+import { TeamPage } from "./TeamPage";
 import { UpdatedFooter } from "./UpdatedFooter";
 import { getPersistenceLabel, publishBlogPost, submitEventProposal, submitProject } from "../lib/contentApi";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
@@ -399,6 +400,7 @@ function Nav() {
       label: "Community",
       dropdown: [
         { label: "About Us", path: "/about", icon: <BookMarked size={14} /> },
+        { label: "Team", path: "/team", icon: <Users size={14} /> },
         { label: "Gallery", path: "/gallery", icon: <Image size={14} /> },
         { label: "Partners", path: "/partners", icon: <Handshake size={14} /> },
         { label: "Contact", path: "/contact", icon: <Mail size={14} /> },
@@ -3174,8 +3176,9 @@ export default function App() {
           
           {/* New Pages */}
           <Route path="certificates" element={<ProtectedRoute><MyCertificates /></ProtectedRoute>} />
+          <Route path="verify" element={<CertificateVerifyPage />} />
           <Route path="verify/:code" element={<CertificateVerifyPage />} />
-          <Route path="team" element={<Navigate to="/about" replace />} />
+          <Route path="team" element={<TeamPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="resources" element={<ResourcesPage />} />
           <Route path="gallery" element={<GalleryPage />} />

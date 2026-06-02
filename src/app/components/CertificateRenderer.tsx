@@ -231,6 +231,23 @@ export async function downloadCertificatePdf(element: HTMLElement, verificationC
     scale: 2,
     useCORS: true,
     backgroundColor: "#ffffff",
+    onclone: (_document, clonedElement) => {
+      const root = clonedElement as HTMLElement;
+      const clonedWindow = root.ownerDocument.defaultView;
+      if (!clonedWindow) return;
+
+      root.style.backgroundColor = "#ffffff";
+      root.style.color = "#073B91";
+      root.style.boxShadow = "none";
+
+      root.querySelectorAll<HTMLElement>("*").forEach((node) => {
+        const computed = clonedWindow.getComputedStyle(node);
+        if (computed.color.includes("oklab")) node.style.color = "#073B91";
+        if (computed.backgroundColor.includes("oklab")) node.style.backgroundColor = "transparent";
+        if (computed.borderColor.includes("oklab")) node.style.borderColor = "#073B91";
+        if (computed.boxShadow.includes("oklab")) node.style.boxShadow = "none";
+      });
+    },
   });
   const image = canvas.toDataURL("image/png");
   const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });

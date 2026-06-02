@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
-import { Award, Download, Eye, Shield, X } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Award, Download, Eye, Printer, Search, Shield, X } from "lucide-react";
 import { getPublicCertificateByVerificationCode } from "../services/certificateService";
 import type { PublicCertificate } from "../types/certificate";
 import { CertificatePrintStyles, CertificateRenderer, downloadCertificatePdf } from "./components/CertificateRenderer";
@@ -38,8 +38,10 @@ const setMetaTag = (name: string, content: string) => {
 
 export function CertificateVerifyPage() {
   const { code = "" } = useParams();
+  const navigate = useNavigate();
+  const [lookupCode, setLookupCode] = useState(code);
   const [certificate, setCertificate] = useState<PublicCertificate | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(code));
   const [error, setError] = useState("");
   const [showCertificate, setShowCertificate] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -49,6 +51,18 @@ export function CertificateVerifyPage() {
     let mounted = true;
 
     async function verify() {
+      if (!code) {
+        setCertificate(null);
+        setError("");
+        setLoading(false);
+        document.title = "Verify Certificate";
+        setMetaTag("og:title", "Verify Certificate - Data Science Club");
+        setMetaTag("og:description", "Verify a Data Science Club certificate by entering its verification code.");
+        return;
+      }
+
+      setLoading(true);
+      setLookupCode(code);
       try {
         const row = await getPublicCertificateByVerificationCode(code);
         if (!mounted) return;
@@ -74,6 +88,16 @@ export function CertificateVerifyPage() {
     };
   }, [code]);
 
+  const submitLookup = (event: React.FormEvent) => {
+    event.preventDefault();
+    const normalizedCode = lookupCode.trim().toUpperCase();
+    if (!normalizedCode) {
+      setError("Enter a verification code.");
+      return;
+    }
+    navigate(`/verify/${encodeURIComponent(normalizedCode)}`);
+  };
+
   const downloadCertificate = async () => {
     if (!certificate || !certificateRef.current) return;
     setDownloading(true);
@@ -84,11 +108,35 @@ export function CertificateVerifyPage() {
     }
   };
 
+  const printCertificate = () => {
+    setShowCertificate(true);
+    window.setTimeout(() => window.print(), 100);
+  };
+
   const isRevoked = certificate?.status === "revoked";
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-5xl mx-auto min-h-screen">
       <CertificatePrintStyles />
+      <Card className="no-print mb-8">
+        <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+          <div>
+            <h1 className="text-4xl md:text-5xl uppercase mb-2" style={fonts.display}>Verify Certificate</h1>
+            <p className="text-sm text-slate-600">Enter the code printed on a Data Science Club certificate.</p>
+          </div>
+          <form onSubmit={submitLookup} className="flex flex-col sm:flex-row gap-3">
+            <input
+              value={lookupCode}
+              onChange={(event) => setLookupCode(event.target.value)}
+              placeholder="CLUB-2026-00001"
+              className="min-w-[260px] border-2 border-[#171717] bg-white px-4 py-3 font-mono text-sm uppercase focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30"
+            />
+            <Button type="submit" color="bg-[#2563EB]" text="text-white">
+              <Search size={16} className="inline mr-2" /> Verify
+            </Button>
+          </form>
+        </div>
+      </Card>
       {loading ? (
         <Card>
           <p className="font-mono text-sm text-slate-500">Verifying certificate...</p>
@@ -98,11 +146,17 @@ export function CertificateVerifyPage() {
           <h1 className="text-4xl uppercase mb-3" style={fonts.display}>Verification unavailable</h1>
           <p className="font-mono text-sm">{error}</p>
         </Card>
-      ) : !certificate ? (
+      ) : !certificate && code ? (
         <Card>
           <Award size={42} className="mb-4 text-[#FB7185]" />
           <h1 className="text-5xl uppercase mb-3" style={fonts.display}>Certificate not found</h1>
           <p className="text-slate-600">Check the verification code and try again.</p>
+        </Card>
+      ) : !certificate ? (
+        <Card>
+          <Shield size={42} className="mb-4 text-[#2563EB]" />
+          <h1 className="text-5xl uppercase mb-3" style={fonts.display}>Ready To Verify</h1>
+          <p className="text-slate-600">Type a verification code above or scan a certificate QR code.</p>
         </Card>
       ) : (
         <div className="grid lg:grid-cols-[1fr_360px] gap-8">
@@ -146,6 +200,9 @@ export function CertificateVerifyPage() {
               <Button color="bg-[#FFE800]" className="w-full" onClick={downloadCertificate} disabled={downloading}>
                 <Download size={16} className="inline mr-2" /> {downloading ? "Preparing..." : "Download PDF"}
               </Button>
+              <Button color="bg-white" className="w-full" onClick={printCertificate}>
+                <Printer size={16} className="inline mr-2" /> Print Certificate
+              </Button>
             </div>
           </Card>
         </div>
@@ -154,7 +211,10 @@ export function CertificateVerifyPage() {
       {certificate && (
         <div className={`${showCertificate ? "fixed" : "absolute pointer-events-none opacity-0"} inset-0 z-50 bg-black/70 p-4 md:p-8 overflow-y-auto`}>
           {showCertificate && (
-            <div className="no-print mx-auto mb-4 flex max-w-7xl justify-end">
+            <div className="no-print mx-auto mb-4 flex max-w-7xl justify-end gap-3">
+              <Button color="bg-[#FFE800]" onClick={printCertificate}>
+                <Printer size={16} className="inline mr-2" /> Print
+              </Button>
               <Button color="bg-white" onClick={() => setShowCertificate(false)}>
                 <X size={16} className="inline mr-2" /> Close
               </Button>

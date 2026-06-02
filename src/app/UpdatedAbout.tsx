@@ -12,7 +12,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, Github, Linkedin, Mail, Users
+  ArrowLeft, Github, Linkedin, Mail
 } from "lucide-react";
 import { useSiteSettings } from "../lib/siteSettings";
 
@@ -49,31 +49,6 @@ export function UpdatedAboutPage() {
     { icon: <Mail size={20} />, url: `mailto:${settings.contactEmail}`, label: "Email", color: "bg-[#FFE800]", textColor: "text-[#171717]" },
   ].filter((social) => social.url && social.url !== "mailto:");
 
-  const groupedTeam = {
-    executive: settings.teamMembers.filter((member) => member.group === "executive"),
-    faculty: settings.teamMembers.filter((member) => member.group === "faculty"),
-    member: settings.teamMembers.filter((member) => member.group === "member"),
-  };
-
-  const renderTeamCard = (member: any, color = "bg-white") => (
-    <BrutalCard key={member.id} color={color} className={`${color === "bg-white" ? "" : "text-white"} h-full p-4 flex flex-col`}>
-      <div className="h-40 bg-slate-200 border-2 border-[#171717] mb-4 overflow-hidden">
-        <img src={member.image || "/assets/dsc-logo.png"} alt={member.name} className="w-full h-full object-cover" />
-      </div>
-      <BrutalBadge color={color === "bg-white" ? "bg-[#2563EB]" : "bg-white"} text={color === "bg-white" ? "text-white" : "text-[#171717]"} className="mb-3">
-        {member.position}
-      </BrutalBadge>
-      <h3 className="text-xl font-bold uppercase mb-1 leading-tight" style={fonts.display}>{member.name}</h3>
-      <p className={`text-xs mb-2 ${color === "bg-white" ? "text-slate-600" : "opacity-90"}`}>{member.meta}</p>
-      <p className={`text-sm mb-4 line-clamp-3 ${color === "bg-white" ? "text-slate-700" : "opacity-90"}`}>{member.bio}</p>
-      <div className="flex gap-2 pt-3 border-t-2 border-slate-200 mt-auto">
-        {member.linkedin && <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="p-2 border-2 border-[#171717] bg-[#2563EB] text-white"><Linkedin size={16} /></a>}
-        {member.github && <a href={member.github} target="_blank" rel="noopener noreferrer" className="p-2 border-2 border-[#171717] bg-[#171717] text-white"><Github size={16} /></a>}
-        {member.email && <a href={`mailto:${member.email}`} className="p-2 border-2 border-[#171717] bg-[#FFE800] text-[#171717]"><Mail size={16} /></a>}
-      </div>
-    </BrutalCard>
-  );
-
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
       <Link to="/" className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-12 hover:text-[#2563EB]">
@@ -98,39 +73,22 @@ export function UpdatedAboutPage() {
         </p>
       </div>
 
-      {/* Team Section */}
       <div className="mt-16 border-t-2 border-[#171717] pt-12">
-        <div className="flex items-center gap-3 mb-8">
-          <Users size={32} />
-          <h2 className="text-4xl md:text-5xl uppercase" style={fonts.display}>Meet The Team</h2>
-        </div>
-        {groupedTeam.executive.length > 0 && (
-          <div className="mb-12">
-            <h3 className="text-3xl uppercase mb-6" style={fonts.display}>Executive Board</h3>
-            <div className="grid md:grid-cols-3 gap-6">
-              {groupedTeam.executive.map((member) => renderTeamCard(member))}
-            </div>
-          </div>
-        )}
-        {groupedTeam.faculty.length > 0 && (
-          <div className="mb-12">
-            <h3 className="text-3xl uppercase mb-6" style={fonts.display}>Faculty Advisors</h3>
-            <div className="grid md:grid-cols-3 gap-6">
-              {groupedTeam.faculty.map((member) => renderTeamCard(member, "bg-[#7C3AED]"))}
-            </div>
-          </div>
-        )}
-        {groupedTeam.member.length > 0 && (
-          <div>
-            <h3 className="text-3xl uppercase mb-6" style={fonts.display}>Members</h3>
-            <div className="grid md:grid-cols-3 gap-6">
-              {groupedTeam.member.map((member) => renderTeamCard(member))}
-            </div>
-          </div>
-        )}
+        <BrutalCard color="bg-[#FFE800]">
+          <h2 className="text-4xl md:text-5xl uppercase mb-4" style={fonts.display}>People Behind The Club</h2>
+          <p className="mb-6 text-slate-700">
+            View the executive board, faculty advisors, and community members on the dedicated team page.
+          </p>
+          <Link
+            to="/team"
+            className="inline-flex border-2 border-[#171717] bg-[#171717] px-6 py-3 text-sm font-bold uppercase tracking-widest text-white brutal-shadow brutal-shadow-hover"
+          >
+            View Team
+          </Link>
+        </BrutalCard>
       </div>
 
-      {/* Team Photo Section */}
+      {/* Community Photo Section */}
       <div className="mt-16 border-t-2 border-[#171717] pt-12">
         <h2 className="text-4xl md:text-5xl uppercase mb-6" style={fonts.display}>Our Community</h2>
         <BrutalCard className="p-0 overflow-hidden">
