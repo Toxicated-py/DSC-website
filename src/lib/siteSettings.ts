@@ -30,6 +30,9 @@ export interface FAQItem {
 export interface TeamMember {
   id: string;
   group: "executive" | "faculty" | "member";
+  source?: "profile" | "manual";
+  profileId?: string;
+  profileEmail?: string;
   name: string;
   position: string;
   meta: string;

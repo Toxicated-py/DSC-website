@@ -265,6 +265,13 @@ export function ComprehensiveAdminPanel() {
   const [siteSettings, setSiteSettings] = useState(defaultSiteSettings);
   const [settingsStatus, setSettingsStatus] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
+  const [openSettingsSections, setOpenSettingsSections] = useState<Record<string, boolean>>({
+    site: true,
+    contact: false,
+    social: false,
+    team: false,
+    faqs: false,
+  });
   const [newSocialLink, setNewSocialLink] = useState({ platform: "", url: "" });
   const [newContactItem, setNewContactItem] = useState<Omit<ContactItem, "id">>({
     type: "email",
@@ -274,6 +281,9 @@ export function ComprehensiveAdminPanel() {
   const [newFAQ, setNewFAQ] = useState<Omit<FAQItem, "id">>({ question: "", answer: "" });
   const [newTeamMember, setNewTeamMember] = useState<Omit<TeamMember, "id">>({
     group: "executive",
+    source: "profile",
+    profileId: "",
+    profileEmail: "",
     name: "",
     position: "",
     meta: "",
@@ -557,6 +567,35 @@ export function ComprehensiveAdminPanel() {
     });
   };
 
+  const profileToTeamFields = (profile: any) => ({
+    profileId: profile?.id || "",
+    profileEmail: profile?.email || "",
+    name: profile?.full_name || profile?.email || "",
+    meta: profile?.designation || profile?.major || "",
+    image: profile?.avatar_url || "",
+    bio: profile?.bio || "",
+    email: profile?.email || "",
+    linkedin: profile?.linkedin_username || "",
+    github: profile?.github_username || "",
+  });
+
+  const findProfileByEmail = (email?: string) => {
+    const normalized = (email || "").trim().toLowerCase();
+    if (!normalized) return null;
+    return profileOptions.find((profile) => String(profile.email || "").toLowerCase() === normalized) || null;
+  };
+
+  const linkTeamMemberToProfile = (id: string, email?: string) => {
+    const profile = findProfileByEmail(email);
+    const normalizedEmail = (email || "").trim().toLowerCase();
+    updateTeamMember(id, {
+      source: "profile",
+      profileEmail: normalizedEmail,
+      ...(profile ? profileToTeamFields(profile) : {}),
+    });
+    setSettingsStatus(profile ? "Profile linked. Save settings to publish this team update." : "No profile found yet. The email is saved and will resolve when that user creates a profile.");
+  };
+
   const removeTeamMember = (id: string) => {
     setSiteSettings({
       ...siteSettings,
@@ -565,10 +604,12 @@ export function ComprehensiveAdminPanel() {
   };
 
   const addTeamMember = () => {
-    const name = newTeamMember.name.trim();
+    const profile = newTeamMember.source === "profile" ? findProfileByEmail(newTeamMember.profileEmail) : null;
+    const profileFields = profile ? profileToTeamFields(profile) : {};
+    const name = (profileFields.name || newTeamMember.name).trim();
     const position = newTeamMember.position.trim();
-    if (!name || !position) {
-      setSettingsStatus("Add at least the team member name and position.");
+    if (!position || (!name && !newTeamMember.profileEmail?.trim())) {
+      setSettingsStatus("Add a position and either a profile email or manual name.");
       return;
     }
 
@@ -578,20 +619,26 @@ export function ComprehensiveAdminPanel() {
         ...siteSettings.teamMembers,
         {
           ...newTeamMember,
+          ...profileFields,
           id: `team-${Date.now()}`,
           name,
           position,
-          meta: newTeamMember.meta.trim(),
-          image: newTeamMember.image.trim(),
-          bio: newTeamMember.bio.trim(),
-          email: newTeamMember.email.trim(),
-          linkedin: newTeamMember.linkedin.trim(),
-          github: newTeamMember.github.trim(),
+          source: newTeamMember.source || "manual",
+          profileEmail: (profileFields.profileEmail || newTeamMember.profileEmail || "").trim().toLowerCase(),
+          meta: (profileFields.meta || newTeamMember.meta).trim(),
+          image: (profileFields.image || newTeamMember.image).trim(),
+          bio: (profileFields.bio || newTeamMember.bio).trim(),
+          email: (profileFields.email || newTeamMember.email).trim(),
+          linkedin: (profileFields.linkedin || newTeamMember.linkedin).trim(),
+          github: (profileFields.github || newTeamMember.github).trim(),
         },
       ],
     });
     setNewTeamMember({
       group: "executive",
+      source: "profile",
+      profileId: "",
+      profileEmail: "",
       name: "",
       position: "",
       meta: "",
@@ -1738,6 +1785,27 @@ export function ComprehensiveAdminPanel() {
   });
   const activeCredentialCount = issuedCertificates.filter((certificate) => certificate.status !== "revoked" && certificate.status !== "archived").length;
   const revokedCredentialCount = issuedCertificates.filter((certificate) => certificate.status === "revoked" || certificate.status === "archived").length;
+  const SettingsSection = ({ id, title, description, children }: any) => {
+    const isOpen = Boolean(openSettingsSections[id]);
+    return (
+      <BrutalCard>
+        <button
+          type="button"
+          onClick={() => setOpenSettingsSections((sections) => ({ ...sections, [id]: !sections[id] }))}
+          className="flex w-full items-center justify-between gap-4 text-left"
+        >
+          <div>
+            <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>{title}</h2>
+            {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
+          </div>
+          <span className="border-2 border-[#171717] bg-[#FFE800] px-3 py-1 text-xs font-bold uppercase tracking-widest">
+            {isOpen ? "Hide" : "Edit"}
+          </span>
+        </button>
+        {isOpen && <div className="mt-6">{children}</div>}
+      </BrutalCard>
+    );
+  };
 
   return (
     <div className="pt-32 pb-20 px-4 md:px-6 max-w-[1600px] mx-auto min-h-screen bg-[#F4EFEB]">
@@ -3343,17 +3411,15 @@ export function ComprehensiveAdminPanel() {
               {settingsStatus}
             </div>
           )}
-          <BrutalCard>
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Site Settings</h2>
+          <SettingsSection id="site" title="Site Settings" description="Main website name and tagline.">
             <BrutalInput label="Site Name" value={siteSettings.siteName} onChange={(e: any) => setSiteSettings({...siteSettings, siteName: e.target.value})} />
             <BrutalInput label="Tagline" value={siteSettings.tagline} onChange={(e: any) => setSiteSettings({...siteSettings, tagline: e.target.value})} />
             <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Settings"}
             </BrutalButton>
-          </BrutalCard>
+          </SettingsSection>
 
-          <BrutalCard>
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Contact Information</h2>
+          <SettingsSection id="contact" title="Contact Information" description="Contact cards, address, and office hours shown on Contact page.">
             <BrutalTextarea
               label="Office Hours"
               value={siteSettings.officeHours}
@@ -3437,10 +3503,9 @@ export function ComprehensiveAdminPanel() {
             <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Contact Info"}
             </BrutalButton>
-          </BrutalCard>
+          </SettingsSection>
 
-          <BrutalCard>
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Social Media Links</h2>
+          <SettingsSection id="social" title="Social Media Links" description="Add, remove, or edit footer and contact social links.">
             <div className="space-y-4">
               {Object.entries(siteSettings.socialLinks).map(([platform, url]) => (
                 <div key={platform} className="grid lg:grid-cols-[220px_1fr_auto] gap-3 items-end border-2 border-[#171717] bg-[#F4EFEB] p-3">
@@ -3489,14 +3554,36 @@ export function ComprehensiveAdminPanel() {
             <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Social Links"}
             </BrutalButton>
-          </BrutalCard>
+          </SettingsSection>
 
-          <BrutalCard>
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Team Members</h2>
-            <p className="text-sm text-slate-600 mb-4">These members appear inside the About Us page.</p>
+          <SettingsSection id="team" title="Team Members" description="Profile-linked executives/members and manual advisors shown on Team page.">
             <div className="space-y-4">
               {siteSettings.teamMembers.map((member) => (
                 <div key={member.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                  <div className="mb-3 grid md:grid-cols-[180px_1fr_auto] gap-3 items-end">
+                    <BrutalSelect
+                      label="Source"
+                      value={member.source || "manual"}
+                      onChange={(e: any) => updateTeamMember(member.id, { source: e.target.value })}
+                      options={[
+                        { value: "profile", label: "Profile Linked" },
+                        { value: "manual", label: "Manual Entry" },
+                      ]}
+                    />
+                    <BrutalInput
+                      label="Profile Email"
+                      value={member.profileEmail || ""}
+                      onChange={(e: any) => updateTeamMember(member.id, { profileEmail: e.target.value })}
+                      placeholder="member@sms.tu.edu.np"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => linkTeamMemberToProfile(member.id, member.profileEmail)}
+                      className="h-[52px] px-4 border-2 border-[#171717] bg-[#FFE800] text-[#171717] hover:bg-yellow-300 font-bold uppercase tracking-widest text-xs brutal-shadow"
+                    >
+                      Link Profile
+                    </button>
+                  </div>
                   <div className="grid md:grid-cols-3 gap-3">
                     <BrutalSelect
                       label="Group"
@@ -3532,6 +3619,30 @@ export function ComprehensiveAdminPanel() {
               ))}
 
               <div className="border-2 border-dashed border-[#171717] bg-white p-3">
+                <div className="grid md:grid-cols-[180px_1fr] gap-3">
+                  <BrutalSelect
+                    label="New Source"
+                    value={newTeamMember.source || "profile"}
+                    onChange={(e: any) => setNewTeamMember({ ...newTeamMember, source: e.target.value })}
+                    options={[
+                      { value: "profile", label: "Profile Linked" },
+                      { value: "manual", label: "Manual Entry" },
+                    ]}
+                  />
+                  <BrutalInput
+                    label="New Profile Email"
+                    value={newTeamMember.profileEmail || ""}
+                    onChange={(e: any) => {
+                      const profile = findProfileByEmail(e.target.value);
+                      setNewTeamMember({
+                        ...newTeamMember,
+                        profileEmail: e.target.value,
+                        ...(profile ? profileToTeamFields(profile) : {}),
+                      });
+                    }}
+                    placeholder="Use for executives/members with website profiles"
+                  />
+                </div>
                 <div className="grid md:grid-cols-3 gap-3">
                   <BrutalSelect
                     label="New Group"
@@ -3568,10 +3679,9 @@ export function ComprehensiveAdminPanel() {
             <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Team"}
             </BrutalButton>
-          </BrutalCard>
+          </SettingsSection>
 
-          <BrutalCard>
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Frequently Asked Questions</h2>
+          <SettingsSection id="faqs" title="Frequently Asked Questions" description="Questions and answers shown on the Contact page.">
             <div className="space-y-4">
               {siteSettings.faqs.map((faq) => (
                 <div key={faq.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">
@@ -3618,7 +3728,7 @@ export function ComprehensiveAdminPanel() {
             <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save FAQs"}
             </BrutalButton>
-          </BrutalCard>
+          </SettingsSection>
         </div>
       )}
 

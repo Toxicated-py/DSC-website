@@ -38,9 +38,14 @@ def get_supabase(settings: Settings = Depends(get_settings)) -> SupabaseRestClie
         raise supabase_http_error(exc) from exc
 
 
-async def select_one(client: SupabaseRestClient, table: str, filters: dict[str, str]) -> dict[str, Any] | None:
+async def select_one(
+    client: SupabaseRestClient,
+    table: str,
+    filters: dict[str, str],
+    columns: str = "*",
+) -> dict[str, Any] | None:
     try:
-        return await client.select(table, filters=filters, single=True)
+        return await client.select(table, columns=columns, filters=filters, single=True)
     except SupabaseRestError as exc:
         if exc.status_code == 406:
             return None
@@ -367,7 +372,68 @@ async def get_site_settings(client: SupabaseRestClient = Depends(get_supabase)) 
             return {}
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
-    return row.get("value") if isinstance(row, dict) else {}
+    value = row.get("value") if isinstance(row, dict) else {}
+    if not isinstance(value, dict):
+        return {}
+
+    team_members = value.get("teamMembers")
+    if isinstance(team_members, list):
+        profile_ids = {
+            member.get("profileId")
+            for member in team_members
+            if isinstance(member, dict) and member.get("profileId")
+        }
+        profile_emails = {
+            str(member.get("profileEmail")).lower()
+            for member in team_members
+            if isinstance(member, dict) and member.get("profileEmail")
+        }
+        profiles: list[dict[str, Any]] = []
+        for profile_id in profile_ids:
+            profile = await select_one(
+                client,
+                "profiles",
+                {"id": f"eq.{profile_id}"},
+                columns="id,email,full_name,avatar_url,bio,designation,major,github_username,linkedin_username",
+            )
+            if profile:
+                profiles.append(profile)
+        for profile_email in profile_emails:
+            profile = await select_one(
+                client,
+                "profiles",
+                {"email": f"eq.{profile_email}"},
+                columns="id,email,full_name,avatar_url,bio,designation,major,github_username,linkedin_username",
+            )
+            if profile:
+                profiles.append(profile)
+
+        profiles_by_id = {profile.get("id"): profile for profile in profiles if profile.get("id")}
+        profiles_by_email = {str(profile.get("email", "")).lower(): profile for profile in profiles if profile.get("email")}
+        resolved_members = []
+        for member in team_members:
+            if not isinstance(member, dict):
+                continue
+            profile = profiles_by_id.get(member.get("profileId")) or profiles_by_email.get(str(member.get("profileEmail", "")).lower())
+            if profile:
+                resolved_members.append({
+                    **member,
+                    "source": "profile",
+                    "profileId": profile.get("id"),
+                    "profileEmail": profile.get("email"),
+                    "name": profile.get("full_name") or member.get("name") or profile.get("email") or "Member",
+                    "meta": member.get("meta") or profile.get("designation") or profile.get("major") or "",
+                    "image": profile.get("avatar_url") or member.get("image") or "",
+                    "bio": profile.get("bio") or member.get("bio") or "",
+                    "email": member.get("email") or profile.get("email") or "",
+                    "linkedin": member.get("linkedin") or profile.get("linkedin_username") or "",
+                    "github": member.get("github") or profile.get("github_username") or "",
+                })
+            else:
+                resolved_members.append(member)
+        value = {**value, "teamMembers": resolved_members}
+
+    return value
 
 
 @app.get("/api/events")

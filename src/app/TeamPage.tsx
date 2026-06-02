@@ -18,6 +18,15 @@ const BrutalBadge = ({ children, color = "bg-[#FB7185]", text = "text-white", cl
   </span>
 );
 
+const profileUrl = (value: string | undefined, platform: "github" | "linkedin") => {
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  const cleaned = value.replace(/^@/, "").replace(/^\/+/, "");
+  return platform === "github"
+    ? `https://github.com/${cleaned}`
+    : `https://linkedin.com/in/${cleaned}`;
+};
+
 export function TeamPage() {
   const settings = useSiteSettings();
   const groups = [
@@ -46,15 +55,15 @@ export function TeamPage() {
               <Mail size={16} />
             </a>
           )}
-          {member.linkedin && (
-            <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="border-2 border-[#171717] bg-[#2563EB] p-2 text-white" title="LinkedIn">
-              <ExternalLink size={16} />
-            </a>
-          )}
-          {member.github && (
-            <a href={member.github} target="_blank" rel="noopener noreferrer" className="border-2 border-[#171717] bg-[#171717] p-2 text-white" title="GitHub">
-              <Github size={16} />
-            </a>
+        {member.linkedin && (
+          <a href={profileUrl(member.linkedin, "linkedin")} target="_blank" rel="noopener noreferrer" className="border-2 border-[#171717] bg-[#2563EB] p-2 text-white" title="LinkedIn">
+            <ExternalLink size={16} />
+          </a>
+        )}
+        {member.github && (
+          <a href={profileUrl(member.github, "github")} target="_blank" rel="noopener noreferrer" className="border-2 border-[#171717] bg-[#171717] p-2 text-white" title="GitHub">
+            <Github size={16} />
+          </a>
           )}
         </div>
       </BrutalCard>
