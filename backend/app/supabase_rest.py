@@ -15,14 +15,15 @@ class SupabaseRestError(RuntimeError):
 
 
 class SupabaseRestClient:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, *, auth_token: str | None = None) -> None:
         if not settings.is_supabase_configured:
             raise SupabaseRestError("Supabase is not configured for the Python API.", 503)
 
         self.base_url = settings.supabase_url.rstrip("/")
+        bearer_token = auth_token or settings.supabase_key
         self.headers = {
             "apikey": settings.supabase_key,
-            "authorization": f"Bearer {settings.supabase_key}",
+            "authorization": f"Bearer {bearer_token}",
             "content-type": "application/json",
         }
 

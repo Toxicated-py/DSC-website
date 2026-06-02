@@ -259,12 +259,9 @@ async def optional_profile(
         return None
     try:
         user = await get_current_user(authorization=authorization, settings=settings)
+        return await get_current_profile(user=user, authorization=authorization, settings=settings)
     except HTTPException:
         return None
-    user_id = user.get("id")
-    if not user_id:
-        return None
-    return await select_one(client, "profiles", {"id": f"eq.{user_id}"})
 
 
 async def can_manage_event(client: SupabaseRestClient, profile: dict[str, Any], event: dict[str, Any]) -> bool:
@@ -515,10 +512,11 @@ async def event_workspace(
 
     registered_count = await active_registration_count(client, event_id)
     profile = await optional_profile(authorization, settings, client)
-    manager = await can_manage_event(client, profile, event) if profile else False
+    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token")) if profile else None
+    manager = await can_manage_event(user_client or client, profile, event) if profile else False
     my_registration: dict[str, Any] | None = None
     if profile:
-        existing_registration = await client.select(
+        existing_registration = await (user_client or client).select(
             "event_registrations",
             columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
             filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
@@ -527,7 +525,7 @@ async def event_workspace(
         my_registration = existing_registration[0] if existing_registration else None
     attendees: list[dict[str, Any]] = []
     if manager:
-        registrations = await client.select(
+        registrations = await (user_client or client).select(
             "event_registrations",
             columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
             filters={"event_id": f"eq.{event_id}"},
@@ -554,8 +552,10 @@ async def event_workspace(
 async def reserve_event_spot(
     event_id: str,
     profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -570,12 +570,19 @@ async def reserve_event_spot(
         filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
         limit=1,
     )
+    if not existing:
+        existing = await user_client.select(
+            "event_registrations",
+            columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+            filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
+            limit=1,
+        )
     if existing:
         return {"message": "Already registered.", "registration": existing[0]}
     registered_count = await active_registration_count(client, event_id)
     if event.get("capacity") and registered_count >= int(event.get("capacity")):
         raise HTTPException(status_code=400, detail="This event is full.")
-    rows = await client.insert(
+    rows = await user_client.insert(
         "event_registrations",
         {"event_id": event_id, "user_id": profile["id"], "status": "registered"},
     )
@@ -585,9 +592,11 @@ async def reserve_event_spot(
 @app.get("/api/me/tickets")
 async def get_my_tickets(
     profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
-    registrations = await client.select(
+    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
+    registrations = await user_client.select(
         "event_registrations",
         columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
         filters={"user_id": f"eq.{profile['id']}"},
@@ -623,14 +632,16 @@ async def check_in_registration(
     event_id: str,
     registration_id: str,
     profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
-    if not await can_manage_event(client, profile, event):
+    if not await can_manage_event(user_client, profile, event):
         raise HTTPException(status_code=403, detail="You are not allowed to manage this event.")
-    rows = await client.update(
+    rows = await user_client.update(
         "event_registrations",
         {"status": "checked_in", "checked_in_at": datetime.now(timezone.utc).isoformat()},
         filters={"id": f"eq.{registration_id}", "event_id": f"eq.{event_id}"},
@@ -645,19 +656,21 @@ async def scan_event_ticket(
     event_id: str,
     payload: TicketScan,
     profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
     if event.get("end_time") and str(event.get("end_time")) < datetime.now(timezone.utc).isoformat():
         raise HTTPException(status_code=400, detail="Scanner is closed because this event has ended.")
-    if not await can_manage_event(client, profile, event):
+    if not await can_manage_event(user_client, profile, event):
         raise HTTPException(status_code=403, detail="You are not allowed to scan for this event.")
     ticket_code = payload.ticket_code.strip()
     if not ticket_code:
         raise HTTPException(status_code=400, detail="Ticket code is required.")
-    registrations = await client.select(
+    registrations = await user_client.select(
         "event_registrations",
         columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
         filters={"event_id": f"eq.{event_id}", "ticket_code": f"eq.{ticket_code}"},
@@ -679,7 +692,7 @@ async def scan_event_ticket(
             "registration": registration,
             "profile": attendee,
         }
-    rows = await client.update(
+    rows = await user_client.update(
         "event_registrations",
         {"status": "checked_in", "checked_in_at": datetime.now(timezone.utc).isoformat()},
         filters={"id": f"eq.{registration['id']}"},
@@ -843,7 +856,9 @@ async def get_certificate(
 
 @app.get("/api/me")
 async def get_me(profile: dict[str, Any] = Depends(get_current_profile)) -> dict[str, Any]:
-    return profile
+    visible_profile = dict(profile)
+    visible_profile.pop("_auth_token", None)
+    return visible_profile
 
 
 @app.patch("/api/me")

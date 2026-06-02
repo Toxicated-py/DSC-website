@@ -44,24 +44,47 @@ async def get_current_user(
 
 async def get_current_profile(
     user: dict[str, Any] = Depends(get_current_user),
+    authorization: str | None = Header(default=None),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
-    client = SupabaseRestClient(settings)
+    token = _token_from_header(authorization)
+    client = SupabaseRestClient(settings, auth_token=token)
     user_id = user.get("id")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid session.")
 
     try:
-      profile = await client.select(
-          "profiles",
-          filters={"id": f"eq.{user_id}"},
-          single=True,
-      )
+        profile = await client.select(
+            "profiles",
+            filters={"id": f"eq.{user_id}"},
+            single=True,
+        )
     except SupabaseRestError as exc:
         if exc.status_code == 406:
-            raise HTTPException(status_code=403, detail="Profile not found.") from exc
-        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+            email = user.get("email") or ""
+            metadata = user.get("user_metadata") or {}
+            full_name = metadata.get("full_name") or metadata.get("name") or email.split("@")[0] or "Member"
+            try:
+                rows = await client.insert(
+                    "profiles",
+                    {
+                        "id": user_id,
+                        "email": email,
+                        "full_name": full_name,
+                        "role": "member",
+                        "roles": ["member"],
+                        "membership_status": "approved",
+                    },
+                )
+            except SupabaseRestError as insert_exc:
+                raise HTTPException(status_code=insert_exc.status_code, detail=str(insert_exc)) from insert_exc
+            profile = rows[0] if rows else None
+            if not profile:
+                raise HTTPException(status_code=403, detail="Profile could not be created.") from exc
+        else:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
+    profile["_auth_token"] = token
     return profile
 
 
