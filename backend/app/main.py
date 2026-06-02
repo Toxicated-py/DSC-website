@@ -516,6 +516,15 @@ async def event_workspace(
     registered_count = await active_registration_count(client, event_id)
     profile = await optional_profile(authorization, settings, client)
     manager = await can_manage_event(client, profile, event) if profile else False
+    my_registration: dict[str, Any] | None = None
+    if profile:
+        existing_registration = await client.select(
+            "event_registrations",
+            columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+            filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
+            limit=1,
+        )
+        my_registration = existing_registration[0] if existing_registration else None
     attendees: list[dict[str, Any]] = []
     if manager:
         registrations = await client.select(
@@ -536,6 +545,7 @@ async def event_workspace(
     return {
         "event": {**event, "registeredCount": registered_count, "registered_count": registered_count},
         "can_manage": manager,
+        "my_registration": my_registration,
         "attendees": attendees,
     }
 
@@ -556,7 +566,7 @@ async def reserve_event_spot(
         raise HTTPException(status_code=400, detail="This event has ended.")
     existing = await client.select(
         "event_registrations",
-        columns="id",
+        columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
         filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
         limit=1,
     )
@@ -570,6 +580,42 @@ async def reserve_event_spot(
         {"event_id": event_id, "user_id": profile["id"], "status": "registered"},
     )
     return {"message": "Registered.", "registration": rows[0] if rows else None}
+
+
+@app.get("/api/me/tickets")
+async def get_my_tickets(
+    profile: dict[str, Any] = Depends(get_current_profile),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> list[dict[str, Any]]:
+    registrations = await client.select(
+        "event_registrations",
+        columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+        filters={"user_id": f"eq.{profile['id']}"},
+        order="registered_at.desc",
+    )
+    event_cache: dict[str, dict[str, Any] | None] = {}
+    tickets: list[dict[str, Any]] = []
+    for registration in registrations:
+        event_id = registration.get("event_id")
+        if event_id and event_id not in event_cache:
+            event_cache[event_id] = await select_one(
+                client,
+                "events",
+                {"id": f"eq.{event_id}"},
+                columns="id,title,event_type,start_time,end_time,venue,capacity,status",
+            )
+        tickets.append(
+            {
+                **registration,
+                "event": event_cache.get(event_id) if event_id else None,
+                "profile": {
+                    "id": profile.get("id"),
+                    "full_name": profile.get("full_name"),
+                    "email": profile.get("email"),
+                },
+            }
+        )
+    return tickets
 
 
 @app.patch("/api/events/{event_id}/registrations/{registration_id}/check-in")

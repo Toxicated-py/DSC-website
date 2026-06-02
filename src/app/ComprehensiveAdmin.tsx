@@ -313,9 +313,9 @@ export function ComprehensiveAdminPanel() {
     { id: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
     { id: "logs", label: "Logs", icon: <ListFilter size={16} /> },
   ];
-  const adminOnlyTabs = ["users", "gallery", "partners", "resources", "certificates", "contacts", "settings", "analytics", "logs"];
   const isFullAdmin = isFullAdminProfile(adminProfile);
-  const visibleTabs = isFullAdmin ? tabs : tabs.filter((tab) => !adminOnlyTabs.includes(tab.id));
+  const activeTab = isFullAdmin ? selectedTab : "events";
+  const visibleTabs = isFullAdmin ? tabs : tabs.filter((tab) => tab.id === "events");
   const openAdminTab = (tabId: string, replace = false) => {
     setSelectedTab(tabId);
     navigate(tabId === "overview" ? "/admin" : `/admin/${tabId}`, { replace });
@@ -333,7 +333,7 @@ export function ComprehensiveAdminPanel() {
   useEffect(() => {
     if (!adminProfile) return;
     if (!visibleTabs.some((tab) => tab.id === selectedTab)) {
-      openAdminTab("overview", true);
+      openAdminTab(visibleTabs[0]?.id || "overview", true);
     }
   }, [adminProfile, selectedTab, visibleTabs]);
 
@@ -1901,7 +1901,7 @@ export function ComprehensiveAdminPanel() {
             key={tab.id}
                 onClick={() => openAdminTab(tab.id)}
             className={`px-4 md:px-6 py-3 font-bold uppercase tracking-widest text-xs md:text-sm transition-all whitespace-nowrap flex items-center gap-2 ${
-              selectedTab === tab.id
+              activeTab === tab.id
                 ? "bg-[#171717] text-white border-2 border-[#171717]"
                 : "bg-white text-[#171717] border-2 border-transparent hover:border-[#171717]"
             }`}
@@ -1919,7 +1919,7 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* ─── OVERVIEW TAB ───────────────────────────────────────────────────── */}
-      {selectedTab === "overview" && (
+      {activeTab === "overview" && isFullAdmin && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
             <BrutalCard color="bg-[#2563EB]" className="text-white">
@@ -2011,7 +2011,7 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* ─── USERS TAB ───────────────────────────────────────────────────────── */}
-      {selectedTab === "users" && isFullAdmin && (
+      {activeTab === "users" && isFullAdmin && (
         <>
           {/* Search & Actions */}
           <div className="mb-8 flex flex-col md:flex-row gap-4">
@@ -2223,7 +2223,7 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* ─── EVENTS TAB ──────────────────────────────────────────────────────── */}
-      {selectedTab === "events" && (
+      {activeTab === "events" && (
         <>
           <div className="mb-8 flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
@@ -2415,7 +2415,7 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* ─── PROJECTS TAB ─────────────────────────────────────────────────────── */}
-      {selectedTab === "proposals" && (
+      {activeTab === "proposals" && isFullAdmin && (
         <div className="grid gap-6">
           {eventProposals.length === 0 ? (
             <BrutalCard color="bg-white" className="text-center">
@@ -2467,7 +2467,7 @@ export function ComprehensiveAdminPanel() {
         </div>
       )}
 
-      {selectedTab === "projects" && (
+      {activeTab === "projects" && isFullAdmin && (
         <>
           <div className="mb-8 flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
@@ -2603,9 +2603,9 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* ─── CONTENT TAB ───────────────────────────────────────────────────────── */}
-      {["blogs", "gallery", "partners", "resources"].includes(selectedTab) && (isFullAdmin || selectedTab === "blogs") && (
+      {["blogs", "gallery", "partners", "resources"].includes(activeTab) && isFullAdmin && (
         <div className="space-y-6">
-          {selectedTab === "blogs" && (
+          {activeTab === "blogs" && (
             <>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Blog Posts</h2>
@@ -2701,7 +2701,7 @@ export function ComprehensiveAdminPanel() {
             </>
           )}
 
-          {selectedTab === "gallery" && (
+          {activeTab === "gallery" && (
             <>
               <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Gallery Submissions</h2>
               <div className="grid md:grid-cols-2 gap-4">
@@ -2766,7 +2766,7 @@ export function ComprehensiveAdminPanel() {
             </>
           )}
 
-          {selectedTab === "partners" && (
+          {activeTab === "partners" && (
             <>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Partners</h2>
@@ -2816,7 +2816,7 @@ export function ComprehensiveAdminPanel() {
             </>
           )}
 
-          {selectedTab === "resources" && (
+          {activeTab === "resources" && (
             <div className="grid lg:grid-cols-[420px_1fr] gap-6">
               <BrutalCard color="bg-white">
                 <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Add Learning Material</h2>
@@ -2851,7 +2851,7 @@ export function ComprehensiveAdminPanel() {
         </div>
       )}
 
-      {selectedTab === "certificates" && (
+      {activeTab === "certificates" && isFullAdmin && (
         <div className="space-y-6">
           <BrutalCard color="bg-white">
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>
@@ -3346,7 +3346,7 @@ export function ComprehensiveAdminPanel() {
         </div>
       )}
 
-      {selectedTab === "content" && (
+      {activeTab === "content" && isFullAdmin && (
         <div className="space-y-6">
           <BrutalCard>
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Homepage Content</h2>
@@ -3377,7 +3377,7 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* ─── CONTACT INBOX TAB ─────────────────────────────────────────────────── */}
-      {selectedTab === "contacts" && isFullAdmin && (
+      {activeTab === "contacts" && isFullAdmin && (
         <div className="space-y-6">
           <div className="grid sm:grid-cols-3 gap-4">
             <BrutalCard color="bg-[#2563EB]" className="text-white">
@@ -3460,7 +3460,7 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* ─── SETTINGS TAB ──────────────────────────────────────────────────────── */}
-      {selectedTab === "settings" && (
+      {activeTab === "settings" && isFullAdmin && (
         <div className="space-y-6">
           {settingsStatus && (
             <div className="border-2 border-[#171717] bg-[#FFE800] p-3 font-bold text-sm uppercase tracking-widest brutal-shadow">
@@ -3789,7 +3789,7 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* ─── ANALYTICS TAB ──────────────────────────────────────────────────────── */}
-      {selectedTab === "analytics" && (
+      {activeTab === "analytics" && isFullAdmin && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <BrutalCard color="bg-[#2563EB]" className="text-white">
@@ -3950,7 +3950,7 @@ export function ComprehensiveAdminPanel() {
         </>
       )}
 
-      {selectedTab === "logs" && isFullAdmin && (
+      {activeTab === "logs" && isFullAdmin && (
         <div className="space-y-6">
           <div className="grid sm:grid-cols-3 gap-4">
             <BrutalCard color="bg-[#2563EB]" className="text-white">
