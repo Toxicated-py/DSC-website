@@ -150,6 +150,8 @@ const certificateTemplateOptions = [
   { value: "custom-image", label: "Custom Image", accent: "bg-[#7C3AED]", surface: "bg-white", text: "text-[#171717]" },
 ];
 
+const assignableRoleOptions = ["member", "student", "organizer", "president", "admin"];
+
 export function ComprehensiveAdminPanel() {
   const navigate = useNavigate();
   const { adminTab } = useParams();
@@ -376,6 +378,7 @@ export function ComprehensiveAdminPanel() {
         name: profile.full_name || profile.email || "Member",
         email: profile.email,
         role: profile.role,
+        roles: Array.isArray(profile.roles) && profile.roles.length ? profile.roles : [profile.role || "member"],
         membershipStatus: profile.membership_status,
         designationStatus: profile.designation_status,
         verified: profile.membership_status === "approved" || profile.role === "member" || profile.role === "organizer" || profile.role === "admin",
@@ -699,6 +702,27 @@ export function ComprehensiveAdminPanel() {
       designationStatus: patch.designation_status ?? user.designationStatus,
     } : user));
     setAdminStatus("User updated.");
+  };
+
+  const toggleUserRole = async (user: any, role: string) => {
+    const currentRoles = new Set<string>(Array.isArray(user.roles) ? user.roles : []);
+    if (currentRoles.has(role)) {
+      currentRoles.delete(role);
+    } else {
+      currentRoles.add(role);
+    }
+    currentRoles.add("member");
+
+    const nextRoles = Array.from(currentRoles);
+    const nextPrimaryRole = nextRoles.includes("admin")
+      ? "admin"
+      : nextRoles.includes("organizer")
+        ? "organizer"
+        : nextRoles.includes("student")
+          ? "student"
+          : "member";
+
+    await updateProfile(user.id, { roles: nextRoles, role: nextPrimaryRole });
   };
 
   const addDesignationOption = async () => {
@@ -2019,16 +2043,28 @@ export function ComprehensiveAdminPanel() {
                       </td>
                       <td className="p-4">
                         <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-end gap-2">
-                          <select
-                            value={user.role}
-                            onChange={(event) => updateProfile(user.id, { role: event.target.value })}
-                            className="border-2 border-[#171717] bg-white p-2 text-xs font-bold uppercase"
-                          >
-                            <option value="student">Student</option>
-                            <option value="member">Member</option>
-                            <option value="organizer">Organizer</option>
-                            <option value="admin">Admin</option>
-                          </select>
+                          <div className="flex max-w-sm flex-wrap justify-end gap-1">
+                            {assignableRoleOptions.map((role) => {
+                              const userRoles = new Set<string>(Array.isArray(user.roles) ? user.roles : []);
+                              const isActive = userRoles.has(role) || user.role === role;
+                              return (
+                                <button
+                                  key={role}
+                                  type="button"
+                                  onClick={() => void toggleUserRole(user, role)}
+                                  disabled={role === "member" && isActive}
+                                  className={`border-2 border-[#171717] px-2 py-1 text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                    isActive
+                                      ? "bg-[#2563EB] text-white"
+                                      : "bg-white hover:bg-[#FFE800] text-[#171717]"
+                                  } ${role === "member" && isActive ? "cursor-not-allowed opacity-80" : ""}`}
+                                  title={role === "member" ? "Every logged-in account keeps member access." : `Toggle ${role}`}
+                                >
+                                  {role}
+                                </button>
+                              );
+                            })}
+                          </div>
                           <button
                             onClick={() => updateProfile(user.id, { membership_status: user.membershipStatus === "approved" ? "pending" : "approved" })}
                             className="p-2 hover:bg-[#2563EB] hover:text-white border-2 border-[#171717] bg-white transition-all text-xs font-bold uppercase"
