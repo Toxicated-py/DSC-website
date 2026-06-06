@@ -42,6 +42,10 @@ def get_user_supabase(settings: Settings, profile: dict[str, Any]) -> SupabaseRe
     return SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
 
 
+def get_service_supabase(settings: Settings) -> SupabaseRestClient:
+    return SupabaseRestClient(settings, use_service_role=True)
+
+
 async def select_one(
     client: SupabaseRestClient,
     table: str,
@@ -227,17 +231,14 @@ async def list_accessible_resource(
     profile: dict[str, Any],
     resource: str,
     status: str | None = None,
+    service_client: SupabaseRestClient | None = None,
 ) -> list[dict[str, Any]]:
     table = table_for_resource(resource)
     filters = {"status": f"eq.{status}"} if status else None
     if is_full_admin(profile):
         if resource == "profiles":
-            if not client.admin_rpc_secret:
-                raise HTTPException(status_code=503, detail="Admin profile listing is not configured.")
-            rows = await client.rpc("admin_list_profiles", {"request_secret": client.admin_rpc_secret})
-            if status:
-                return [row for row in rows if row.get("membership_status") == status or row.get("status") == status]
-            return rows
+            admin_client = service_client or client
+            return await admin_client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
         return await client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
     await require_resource_access(client, profile, resource)
     owner_column = RESOURCE_OWNER_COLUMNS.get(resource)
@@ -834,8 +835,9 @@ async def create_contact_message(
 @app.get("/api/certificates/verify/{code}")
 async def verify_certificate(
     code: str,
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_service_supabase(settings)
     try:
         row = await client.select(
             "public_certificates",
@@ -1020,7 +1022,8 @@ async def admin_list_resource(
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
     user_client = get_user_supabase(settings, profile)
-    return await list_accessible_resource(user_client, profile, resource, status)
+    service_client = get_service_supabase(settings) if resource == "profiles" and is_full_admin(profile) else None
+    return await list_accessible_resource(user_client, profile, resource, status, service_client=service_client)
 
 
 @app.get("/api/admin/audit-logs")

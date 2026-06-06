@@ -15,15 +15,18 @@ class SupabaseRestError(RuntimeError):
 
 
 class SupabaseRestClient:
-    def __init__(self, settings: Settings, *, auth_token: str | None = None) -> None:
+    def __init__(self, settings: Settings, *, auth_token: str | None = None, use_service_role: bool = False) -> None:
         if not settings.is_supabase_configured:
             raise SupabaseRestError("Supabase is not configured for the Python API.", 503)
+        if use_service_role and not settings.supabase_service_role_key:
+            raise SupabaseRestError("Supabase service role key is not configured for this backend operation.", 503)
 
         self.base_url = settings.supabase_url.rstrip("/")
-        bearer_token = auth_token or settings.supabase_key
+        api_key = settings.supabase_service_role_key if use_service_role else settings.supabase_key
+        bearer_token = settings.supabase_service_role_key if use_service_role else auth_token or settings.supabase_key
         self.admin_rpc_secret = settings.admin_rpc_secret
         self.headers = {
-            "apikey": settings.supabase_key,
+            "apikey": api_key,
             "authorization": f"Bearer {bearer_token}",
             "content-type": "application/json",
         }

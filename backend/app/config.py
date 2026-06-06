@@ -33,9 +33,9 @@ class Settings(BaseModel):
     app_name: str = "DSC API"
     environment: str = os.getenv("APP_ENV", "development")
     supabase_url: str = os.getenv("SUPABASE_URL") or os.getenv("VITE_SUPABASE_URL", "")
+    supabase_service_role_key: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     supabase_key: str = (
-        os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-        or os.getenv("SUPABASE_PUBLISHABLE_KEY")
+        os.getenv("SUPABASE_PUBLISHABLE_KEY")
         or os.getenv("SUPABASE_ANON_KEY")
         or os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY")
         or os.getenv("VITE_SUPABASE_ANON_KEY")
