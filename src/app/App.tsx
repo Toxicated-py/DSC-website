@@ -717,27 +717,39 @@ function Layout() {
 // ─── Pages ─────────────────────────────────────────────────────────────────────
 
 function HomePage() {
-  const [homeEvents, setHomeEvents] = useState<any[]>([]);
-  const [homeProject, setHomeProject] = useState<any>(null);
+  const [homeEvents, setHomeEvents] = useState<any[]>([
+    {
+      id: "",
+      num: "14",
+      month: "JUN 2026",
+      label: "Python Data Bootcamp 2026",
+      type: "WORKSHOP",
+      capacity: 40,
+      registeredCount: 0,
+      color: "bg-[#2563EB]",
+    },
+  ]);
+  const [homeProject, setHomeProject] = useState<any>({
+    id: "",
+    title: "Research Paper Recommender",
+    category: "Machine Learning",
+    technologies: ["NLP", "Scikit-learn", "FastAPI"],
+  });
   const [homeStats, setHomeStats] = useState({
-    members: 0,
-    events: 0,
-    projects: 0,
+    members: 7,
+    events: 4,
+    projects: 3,
   });
 
   useEffect(() => {
     let mounted = true;
 
     async function loadHomePageData() {
-      const [approvedEvents, publishedEvents, summary] = await Promise.all([
-        apiGet<any[]>("/api/events?status=approved").catch(() => []),
-        apiGet<any[]>("/api/events?status=published").catch(() => []),
-        apiGet<any>("/api/home-summary").catch(() => null),
-      ]);
+      const summary = await apiGet<any>("/api/home-summary").catch(() => null);
 
       if (!mounted) return;
 
-      const events = [...approvedEvents, ...publishedEvents]
+      const events = [summary?.next_event].filter(Boolean)
         .filter((event, index, list) => list.findIndex((item) => item.id === event.id) === index)
         .sort((a, b) => String(a.start_time || "").localeCompare(String(b.start_time || "")))
         .slice(0, 4);
@@ -1062,33 +1074,33 @@ function EventsPage() {
     let mounted = true;
     async function loadEvents() {
       setLoadingEvents(true);
-      const [approvedEvents, publishedEvents] = await Promise.all([
-        apiGet<any[]>("/api/events?status=approved").catch(() => []),
-        apiGet<any[]>("/api/events?status=published").catch(() => []),
-      ]);
-      if (!mounted) return;
-      const data = [...approvedEvents, ...publishedEvents]
-        .filter((event, index, list) => list.findIndex((item) => item.id === event.id) === index)
-        .sort((a, b) => String(a.start_time || "").localeCompare(String(b.start_time || "")));
-      const colors = ["bg-[#2563EB]", "bg-[#FB7185]", "bg-[#171717]", "bg-[#7C3AED]"];
-      const today = new Date();
-      setAllEvents(data.map((event, index) => {
-        const start = event.start_time ? new Date(event.start_time) : new Date(event.created_at || Date.now());
-        const total = Number(event.capacity || 0);
-        const filled = Number(event.registeredCount || event.registered_count || 0);
-        return {
-          id: event.id,
-          title: event.title,
-          date: start.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }).toUpperCase(),
-          dateSort: start.toISOString().slice(0, 10),
-          type: (event.event_type || "EVENT").toUpperCase(),
-          total,
-          filled,
-          color: colors[index % colors.length],
-          status: start >= today ? "upcoming" : "past",
-        };
-      }));
-      setLoadingEvents(false);
+      try {
+        const data = await apiGet<any[]>("/api/events").catch(() => []);
+        if (!mounted) return;
+        const uniqueEvents = (data || [])
+          .filter((event, index, list) => list.findIndex((item) => item.id === event.id) === index)
+          .sort((a, b) => String(a.start_time || "").localeCompare(String(b.start_time || "")));
+        const colors = ["bg-[#2563EB]", "bg-[#FB7185]", "bg-[#171717]", "bg-[#7C3AED]"];
+        const today = new Date();
+        setAllEvents(uniqueEvents.map((event, index) => {
+          const start = event.start_time ? new Date(event.start_time) : new Date(event.created_at || Date.now());
+          const total = Number(event.capacity || 0);
+          const filled = Number(event.registeredCount || event.registered_count || 0);
+          return {
+            id: event.id,
+            title: event.title,
+            date: start.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }).toUpperCase(),
+            dateSort: start.toISOString().slice(0, 10),
+            type: (event.event_type || "EVENT").toUpperCase(),
+            total,
+            filled,
+            color: colors[index % colors.length],
+            status: start >= today ? "upcoming" : "past",
+          };
+        }));
+      } finally {
+        if (mounted) setLoadingEvents(false);
+      }
     }
     loadEvents();
     return () => {

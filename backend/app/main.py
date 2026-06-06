@@ -806,13 +806,17 @@ async def get_home_summary(client: SupabaseRestClient = Depends(get_supabase)) -
         columns="id",
         filters={"membership_status": "in.(approved,published)"},
     )
+    settings_rows = await client.select("site_settings", filters={"key": "eq.site"}, limit=1)
+    settings_value = settings_rows[0].get("value") if settings_rows else {}
+    team_members = settings_value.get("teamMembers") if isinstance(settings_value, dict) else []
+    member_count = len(members or []) or (len(team_members) if isinstance(team_members, list) else 0)
     return {
         "counts": {
             "events": len(events),
             "projects": len(projects),
             "blog_posts": len(posts),
             "partners": len(partners),
-            "members": len(members or []),
+            "members": member_count,
         },
         "next_event": events[0] if events else None,
         "featured_project": projects[0] if projects else None,
