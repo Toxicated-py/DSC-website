@@ -54,6 +54,29 @@ const GlobalStyles = () => (
     .brutal-shadow-lg {
       box-shadow: 12px 12px 0px #171717;
     }
+    .mobile-menu-panel {
+      top: var(--dsc-header-height, 88px);
+      max-height: calc(100dvh - var(--dsc-header-height, 88px));
+      overscroll-behavior: contain;
+    }
+    @media (max-width: 767px) {
+      .brutal-shadow {
+        box-shadow: 4px 4px 0px #171717;
+      }
+      .brutal-shadow-hover:hover {
+        box-shadow: 2px 2px 0px #171717;
+        transform: translate(2px, 2px);
+      }
+      .brutal-shadow-lg {
+        box-shadow: 6px 6px 0px #171717;
+      }
+      .mobile-readable-title {
+        font-size: clamp(3.75rem, 22vw, 6.5rem);
+      }
+      .mobile-section-title {
+        font-size: clamp(2.75rem, 13vw, 4.5rem);
+      }
+    }
   `}</style>
 );
 
@@ -445,9 +468,10 @@ function Nav() {
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-200 ${
         scrolled
-          ? "bg-[#F4EFEB] border-b-2 border-[#171717] py-3 px-6 md:px-8"
-          : "bg-[#F4EFEB] py-5 px-6 md:px-8"
+          ? "bg-[#F4EFEB] border-b-2 border-[#171717] py-3 px-4 sm:px-6 md:px-8"
+          : "bg-[#F4EFEB] py-4 sm:py-5 px-4 sm:px-6 md:px-8"
       }`}
+      style={{ ["--dsc-header-height" as string]: scrolled ? "74px" : "88px" }}
     >
       <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-4">
         {/* Logo */}
@@ -543,14 +567,19 @@ function Nav() {
         </div>
 
         {/* Mobile Toggle */}
-        <button className="md:hidden p-2 text-[#171717]" onClick={() => setMobileOpen(!mobileOpen)}>
+        <button
+          className="md:hidden p-2 text-[#171717] border-2 border-[#171717] bg-white"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-expanded={mobileOpen}
+          aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+        >
           {mobileOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
       {/* Mobile Nav */}
       {mobileOpen && (
-        <div className="fixed top-full left-0 w-full bg-[#F4EFEB] border-b-2 border-[#171717] p-6 flex flex-col gap-4 md:hidden z-40 max-h-[80vh] overflow-y-auto">
+        <div className="mobile-menu-panel fixed left-0 right-0 w-full bg-[#F4EFEB] border-y-2 border-[#171717] p-5 flex flex-col gap-4 md:hidden z-40 overflow-y-auto shadow-[0_8px_0_#171717]">
           {isLoggedIn && (
             <div className="pb-4 border-b-2 border-[#171717] flex items-center justify-between">
               <div>
@@ -573,7 +602,7 @@ function Nav() {
                 <div key={item.label}>
                   <button
                     onClick={() => setMobileExpanded(mobileExpanded === item.label ? null : item.label)}
-                    className="w-full flex items-center justify-between text-sm font-bold text-[#171717] uppercase tracking-widest py-1"
+                    className="w-full flex items-center justify-between text-sm font-bold text-[#171717] uppercase tracking-widest py-3 border-b border-[#171717]/15"
                   >
                     {item.label}
                     <ChevronDown size={15} className={`transition-transform ${mobileExpanded === item.label ? "rotate-180" : ""}`} />
@@ -582,7 +611,7 @@ function Nav() {
                     <div className="mt-2 ml-4 flex flex-col gap-3 border-l-2 border-[#171717] pl-4">
                       {item.dropdown.map((sub) => (
                         <Link key={sub.path + sub.label} to={sub.path} onClick={() => setMobileOpen(false)}
-                          className="flex items-center gap-2 text-xs font-bold text-[#171717] uppercase tracking-widest hover:text-[#2563EB]">
+                          className="flex items-center gap-2 text-xs font-bold text-[#171717] uppercase tracking-widest hover:text-[#2563EB] py-1">
                           {sub.icon} {sub.label}
                         </Link>
                       ))}
@@ -593,7 +622,7 @@ function Nav() {
             }
             return (
               <Link key={item.path} to={item.path!} onClick={() => setMobileOpen(false)}
-                className="text-sm font-bold text-[#171717] uppercase tracking-widest flex items-center gap-2 hover:text-[#2563EB]">
+                className="text-sm font-bold text-[#171717] uppercase tracking-widest flex items-center gap-2 hover:text-[#2563EB] py-2 border-b border-[#171717]/15">
                 {item.icon} {item.label}
               </Link>
             );
@@ -790,17 +819,17 @@ function HomePage() {
       <section className="relative pt-16 pb-0 md:pt-20 overflow-hidden min-h-screen flex flex-col border-b-2 border-[#171717]">
         {/* Background blobs */}
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden z-0">
-          <div className="absolute -top-20 -left-20 w-[600px] h-[600px] bg-[#E0DEF4]/60 mix-blend-multiply" style={{ clipPath: "polygon(0 0, 100% 0, 80% 100%, 0% 80%)" }} />
-          <div className="absolute -top-10 -left-10 w-[500px] h-[500px] bg-[#FADEE1]/50 mix-blend-multiply" style={{ clipPath: "polygon(0 0, 80% 10%, 100% 100%, 10% 80%)" }} />
+          <div className="absolute -top-16 -left-10 w-[280px] h-[280px] sm:-top-20 sm:-left-20 sm:w-[600px] sm:h-[600px] bg-[#E0DEF4]/60 mix-blend-multiply" style={{ clipPath: "polygon(0 0, 100% 0, 80% 100%, 0% 80%)" }} />
+          <div className="absolute -top-8 -left-6 w-[240px] h-[240px] sm:-top-10 sm:-left-10 sm:w-[500px] sm:h-[500px] bg-[#FADEE1]/50 mix-blend-multiply" style={{ clipPath: "polygon(0 0, 80% 10%, 100% 100%, 10% 80%)" }} />
           <div className="absolute top-32 right-32 md:right-64 w-24 h-24 rounded-full border-2 border-dashed border-[#FB7185]/60" />
         </div>
 
-        <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-10 w-full flex-1 grid lg:grid-cols-[1fr_360px] gap-10 items-start">
+        <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 w-full flex-1 grid lg:grid-cols-[1fr_360px] gap-10 items-start">
           {/* Left: title + tagline */}
           <div className="flex flex-col justify-center">
             <div className="relative inline-block select-none max-w-max">
               <h1
-                className="text-7xl sm:text-[9rem] md:text-[11rem] lg:text-[13rem] leading-[0.85] text-[#171717]"
+                className="mobile-readable-title sm:text-[9rem] md:text-[11rem] lg:text-[13rem] leading-[0.85] text-[#171717]"
                 style={{ ...fonts.display, textShadow: "8px 8px 0px #2563EB, 16px 16px 0px #FB7185" }}
               >
                 DATA<br />SARATHI
@@ -882,7 +911,7 @@ function HomePage() {
         </div>
 
         {/* Bottom event stat cards */}
-        <div className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-10 w-full mt-12 md:mt-16">
+        <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 w-full mt-12 md:mt-16">
           <div className="border-t-2 border-[#171717] pt-1">
             <div className="grid grid-cols-2 md:grid-cols-4">
               {homeEvents.length === 0 ? (
@@ -894,8 +923,7 @@ function HomePage() {
                 <Link
                   to={`/events/${ev.id}`}
                   key={i}
-                  className={`relative ${ev.color} border-r-2 border-[#171717] last:border-r-0 p-5 md:p-6 flex flex-col text-white hover:opacity-90 transition-opacity group`}
-                  style={{ borderBottomWidth: 0 }}
+                  className={`relative ${ev.color} border-r-2 border-b-2 md:border-b-0 border-[#171717] last:border-r-0 p-4 md:p-6 flex flex-col text-white hover:opacity-90 transition-opacity group min-h-[150px]`}
                 >
                   {ev.hot && (
                     <span className="absolute top-3 right-3 bg-[#FFE800] text-[#171717] text-[9px] font-bold uppercase px-1.5 py-0.5 border border-[#171717]">HOT</span>
@@ -914,11 +942,11 @@ function HomePage() {
 
       {/* ── About Us ── */}
       <section className="py-24 border-b-2 border-[#171717] bg-[#F4EFEB]">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-10">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-14 gap-4">
             <div>
               <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]" className="mb-4 inline-block">About Us</BrutalBadge>
-              <h2 className="text-5xl md:text-7xl text-[#171717] uppercase leading-none" style={fonts.display}>
+              <h2 className="mobile-section-title md:text-7xl text-[#171717] uppercase leading-none" style={fonts.display}>
                 More than<br/>just a club.
               </h2>
             </div>
@@ -979,7 +1007,7 @@ function HomePage() {
       <section className="py-32 bg-[#2563EB] text-white text-center border-b-2 border-[#171717] relative">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
         <div className="relative z-10 max-w-3xl mx-auto px-6">
-          <h2 className="text-6xl md:text-8xl mb-8 uppercase" style={fonts.display}>Ready to build?</h2>
+          <h2 className="mobile-section-title md:text-8xl mb-8 uppercase" style={fonts.display}>Ready to build?</h2>
           <p className="text-xl md:text-2xl mb-10 opacity-90" style={fonts.serif}>
             Join the community of builders, researchers, and data enthusiasts at SMS TU.
           </p>
