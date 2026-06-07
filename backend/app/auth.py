@@ -65,7 +65,11 @@ async def get_current_profile(
             metadata = user.get("user_metadata") or {}
             full_name = metadata.get("full_name") or metadata.get("name") or email.split("@")[0] or "Member"
             try:
-                rows = await client.insert(
+                try:
+                    write_client = SupabaseRestClient(settings, use_service_role=True)
+                except SupabaseRestError:
+                    write_client = client
+                rows = await write_client.insert(
                     "profiles",
                     {
                         "id": user_id,
@@ -77,12 +81,12 @@ async def get_current_profile(
                     },
                 )
             except SupabaseRestError as insert_exc:
-                raise HTTPException(status_code=insert_exc.status_code, detail=str(insert_exc)) from insert_exc
+                raise HTTPException(status_code=403, detail="Your account profile could not be prepared. Please try again.") from insert_exc
             profile = rows[0] if rows else None
             if not profile:
                 raise HTTPException(status_code=403, detail="Profile could not be created.") from exc
         else:
-            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+            raise HTTPException(status_code=exc.status_code, detail="Could not load your account profile. Please try again.") from exc
 
     profile["_auth_token"] = token
     return profile

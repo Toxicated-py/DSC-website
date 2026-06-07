@@ -1425,7 +1425,7 @@ function EventDetailPage() {
         </button>
         <BrutalCard color="bg-white">
           <h1 className="text-4xl uppercase mb-3" style={fonts.display}>Event not found</h1>
-          <p className="text-sm text-slate-600">Only approved events are visible publicly.</p>
+          <p className="text-sm text-slate-600">This event may have been archived, moved, or is not public yet.</p>
         </BrutalCard>
       </div>
     );

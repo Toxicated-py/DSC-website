@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Award, Download, Eye, Printer, Search, Shield, X } from "lucide-react";
+import { userFriendlyErrorMessage } from "../lib/apiClient";
 import { getPublicCertificateByVerificationCode } from "../services/certificateService";
 import type { PublicCertificate } from "../types/certificate";
 import { CertificatePrintStyles, CertificateRenderer, downloadCertificatePdf } from "./components/CertificateRenderer";
@@ -76,7 +77,7 @@ export function CertificateVerifyPage() {
             : "No Data Science Club certificate was found for this verification code."
         );
       } catch (verifyError: any) {
-        if (mounted) setError(verifyError.message || "Could not verify certificate.");
+        if (mounted) setError(userFriendlyErrorMessage(verifyError, "Could not verify certificate. Please check the code and try again."));
       } finally {
         if (mounted) setLoading(false);
       }

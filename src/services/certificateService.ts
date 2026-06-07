@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPatch, apiPost } from "../lib/apiClient";
+import { apiDelete, apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import type {
   Certificate,
@@ -120,7 +120,7 @@ export async function uploadSignatureImage(file: File): Promise<string> {
     upsert: false,
   });
 
-  if (error) throw new Error(`Could not upload signature image: ${error.message}`);
+  if (error) throw new Error(userFriendlyErrorMessage(error, "Could not upload signature image. Please try another image."));
 
   const { data } = supabase.storage.from("signatures").getPublicUrl(path);
   return data.publicUrl;
@@ -139,7 +139,7 @@ export async function uploadCertificateTemplateImage(file: File): Promise<string
     upsert: false,
   });
 
-  if (error) throw new Error(`Could not upload certificate template: ${error.message}`);
+  if (error) throw new Error(userFriendlyErrorMessage(error, "Could not upload certificate template. Please try another image."));
 
   const { data } = supabase.storage.from("certificate-templates").getPublicUrl(path);
   return data.publicUrl;

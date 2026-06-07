@@ -15,7 +15,7 @@ import {
   TrendingUp, Users, Code, BookOpen, Shield, Crown, GraduationCap, UserCheck, Handshake
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { apiGet, apiPatch, userFriendlyErrorMessage } from "../lib/apiClient";
+import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { submitGallery } from "../lib/contentApi";
 
 const fonts = {
@@ -73,13 +73,8 @@ export function GalleryPage() {
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
-  const [likedPhotos, setLikedPhotos] = useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("dsc-gallery-likes") || "[]");
-    } catch {
-      return [];
-    }
-  });
+  const [eventOptions, setEventOptions] = useState<any[]>([]);
+  const [likedPhotos, setLikedPhotos] = useState<string[]>([]);
   const [submittedPhotos, setSubmittedPhotos] = useState<any[]>([]);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
@@ -88,22 +83,30 @@ export function GalleryPage() {
     title: "",
     imageUrl: "",
     eventName: "",
+    eventId: "",
   });
 
   useEffect(() => {
     let mounted = true;
 
     async function loadGallery() {
-      const data = await apiGet<any[]>("/api/gallery").catch(() => []);
+      const [data, events] = await Promise.all([
+        apiGet<any[]>("/api/gallery", { auth: "optional" }).catch(() => []),
+        apiGet<any[]>("/api/events").catch(() => []),
+      ]);
       if (!mounted) return;
       setSubmittedPhotos((data || []).map((item) => ({
         id: item.id,
         url: item.image_url,
         title: item.title,
         event: item.event_name || "Community",
+        eventId: item.event_id || "",
         date: item.created_at ? new Date(item.created_at).toLocaleDateString() : "",
-        likes: 0,
+        likes: Number(item.likes_count || 0),
+        liked: Boolean(item.liked_by_me),
       })));
+      setLikedPhotos((data || []).filter((item) => item.liked_by_me).map((item) => item.id));
+      setEventOptions(events || []);
     }
 
     loadGallery();
@@ -124,12 +127,22 @@ export function GalleryPage() {
     });
   const selectedPhoto = selectedPhotoIndex === null ? null : filteredPhotos[selectedPhotoIndex];
 
-  const toggleLike = (photoId: string) => {
-    const next = likedPhotos.includes(photoId)
-      ? likedPhotos.filter((id) => id !== photoId)
-      : [...likedPhotos, photoId];
-    setLikedPhotos(next);
-    localStorage.setItem("dsc-gallery-likes", JSON.stringify(next));
+  const toggleLike = async (photoId: string) => {
+    try {
+      const result = await apiPost<{ liked: boolean; likes_count: number }>(`/api/gallery/${photoId}/like`, {}, { auth: true });
+      setLikedPhotos((current) => result.liked ? Array.from(new Set([...current, photoId])) : current.filter((id) => id !== photoId));
+      setSubmittedPhotos((current) => current.map((photo) => photo.id === photoId ? {
+        ...photo,
+        likes: result.likes_count,
+        liked: result.liked,
+      } : photo));
+    } catch (error: any) {
+      if (error?.status === 401) {
+        navigate("/login?redirect=/gallery");
+        return;
+      }
+      setSubmitStatus(userFriendlyErrorMessage(error, "Could not update like. Please try again."));
+    }
   };
 
   const submitGalleryPhoto = async (event: React.FormEvent) => {
@@ -150,8 +163,9 @@ export function GalleryPage() {
         title: urls.length === 1 ? galleryForm.title.trim() : `${galleryForm.title.trim()} ${index + 1}`.trim(),
         image_url: url,
         event_name: galleryForm.eventName.trim() || "Community",
+        event_id: galleryForm.eventId || null,
       })));
-      setGalleryForm({ title: "", imageUrl: "", eventName: "" });
+      setGalleryForm({ title: "", imageUrl: "", eventName: "", eventId: "" });
       setSubmitStatus("Photo submitted for admin approval.");
       setShowSubmitForm(false);
     } catch (error: any) {
@@ -246,7 +260,7 @@ export function GalleryPage() {
                   className="inline-flex items-center gap-1 font-bold"
                 >
                   <Heart size={12} className={likedPhotos.includes(photo.id) ? "fill-[#FB7185] text-[#FB7185]" : "text-[#FB7185]"} />
-                  <span>{(photo.likes || 0) + (likedPhotos.includes(photo.id) ? 1 : 0)} likes</span>
+                  <span>{photo.likes || 0} likes</span>
                 </button>
               </div>
             </div>
@@ -286,6 +300,28 @@ export function GalleryPage() {
               onChange={(event: any) => setGalleryForm({ ...galleryForm, eventName: event.target.value })}
               placeholder="Workshop, Hackathon, Community"
             />
+            {eventOptions.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-xs font-bold uppercase tracking-widest mb-2">Link Event</label>
+                <select
+                  value={galleryForm.eventId}
+                  onChange={(event: any) => {
+                    const selected = eventOptions.find((item) => item.id === event.target.value);
+                    setGalleryForm({
+                      ...galleryForm,
+                      eventId: event.target.value,
+                      eventName: selected?.title || galleryForm.eventName,
+                    });
+                  }}
+                  className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all"
+                >
+                  <option value="">No linked event</option>
+                  {eventOptions.map((event) => (
+                    <option key={event.id} value={event.id}>{event.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full" disabled={submittingGallery}>
               {submittingGallery ? "Submitting..." : "Submit for Review"}
             </BrutalButton>
