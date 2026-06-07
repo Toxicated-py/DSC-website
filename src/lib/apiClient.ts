@@ -14,6 +14,30 @@ export class ApiError extends Error {
   }
 }
 
+export function userFriendlyErrorMessage(error: unknown, fallback = "Something went wrong. Please try again."): string {
+  const raw = error instanceof Error ? error.message : String(error || "");
+  const lower = raw.toLowerCase();
+
+  if (!raw) return fallback;
+  if (lower.includes("login required") || lower.includes("invalid or expired session") || lower.includes("jwt") || lower.includes("authorization")) {
+    return "Please log in again to continue.";
+  }
+  if (lower.includes("duplicate") || lower.includes("already") || lower.includes("unique constraint")) {
+    return "This has already been submitted.";
+  }
+  if (lower.includes("violates row-level security") || lower.includes("permission denied") || lower.includes("403")) {
+    return "You do not have permission to do that.";
+  }
+  if (lower.includes("foreign key") || lower.includes("profile not found")) {
+    return "Your account profile is still being prepared. Please refresh and try again.";
+  }
+  if (lower.includes("schema cache") || lower.includes("column") || lower.includes("relation") || lower.includes("supabase") || lower.includes("postgres") || lower.includes("null value") || lower.includes("internal server error")) {
+    return fallback;
+  }
+  if (raw.length > 180 || /[{}[\]();]/.test(raw)) return fallback;
+  return raw;
+}
+
 async function authHeader(auth?: boolean): Promise<Record<string, string>> {
   if (!auth) return {};
   if (!isSupabaseConfigured || !supabase) {
@@ -56,7 +80,7 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
     } catch {
       // Keep the HTTP status text if the response is not JSON.
     }
-    throw new ApiError(message, response.status);
+    throw new ApiError(userFriendlyErrorMessage(message, response.status >= 500 ? "The server could not complete that request. Please try again soon." : message), response.status);
   }
 
   if (response.status === 204) return undefined as T;

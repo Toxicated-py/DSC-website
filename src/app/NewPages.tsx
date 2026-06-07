@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { useSiteSettings } from "../lib/siteSettings";
-import { apiGet, apiPost } from "../lib/apiClient";
+import { apiGet, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -927,7 +927,7 @@ export function ContactPage() {
       setContactStatus("Message sent. We will get back to you soon.");
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (error: any) {
-      setContactStatus(error?.message || "Could not send message right now. Please email us directly.");
+      setContactStatus(userFriendlyErrorMessage(error, "Could not send message right now. Please email us directly."));
     } finally {
       setSubmittingMessage(false);
     }

@@ -20,10 +20,11 @@
  * - Implement role-based access control on backend
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check, Shield, User, UserCheck, GraduationCap, Settings, Search, Edit, Trash2, Crown, X, Eye, EyeOff } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { userFriendlyErrorMessage } from "../lib/apiClient";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -80,6 +81,21 @@ export function NewLoginPage() {
   ];
   const isStrongPassword = passwordRules.every((rule) => rule.valid);
 
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      if (data.session?.user) {
+        localStorage.setItem("dsc-auth-state", "logged-in");
+        navigate(redirectTo, { replace: true });
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [navigate, redirectTo]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -103,8 +119,8 @@ export function NewLoginPage() {
       }
 
       if (!isSupabaseConfigured || !supabase) {
-        localStorage.setItem("dsc-auth-state", "logged-in");
-        navigate(redirectTo);
+        localStorage.setItem("dsc-auth-state", "logged-out");
+        setError("Login is temporarily unavailable. Please try again later.");
         return;
       }
 
@@ -128,7 +144,7 @@ export function NewLoginPage() {
 
       if (response.error) {
         localStorage.setItem("dsc-auth-state", "logged-out");
-        setError(response.error.message);
+        setError(userFriendlyErrorMessage(response.error, "Could not sign in. Check your email and password."));
         return;
       }
 
@@ -153,26 +169,26 @@ export function NewLoginPage() {
     setError("");
 
     if (!isSupabaseConfigured || !supabase) {
-      localStorage.setItem("dsc-auth-state", "logged-in");
-      navigate(redirectTo);
+      localStorage.setItem("dsc-auth-state", "logged-out");
+      setError("Google sign in is temporarily unavailable.");
       return;
     }
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}${redirectTo}`,
+        redirectTo: `${window.location.origin}/login?redirect=${encodeURIComponent(redirectTo)}`,
       },
     });
 
-    if (error) setError(error.message);
+    if (error) setError(userFriendlyErrorMessage(error, "Google sign in could not start. Please try again."));
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#2563EB]">
       <button
         type="button"
-        onClick={() => navigate("/")}
+        onClick={() => navigate(redirectTo)}
         aria-label="Close login"
         className="fixed top-6 right-6 z-20 w-12 h-12 bg-white border-2 border-[#171717] brutal-shadow brutal-shadow-hover transition-all flex items-center justify-center"
       >

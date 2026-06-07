@@ -28,7 +28,20 @@ from .supabase_rest import SupabaseRestClient, SupabaseRestError
 
 
 def supabase_http_error(exc: SupabaseRestError) -> HTTPException:
-    return HTTPException(status_code=exc.status_code, detail=str(exc))
+    raw = str(exc).lower()
+    if exc.status_code in {401, 403}:
+        detail = "You do not have permission to do this. Please log in again."
+    elif exc.status_code == 404:
+        detail = "The requested item could not be found."
+    elif exc.status_code == 409 or "duplicate" in raw or "unique" in raw:
+        detail = "This item already exists."
+    elif "foreign key" in raw or "profile" in raw:
+        detail = "Your account profile is still being prepared. Please refresh and try again."
+    elif "null value" in raw or "schema cache" in raw or "column" in raw or exc.status_code >= 500:
+        detail = "We could not save this right now. Please check the form and try again."
+    else:
+        detail = "Something went wrong. Please try again."
+    return HTTPException(status_code=exc.status_code, detail=detail)
 
 
 def get_supabase(settings: Settings = Depends(get_settings)) -> SupabaseRestClient:
@@ -567,7 +580,7 @@ async def reserve_event_spot(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
-    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
+    service_client = get_service_supabase(settings)
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -582,23 +595,21 @@ async def reserve_event_spot(
         filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
         limit=1,
     )
-    if not existing:
-        existing = await user_client.select(
-            "event_registrations",
-            columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
-            filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
-            limit=1,
-        )
     if existing:
-        return {"message": "Already registered.", "registration": existing[0]}
+        count = await active_registration_count(client, event_id)
+        return {"message": "Already registered.", "registration": existing[0], "registered_count": count}
     registered_count = await active_registration_count(client, event_id)
     if event.get("capacity") and registered_count >= int(event.get("capacity")):
         raise HTTPException(status_code=400, detail="This event is full.")
-    rows = await user_client.insert(
+    rows = await service_client.insert(
         "event_registrations",
         {"event_id": event_id, "user_id": profile["id"], "status": "registered"},
     )
-    return {"message": "Registered.", "registration": rows[0] if rows else None}
+    return {
+        "message": "Registered.",
+        "registration": rows[0] if rows else None,
+        "registered_count": await active_registration_count(client, event_id),
+    }
 
 
 @app.get("/api/me/tickets")
@@ -810,6 +821,11 @@ async def get_home_summary(client: SupabaseRestClient = Depends(get_supabase)) -
     settings_value = settings_rows[0].get("value") if settings_rows else {}
     team_members = settings_value.get("teamMembers") if isinstance(settings_value, dict) else []
     member_count = len(members or []) or (len(team_members) if isinstance(team_members, list) else 0)
+    today = date.today().isoformat()
+    upcoming_events = [
+        event for event in events
+        if not event.get("start_time") or str(event.get("start_time")) >= today
+    ][:8]
     return {
         "counts": {
             "events": len(events),
@@ -818,7 +834,8 @@ async def get_home_summary(client: SupabaseRestClient = Depends(get_supabase)) -
             "partners": len(partners),
             "members": member_count,
         },
-        "next_event": events[0] if events else None,
+        "next_event": upcoming_events[0] if upcoming_events else (events[0] if events else None),
+        "upcoming_events": upcoming_events,
         "featured_project": projects[0] if projects else None,
     }
 
@@ -826,8 +843,9 @@ async def get_home_summary(client: SupabaseRestClient = Depends(get_supabase)) -
 @app.post("/api/contact-messages", status_code=201)
 async def create_contact_message(
     payload: ContactMessageCreate,
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_service_supabase(settings)
     try:
         rows = await client.insert("contact_messages", payload.model_dump())
     except SupabaseRestError as exc:
@@ -949,8 +967,9 @@ async def get_my_certificates(
 async def submit_event_proposal(
     payload: EventProposalCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_service_supabase(settings)
     await ensure_not_duplicate(
         client,
         "event_proposals",
@@ -974,8 +993,9 @@ async def submit_event_proposal(
 async def submit_project(
     payload: ProjectCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_service_supabase(settings)
     await ensure_not_duplicate(client, "projects", owner_column="author_id", owner_id=profile["id"], title=payload.title)
     row = await client.insert("projects", {**payload.model_dump(), "author_id": profile["id"], "status": "submitted"})
     return row[0]
@@ -985,8 +1005,9 @@ async def submit_project(
 async def submit_blog_post(
     payload: BlogPostCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_service_supabase(settings)
     await ensure_not_duplicate(client, "blog_posts", owner_column="author_id", owner_id=profile["id"], title=payload.title)
     row = await client.insert("blog_posts", {**payload.model_dump(), "author_id": profile["id"], "status": "submitted"})
     return row[0]
@@ -996,8 +1017,9 @@ async def submit_blog_post(
 async def submit_gallery(
     payload: GallerySubmissionCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_service_supabase(settings)
     existing = await client.select(
         "gallery_submissions",
         columns="id",
@@ -1036,7 +1058,7 @@ async def admin_list_audit_logs(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
-    user_client = get_user_supabase(settings, profile)
+    user_client = get_service_supabase(settings)
     try:
         return await user_client.select("audit_logs", order="created_at.desc", limit=250)
     except SupabaseRestError as exc:

@@ -14,7 +14,7 @@ import { UpdatedFooter } from "./UpdatedFooter";
 import { QRCodeCanvas } from "qrcode.react";
 import { getPersistenceLabel, publishBlogPost, submitEventProposal, submitProject } from "../lib/contentApi";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { apiGet, apiPatch, apiPost } from "../lib/apiClient";
+import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 
 // ─── Custom Discord Icon ───────────────────────────────────────────────────────
 const DiscordIcon = ({ size = 18 }: { size?: number }) => (
@@ -104,7 +104,8 @@ const BrutalBadge = ({ children, color = "bg-[#FB7185]", text="text-white", clas
 );
 
 function requireLoginForAction(navigate: ReturnType<typeof useNavigate>, returnTo: string) {
-  if (localStorage.getItem("dsc-auth-state") !== "logged-in") {
+  if (!isSupabaseConfigured || !supabase || localStorage.getItem("dsc-auth-state") !== "logged-in") {
+    localStorage.setItem("dsc-auth-state", "logged-out");
     navigate(`/login?redirect=${encodeURIComponent(returnTo)}`);
     return false;
   }
@@ -141,7 +142,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     async function checkAuth() {
       if (!isSupabaseConfigured || !supabase) {
-        setStatus(localStorage.getItem("dsc-auth-state") === "logged-out" ? "blocked" : "allowed");
+        localStorage.setItem("dsc-auth-state", "logged-out");
+        setStatus("blocked");
         return;
       }
 
@@ -184,7 +186,8 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
     async function checkAdmin() {
       if (!isSupabaseConfigured || !supabase) {
-        setStatus(localStorage.getItem("dsc-auth-state") === "logged-in" ? "allowed" : "login");
+        localStorage.setItem("dsc-auth-state", "logged-out");
+        setStatus("login");
         return;
       }
 
@@ -323,8 +326,7 @@ function Nav() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    if (isSupabaseConfigured) return false;
-    return localStorage.getItem("dsc-auth-state") !== "logged-out";
+    return false;
   });
   const [currentUser, setCurrentUser] = useState({
     name: "Member",
@@ -353,7 +355,8 @@ function Nav() {
     const syncSession = async (session: Awaited<ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>>["data"]["session"]) => {
       if (!mounted) return;
       if (!isSupabaseConfigured) {
-        setIsLoggedIn(localStorage.getItem("dsc-auth-state") !== "logged-out");
+        localStorage.setItem("dsc-auth-state", "logged-out");
+        setIsLoggedIn(false);
         return;
       }
       if (!session?.user) {
@@ -631,6 +634,11 @@ function Nav() {
           <div className="pt-3 border-t-2 border-[#171717] flex flex-col gap-3">
             {isLoggedIn ? (
               <>
+                <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
+                  <button className="w-full py-3 bg-[#171717] text-white text-sm font-bold uppercase tracking-widest border-2 border-[#171717] flex items-center justify-center gap-2">
+                    <Home size={15} /> Dashboard
+                  </button>
+                </Link>
                 {canOpenAdmin && (
                   <Link to="/admin" onClick={() => setMobileOpen(false)}>
                     <button className="w-full py-3 bg-[#FB7185] text-white text-sm font-bold uppercase tracking-widest border-2 border-[#171717] flex items-center justify-center gap-2">
@@ -778,10 +786,10 @@ function HomePage() {
 
       if (!mounted) return;
 
-      const events = [summary?.next_event].filter(Boolean)
+      const events = (summary?.upcoming_events?.length ? summary.upcoming_events : [summary?.next_event]).filter(Boolean)
         .filter((event, index, list) => list.findIndex((item) => item.id === event.id) === index)
         .sort((a, b) => String(a.start_time || "").localeCompare(String(b.start_time || "")))
-        .slice(0, 4);
+        .slice(0, 8);
       const colors = ["bg-[#2563EB]", "bg-[#FB7185]", "bg-[#171717]", "bg-[#7C3AED]"];
       setHomeEvents(events.map((event, index) => {
         const start = event.start_time ? new Date(event.start_time) : null;
@@ -799,7 +807,7 @@ function HomePage() {
       setHomeProject(summary?.featured_project || null);
       setHomeStats({
         members: summary?.counts?.members || 0,
-        events: summary?.counts?.events || events.length,
+        events: summary?.counts?.events ?? events.length,
         projects: summary?.counts?.projects || 0,
       });
     }
@@ -846,7 +854,7 @@ function HomePage() {
                 Student-run. Kathmandu-made. Data-driven with <i className="text-[#FB7185]">soul.</i>
               </p>
               <div className="mt-8 flex gap-4 flex-wrap">
-                <Link to="/register">
+                <Link to={localStorage.getItem("dsc-auth-state") === "logged-in" ? "/dashboard" : "/register"}>
                   <BrutalButton color="bg-[#FFE800]">Join the Club</BrutalButton>
                 </Link>
                 <Link to="/events">
@@ -913,9 +921,9 @@ function HomePage() {
         {/* Bottom event stat cards */}
         <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 w-full mt-12 md:mt-16">
           <div className="border-t-2 border-[#171717] pt-1">
-            <div className="grid grid-cols-2 md:grid-cols-4">
+            <div className="flex overflow-x-auto snap-x snap-mandatory md:grid md:grid-cols-4">
               {homeEvents.length === 0 ? (
-                <div className="col-span-2 md:col-span-4 bg-white p-6 text-center">
+                <div className="w-full md:col-span-4 bg-white p-6 text-center">
                   <p className="font-bold uppercase">No published events yet.</p>
                   <p className="mt-1 text-xs font-mono text-slate-500">Approved events will appear here automatically.</p>
                 </div>
@@ -923,7 +931,7 @@ function HomePage() {
                 <Link
                   to={`/events/${ev.id}`}
                   key={i}
-                  className={`relative ${ev.color} border-r-2 border-b-2 md:border-b-0 border-[#171717] last:border-r-0 p-4 md:p-6 flex flex-col text-white hover:opacity-90 transition-opacity group min-h-[150px]`}
+                  className={`relative ${ev.color} border-r-2 border-b-2 md:border-b-0 border-[#171717] last:border-r-0 p-4 md:p-6 flex flex-col text-white hover:opacity-90 transition-opacity group min-h-[150px] min-w-[78vw] sm:min-w-[280px] md:min-w-0 snap-start`}
                 >
                   {ev.hot && (
                     <span className="absolute top-3 right-3 bg-[#FFE800] text-[#171717] text-[9px] font-bold uppercase px-1.5 py-0.5 border border-[#171717]">HOT</span>
@@ -1382,18 +1390,18 @@ function EventDetailPage() {
         setReserveStatus("You already reserved this event.");
       } else {
         setReserveStatus("Spot reserved. Your ticket is ready.");
-        setEventInfo((current: any) => current ? {
-          ...current,
-          registeredCount: Number(current.registeredCount || current.registered_count || 0) + 1,
-          registered_count: Number(current.registeredCount || current.registered_count || 0) + 1,
-        } : current);
+        setEventInfo((current: any) => {
+          if (!current) return current;
+          const nextCount = Number(result.registered_count ?? result.registeredCount ?? Number(current.registeredCount || current.registered_count || 0) + 1);
+          return { ...current, registeredCount: nextCount, registered_count: nextCount };
+        });
       }
     } catch (error: any) {
       if (error?.status === 401) {
         navigate(`/login?redirect=/events/${id}`);
         return;
       }
-      setReserveStatus(error.message || "Could not reserve a spot.");
+      setReserveStatus(userFriendlyErrorMessage(error, "Could not reserve a spot. Please try again."));
     }
   };
 
@@ -1464,7 +1472,7 @@ function EventDetailPage() {
                 <BrutalButton disabled className="w-full cursor-not-allowed opacity-80" color="bg-green-500" text="text-white">
                   <Check size={16} /> Reserved
                 </BrutalButton>
-                <BrutalButton onClick={() => navigate(`/ticket/${myRegistration.id}`)} className="w-full" color="bg-[#FFE800]" text="text-[#171717]">
+                <BrutalButton onClick={() => navigate(`/ticket/${myRegistration.id}`, { state: { from: `/events/${id}` } })} className="w-full" color="bg-[#FFE800]" text="text-[#171717]">
                   <QrCode size={16} /> View Ticket
                 </BrutalButton>
               </div>
@@ -1595,7 +1603,7 @@ function EventProposalPage() {
       localStorage.removeItem("dsc-event-proposal-draft");
       setStatus(`Event proposal submitted. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not submit proposal.");
+      setStatus(userFriendlyErrorMessage(error, "Could not submit proposal. Please check the fields and try again."));
     } finally {
       setSubmittingProposal(false);
     }
@@ -1617,19 +1625,7 @@ function EventProposalPage() {
         <BrutalCard color="bg-white" className="space-y-5">
           <div className="grid md:grid-cols-2 gap-4">
             <BrutalField label="Event Title" value={form.title} onChange={(value) => updateField("title", value)} placeholder="Intro to Computer Vision" />
-            <label className="block">
-              <span className="block text-xs font-bold uppercase tracking-widest mb-2">Event Type</span>
-              <select
-                value={form.type}
-                onChange={(event) => updateField("type", event.target.value)}
-                className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all"
-              >
-                <option value="WORKSHOP">Workshop</option>
-                <option value="SEMINAR">Seminar</option>
-                <option value="COMPETITION">Competition</option>
-                <option value="COMMUNITY">Community</option>
-              </select>
-            </label>
+            <BrutalField label="Event Type" value={form.type} onChange={(value) => updateField("type", value)} placeholder="Workshop, seminar, competition..." />
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
@@ -2006,7 +2002,7 @@ function ProjectSubmissionPage() {
       localStorage.removeItem("dsc-project-draft");
       setStatus(`Project submitted for review. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not submit project.");
+      setStatus(userFriendlyErrorMessage(error, "Could not submit project. Please check the fields and try again."));
     } finally {
       setSubmittingProject(false);
     }
@@ -2476,7 +2472,7 @@ function BlogEditorPage() {
       localStorage.removeItem("dsc-blog-draft");
       setStatus(`Post submitted for admin review. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not submit post.");
+      setStatus(userFriendlyErrorMessage(error, "Could not submit post. Please check the fields and try again."));
     } finally {
       setPublishingPost(false);
     }
@@ -2709,6 +2705,7 @@ function LoginPage() {
 
 function TicketPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { ticketId } = useParams();
   const [tickets, setTickets] = useState<any[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
@@ -2721,10 +2718,10 @@ function TicketPage() {
       setLoadingTickets(true);
       const rows = await apiGet<any[]>("/api/me/tickets", { auth: true }).catch((error) => {
         if (error?.status === 401) {
-          navigate(`/login?redirect=${encodeURIComponent(ticketId ? `/ticket/${ticketId}` : "/ticket")}`);
+          navigate(`/login?redirect=${encodeURIComponent(ticketId ? `/ticket/${ticketId}` : "/tickets")}`);
           return [];
         }
-        setTicketStatus(error.message || "Could not load tickets.");
+        setTicketStatus(userFriendlyErrorMessage(error, "Could not load tickets. Please refresh and try again."));
         return [];
       });
       if (!mounted) return;
@@ -2757,7 +2754,7 @@ function TicketPage() {
         {items.map((ticket) => (
           <button
             key={ticket.id}
-            onClick={() => navigate(`/ticket/${ticket.id}`)}
+            onClick={() => navigate(`/ticket/${ticket.id}`, { state: { from: "/tickets" } })}
             className="text-left bg-white border-2 border-[#171717] p-5 brutal-shadow brutal-shadow-hover transition-all"
           >
             <div className="flex items-start justify-between gap-4">
@@ -2798,7 +2795,7 @@ function TicketPage() {
   if (ticketId && !selectedTicket) {
     return (
       <div className="pt-16 pb-20 px-6 max-w-[900px] mx-auto min-h-screen bg-[#F4EFEB]">
-        <button onClick={() => navigate("/ticket")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+        <button onClick={() => navigate("/tickets")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
           <ArrowLeft size={16} /> Back to Tickets
         </button>
         <BrutalCard color="bg-white">
@@ -2814,8 +2811,8 @@ function TicketPage() {
     const ticketCode = selectedTicket.ticket_code || selectedTicket.id;
     return (
       <div className="pt-16 pb-20 px-6 flex flex-col items-center justify-center min-h-screen bg-[#F4EFEB]">
-        <button onClick={() => navigate("/ticket")} className="absolute top-24 left-6 inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm hover:text-[#2563EB]">
-          <ArrowLeft size={16} /> Back to Tickets
+        <button onClick={() => navigate((location.state as any)?.from || "/tickets")} className="mb-8 self-start max-w-md w-full mx-auto inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm hover:text-[#2563EB]">
+          <ArrowLeft size={16} /> Back
         </button>
 
         <div className="relative w-full max-w-md bg-white border-2 border-[#171717] p-6 brutal-shadow-lg rotate-1">
@@ -2859,8 +2856,8 @@ function TicketPage() {
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1100px] mx-auto min-h-screen bg-[#F4EFEB]">
-      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
-        <ArrowLeft size={16} /> Back
+      <button onClick={() => navigate("/dashboard")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+        <ArrowLeft size={16} /> Back to Dashboard
       </button>
       <div className="mb-10">
         <BrutalBadge color="bg-[#2563EB]" text="text-white">Tickets</BrutalBadge>
@@ -3074,6 +3071,7 @@ function DashboardPage() {
   const [dashboardEvents, setDashboardEvents] = useState<any[]>([]);
   const [dashboardProjects, setDashboardProjects] = useState<any[]>([]);
   const [dashboardPosts, setDashboardPosts] = useState<any[]>([]);
+  const [dashboardNotice, setDashboardNotice] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -3160,7 +3158,6 @@ function DashboardPage() {
   ];
 
   const nextEvent = dashboardEvents[0];
-  const featuredProject = dashboardProjects[0];
   const announcements = dashboardPosts.map((post) => ({
     id: post.id,
     title: post.title,
@@ -3173,7 +3170,7 @@ function DashboardPage() {
     { label: "Register for Event", icon: <Calendar size={18} />, onClick: () => navigate("/events"), color: "bg-[#2563EB]" },
     { label: "Submit Project", icon: <Code size={18} />, onClick: () => navigate("/projects"), color: "bg-[#FB7185]" },
     { label: "My Certificates", icon: <Award size={18} />, onClick: () => navigate("/certificates"), color: "bg-[#7C3AED]" },
-    { label: "View Tickets", icon: <QrCode size={18} />, onClick: () => navigate("/ticket"), color: "bg-[#FFE800]" },
+    { label: "View Tickets", icon: <QrCode size={18} />, onClick: () => navigate("/tickets"), color: "bg-[#FFE800]" },
   ];
 
   return (
@@ -3188,7 +3185,7 @@ function DashboardPage() {
           <p className="mt-4 font-mono text-sm text-slate-500">Member since: {member.memberSince}</p>
         </div>
         <div className="flex gap-3 flex-wrap">
-          <BrutalButton color="bg-white" className="text-xs px-4 py-2">
+          <BrutalButton color="bg-white" className="text-xs px-4 py-2" onClick={() => setDashboardNotice("No new notifications right now.")}>
             <Bell size={14} className="inline mr-2" />
             Notifications (3)
           </BrutalButton>
@@ -3197,6 +3194,11 @@ function DashboardPage() {
           </BrutalButton>
         </div>
       </div>
+      {dashboardNotice && (
+        <div className="mb-6 border-2 border-[#171717] bg-[#FFE800] p-4 font-bold uppercase tracking-widest text-xs">
+          {dashboardNotice}
+        </div>
+      )}
 
       {/* Top Section: Membership Card - Full Width on Mobile */}
       <div className="mb-10">
@@ -3223,7 +3225,7 @@ function DashboardPage() {
             <div className={`w-10 h-10 md:w-12 md:h-12 ${stat.color} border-2 border-[#171717] flex items-center justify-center mb-3 md:mb-4 ${stat.color === "bg-[#FFE800]" ? "text-[#171717]" : "text-white"}`}>
               {stat.icon}
             </div>
-            <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>{stat.value}</div>
+            <div className="text-2xl md:text-4xl font-bold mb-1 break-words leading-tight" style={fonts.display}>{stat.value}</div>
             <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400 mb-2" style={fonts.sans}>
               {stat.label}
             </div>
@@ -3313,56 +3315,36 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* Right Column: Projects & Leaderboard - Full width on mobile */}
+        {/* Right Column: Activity & Actions - Full width on mobile */}
         <div className="space-y-6 md:space-y-10">
-          {/* Projects Card */}
+          {/* Your Activity */}
           <div>
             <div className="flex items-center justify-between mb-4 md:mb-6">
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Projects</h2>
-            </div>
-            <BrutalCard color="bg-[#7C3AED]" className="text-white cursor-pointer" onClick={() => featuredProject && navigate(`/projects/${featuredProject.id}`)}>
-              <div className="text-xs font-bold uppercase tracking-widest mb-3 md:mb-4 opacity-90">PROJECTS</div>
-              <h3 className="text-2xl md:text-3xl uppercase mb-4 md:mb-5" style={fonts.display}>
-                {featuredProject?.title || "No published projects yet"}
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {(featuredProject?.technologies?.length ? featuredProject.technologies : [featuredProject?.category || "Publish from admin"]).map((tag: string) => (
-                  <BrutalBadge key={tag} color="bg-white/20 backdrop-blur" text="text-white" className="text-[10px] md:text-xs border-white/30">
-                    {tag}
-                  </BrutalBadge>
-                ))}
-              </div>
-            </BrutalCard>
-          </div>
-
-          {/* Club Activity */}
-          <div>
-            <div className="flex items-center justify-between mb-4 md:mb-6">
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Club Activity</h2>
+              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Your Activity</h2>
               <Trophy size={20} className="text-[#FFE800]" />
             </div>
             <BrutalCard color="bg-white" className="p-0 overflow-hidden">
               <div className="divide-y-2 divide-[#171717]">
                 <div className="flex items-center justify-between p-3 md:p-4 bg-[#F4EFEB]">
                   <div>
-                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Published Events</div>
-                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Visible on events page</div>
+                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Event Proposals</div>
+                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Submitted by you</div>
                   </div>
-                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{dashboardEvents.length}</div>
+                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{counts.eventProposals}</div>
                 </div>
                 <div className="flex items-center justify-between p-3 md:p-4 bg-white">
                   <div>
-                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Latest Projects</div>
-                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Visible on projects page</div>
+                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Projects Submitted</div>
+                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Waiting for review or published</div>
                   </div>
-                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{dashboardProjects.length}</div>
+                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{counts.projects}</div>
                 </div>
                 <div className="flex items-center justify-between p-3 md:p-4 bg-white">
                   <div>
-                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Latest Posts</div>
-                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Visible on blog page</div>
+                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Blog Posts</div>
+                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Drafts and submissions by you</div>
                   </div>
-                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{dashboardPosts.length}</div>
+                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{counts.blogPosts}</div>
                 </div>
               </div>
             </BrutalCard>
@@ -3439,6 +3421,8 @@ export default function App() {
           <Route path="partners" element={<PartnersPage />} />
           <Route path="ticket" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
           <Route path="ticket/:ticketId" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
+          <Route path="tickets" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
+          <Route path="tickets/:ticketId" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
         </Route>
         
         {/* Auth & Utility routes without standard Nav/Footer for immersion */}

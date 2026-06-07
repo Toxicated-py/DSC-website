@@ -1693,7 +1693,7 @@ export function ComprehensiveAdminPanel() {
   const thisMonth = now.toISOString().slice(0, 7);
   const registrationsCount = eventRegistrations.filter((registration) => registration.status !== "cancelled").length;
   const checkedInCount = eventRegistrations.filter((registration) => registration.status === "checked_in" || registration.checked_in_at).length;
-  const attendanceRate = registrationsCount ? Math.round((checkedInCount / registrationsCount) * 100) : 0;
+  const attendanceSummary = `${checkedInCount}/${registrationsCount}`;
   const projectsThisMonth = projects.filter((project) => {
     const date = project.published_at || project.submitted_at;
     return date && new Date(date).toISOString().slice(0, 7) === thisMonth;
@@ -1953,7 +1953,7 @@ export function ComprehensiveAdminPanel() {
             }`}
           >
             {tab.icon}
-            <span className="hidden md:inline">{tab.label}</span>
+            <span className="text-[10px] md:text-xs leading-tight">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -3687,15 +3687,11 @@ export function ComprehensiveAdminPanel() {
                     </button>
                   </div>
                   <div className="grid md:grid-cols-3 gap-3">
-                    <BrutalSelect
+                    <BrutalInput
                       label="Group"
                       value={member.group}
                       onChange={(e: any) => updateTeamMember(member.id, { group: e.target.value })}
-                      options={[
-                        { value: "executive", label: "Executive" },
-                        { value: "faculty", label: "Faculty" },
-                        { value: "member", label: "Member" },
-                      ]}
+                      placeholder="executive, faculty, volunteer..."
                     />
                     <BrutalInput label="Name" value={member.name} onChange={(e: any) => updateTeamMember(member.id, { name: e.target.value })} />
                     <BrutalInput label="Position" value={member.position} onChange={(e: any) => updateTeamMember(member.id, { position: e.target.value })} />
@@ -3746,15 +3742,11 @@ export function ComprehensiveAdminPanel() {
                   />
                 </div>
                 <div className="grid md:grid-cols-3 gap-3">
-                  <BrutalSelect
+                  <BrutalInput
                     label="New Group"
                     value={newTeamMember.group}
                     onChange={(e: any) => setNewTeamMember({ ...newTeamMember, group: e.target.value })}
-                    options={[
-                      { value: "executive", label: "Executive" },
-                      { value: "faculty", label: "Faculty" },
-                      { value: "member", label: "Member" },
-                    ]}
+                    placeholder="executive, faculty, volunteer..."
                   />
                   <BrutalInput label="New Name" value={newTeamMember.name} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, name: e.target.value })} />
                   <BrutalInput label="New Position" value={newTeamMember.position} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, position: e.target.value })} />
@@ -3861,9 +3853,9 @@ export function ComprehensiveAdminPanel() {
                 <UserCheck size={24} />
                 <Activity size={16} />
               </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{attendanceRate}%</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Attendance</div>
-              <p className="mt-2 text-xs font-mono opacity-80">{checkedInCount}/{registrationsCount} checked in</p>
+              <div className="text-4xl font-bold mb-1" style={fonts.display}>{attendanceSummary}</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Check-ins</div>
+              <p className="mt-2 text-xs font-mono opacity-80">All-time registered attendees</p>
             </BrutalCard>
             <BrutalCard color="bg-[#FB7185]" className="text-white">
               <div className="flex items-center justify-between mb-2">

@@ -29,11 +29,21 @@ const profileUrl = (value: string | undefined, platform: "github" | "linkedin") 
 
 export function TeamPage() {
   const settings = useSiteSettings();
-  const groups = [
-    { id: "executive", title: "Executive Board", color: "bg-white" },
-    { id: "faculty", title: "Faculty Advisors", color: "bg-[#7C3AED] text-white" },
-    { id: "member", title: "Members", color: "bg-white" },
-  ];
+  const titleForGroup = (group: string) => {
+    if (group === "executive") return "Executive Board";
+    if (group === "faculty") return "Faculty Advisors";
+    if (group === "member") return "Members";
+    return group
+      .split(/[-_\s]+/)
+      .filter(Boolean)
+      .map((word) => word[0]?.toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+  const groups = Array.from(new Set(settings.teamMembers.map((member) => member.group || "member"))).map((group, index) => ({
+    id: group,
+    title: titleForGroup(group),
+    color: group === "faculty" || index % 3 === 1 ? "bg-[#7C3AED] text-white" : "bg-white",
+  }));
 
   const renderTeamMember = (member: any, color: string) => {
     const inverted = color.includes("7C3AED");

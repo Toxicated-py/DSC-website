@@ -29,7 +29,7 @@ export interface FAQItem {
 
 export interface TeamMember {
   id: string;
-  group: "executive" | "faculty" | "member";
+  group: string;
   source?: "profile" | "manual";
   profileId?: string;
   profileEmail?: string;
