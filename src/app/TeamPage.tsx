@@ -6,17 +6,7 @@ const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
 };
 
-const BrutalCard = ({ children, className = "", color = "bg-white", ...props }: any) => (
-  <div className={`border-2 border-[#171717] p-6 brutal-shadow-lg ${color} ${className}`} {...props}>
-    {children}
-  </div>
-);
-
-const BrutalBadge = ({ children, color = "bg-[#FB7185]", text = "text-white", className = "" }: any) => (
-  <span className={`px-2 py-1 ${color} ${text} border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest ${className}`}>
-    {children}
-  </span>
-);
+import { BrutalCard, BrutalBadge } from "./components/ui/brutal";
 
 const profileUrl = (value: string | undefined, platform: "github" | "linkedin") => {
   if (!value) return "";

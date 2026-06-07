@@ -41,49 +41,7 @@ const certificateTemplates: Record<string, { accent: string; surface: string; te
   event: { accent: "bg-[#2563EB]", surface: "bg-[#F4EFEB]", text: "text-[#171717]", label: "Event" },
 };
 
-// ─── Shared Components ─────────────────────────────────────────────────────────
-
-const BrutalButton = ({ children, color = "bg-[#FFE800]", text = "text-[#171717]", className = "", ...props }: any) => (
-  <button
-    className={`px-6 py-3 ${color} ${text} border-2 border-[#171717] font-bold uppercase tracking-widest brutal-shadow brutal-shadow-hover transition-all ${className}`}
-    {...props}
-  >
-    {children}
-  </button>
-);
-
-const BrutalCard = ({ children, className = "", color = "bg-white", ...props }: any) => (
-  <div className={`border-2 border-[#171717] p-6 brutal-shadow-lg ${color} ${className}`} {...props}>
-    {children}
-  </div>
-);
-
-const BrutalBadge = ({ children, color = "bg-[#FB7185]", text = "text-white", className = "" }: any) => (
-  <span className={`px-2 py-1 ${color} ${text} border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest ${className}`}>
-    {children}
-  </span>
-);
-
-const BrutalInput = ({ label, ...props }: any) => (
-  <div className="mb-4">
-    {label && <label className="block text-xs font-bold uppercase tracking-widest mb-2">{label}</label>}
-    <input
-      className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all"
-      {...props}
-    />
-  </div>
-);
-
-const BrutalTextarea = ({ label, ...props }: any) => (
-  <div className="mb-4">
-    {label && <label className="block text-xs font-bold uppercase tracking-widest mb-2">{label}</label>}
-    <textarea
-      className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all resize-none"
-      rows={4}
-      {...props}
-    />
-  </div>
-);
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "./components/ui/brutal";
 
 const certificateSelect =
   "id,recipient_id,title,certificate_type,issuer_name,status,issued_at,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,signature_data,revoked_at,certificate_url,thumbnail_url,description,events:event_id(title,start_time)";
