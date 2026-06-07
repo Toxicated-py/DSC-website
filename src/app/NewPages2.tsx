@@ -10,12 +10,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Image, User, Edit, Save, Trophy, Star, Award, Target, Heart,
+  Image, User, Edit, Save, Trophy, Star, Award, Target, Heart, Search, X, ChevronLeft, ChevronRight,
   Calendar, MapPin, Mail, Github, Linkedin, ExternalLink, Zap,
   TrendingUp, Users, Code, BookOpen, Shield, Crown, GraduationCap, UserCheck, Handshake
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { apiGet, apiPatch } from "../lib/apiClient";
+import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { submitGallery } from "../lib/contentApi";
 
 const fonts = {
@@ -71,6 +71,10 @@ const BrutalTextarea = ({ label, ...props }: any) => (
 export function GalleryPage() {
   const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+  const [eventOptions, setEventOptions] = useState<any[]>([]);
+  const [likedPhotos, setLikedPhotos] = useState<string[]>([]);
   const [submittedPhotos, setSubmittedPhotos] = useState<any[]>([]);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
@@ -79,22 +83,30 @@ export function GalleryPage() {
     title: "",
     imageUrl: "",
     eventName: "",
+    eventId: "",
   });
 
   useEffect(() => {
     let mounted = true;
 
     async function loadGallery() {
-      const data = await apiGet<any[]>("/api/gallery").catch(() => []);
+      const [data, events] = await Promise.all([
+        apiGet<any[]>("/api/gallery", { auth: "optional" }).catch(() => []),
+        apiGet<any[]>("/api/events").catch(() => []),
+      ]);
       if (!mounted) return;
       setSubmittedPhotos((data || []).map((item) => ({
         id: item.id,
         url: item.image_url,
         title: item.title,
         event: item.event_name || "Community",
+        eventId: item.event_id || "",
         date: item.created_at ? new Date(item.created_at).toLocaleDateString() : "",
-        likes: 0,
+        likes: Number(item.likes_count || 0),
+        liked: Boolean(item.liked_by_me),
       })));
+      setLikedPhotos((data || []).filter((item) => item.liked_by_me).map((item) => item.id));
+      setEventOptions(events || []);
     }
 
     loadGallery();
@@ -105,9 +117,33 @@ export function GalleryPage() {
 
   const photos = submittedPhotos;
   const filters = ["all", ...Array.from(new Set(photos.map((photo) => photo.event.toLowerCase())))];
-  const filteredPhotos = selectedFilter === "all"
+  const filteredPhotos = (selectedFilter === "all"
     ? photos
-    : photos.filter(p => p.event.toLowerCase() === selectedFilter);
+    : photos.filter(p => p.event.toLowerCase() === selectedFilter))
+    .filter((photo) => {
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) return true;
+      return [photo.title, photo.event, photo.date].some((value) => String(value || "").toLowerCase().includes(query));
+    });
+  const selectedPhoto = selectedPhotoIndex === null ? null : filteredPhotos[selectedPhotoIndex];
+
+  const toggleLike = async (photoId: string) => {
+    try {
+      const result = await apiPost<{ liked: boolean; likes_count: number }>(`/api/gallery/${photoId}/like`, {}, { auth: true });
+      setLikedPhotos((current) => result.liked ? Array.from(new Set([...current, photoId])) : current.filter((id) => id !== photoId));
+      setSubmittedPhotos((current) => current.map((photo) => photo.id === photoId ? {
+        ...photo,
+        likes: result.likes_count,
+        liked: result.liked,
+      } : photo));
+    } catch (error: any) {
+      if (error?.status === 401) {
+        navigate("/login?redirect=/gallery");
+        return;
+      }
+      setSubmitStatus(userFriendlyErrorMessage(error, "Could not update like. Please try again."));
+    }
+  };
 
   const submitGalleryPhoto = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -115,12 +151,21 @@ export function GalleryPage() {
     setSubmitStatus("");
     setSubmittingGallery(true);
     try {
-      await submitGallery({
-        title: galleryForm.title.trim(),
-        image_url: galleryForm.imageUrl.trim(),
+      const urls = galleryForm.imageUrl
+        .split(/[,\n]/)
+        .map((url) => url.trim())
+        .filter(Boolean);
+      if (!urls.length) {
+        setSubmitStatus("Add at least one image URL.");
+        return;
+      }
+      await Promise.all(urls.map((url, index) => submitGallery({
+        title: urls.length === 1 ? galleryForm.title.trim() : `${galleryForm.title.trim()} ${index + 1}`.trim(),
+        image_url: url,
         event_name: galleryForm.eventName.trim() || "Community",
-      });
-      setGalleryForm({ title: "", imageUrl: "", eventName: "" });
+        event_id: galleryForm.eventId || null,
+      })));
+      setGalleryForm({ title: "", imageUrl: "", eventName: "", eventId: "" });
       setSubmitStatus("Photo submitted for admin approval.");
       setShowSubmitForm(false);
     } catch (error: any) {
@@ -128,7 +173,7 @@ export function GalleryPage() {
         navigate("/login?redirect=/gallery");
         return;
       }
-      setSubmitStatus(error?.message || "Could not submit photo.");
+      setSubmitStatus(userFriendlyErrorMessage(error, "Could not submit photo. Please check the image link and try again."));
     } finally {
       setSubmittingGallery(false);
     }
@@ -150,7 +195,17 @@ export function GalleryPage() {
       </div>
 
       {/* Filters */}
-      <div className="mb-8 flex justify-center gap-2 flex-wrap">
+      <div className="mb-8 grid md:grid-cols-[1fr_auto] gap-4 items-start">
+        <div className="relative">
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search gallery..."
+            className="w-full pl-12 pr-4 py-3 border-2 border-[#171717] font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30"
+          />
+        </div>
+      <div className="flex justify-center md:justify-end gap-2 flex-wrap">
         {filters.map((filter) => (
           <button
             key={filter}
@@ -165,6 +220,7 @@ export function GalleryPage() {
           </button>
         ))}
       </div>
+      </div>
 
       {/* Photo Grid */}
       {filteredPhotos.length === 0 ? (
@@ -175,7 +231,7 @@ export function GalleryPage() {
       ) : (
       <div className="grid md:grid-cols-3 gap-6">
         {filteredPhotos.map((photo) => (
-          <BrutalCard key={photo.id} className="p-0 overflow-hidden group cursor-pointer">
+          <BrutalCard key={photo.id} className="p-0 overflow-hidden group cursor-pointer" onClick={() => setSelectedPhotoIndex(filteredPhotos.findIndex((item) => item.id === photo.id))}>
             <div className="aspect-video overflow-hidden relative">
               <img
                 src={photo.url}
@@ -195,8 +251,17 @@ export function GalleryPage() {
               </div>
               <h3 className="text-lg font-bold uppercase mb-2" style={fonts.display}>{photo.title}</h3>
               <div className="flex items-center gap-1 text-xs text-slate-500">
-                <Heart size={12} className="fill-[#FB7185] text-[#FB7185]" />
-                <span>{photo.likes} likes</span>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleLike(photo.id);
+                  }}
+                  className="inline-flex items-center gap-1 font-bold"
+                >
+                  <Heart size={12} className={likedPhotos.includes(photo.id) ? "fill-[#FB7185] text-[#FB7185]" : "text-[#FB7185]"} />
+                  <span>{photo.likes || 0} likes</span>
+                </button>
               </div>
             </div>
           </BrutalCard>
@@ -223,11 +288,10 @@ export function GalleryPage() {
               required
             />
             <BrutalInput
-              label="Image URL"
-              type="url"
+              label="Image URLs"
               value={galleryForm.imageUrl}
               onChange={(event: any) => setGalleryForm({ ...galleryForm, imageUrl: event.target.value })}
-              placeholder="https://..."
+              placeholder="Add one or more image URLs, separated by commas or new lines"
               required
             />
             <BrutalInput
@@ -236,6 +300,28 @@ export function GalleryPage() {
               onChange={(event: any) => setGalleryForm({ ...galleryForm, eventName: event.target.value })}
               placeholder="Workshop, Hackathon, Community"
             />
+            {eventOptions.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-xs font-bold uppercase tracking-widest mb-2">Link Event</label>
+                <select
+                  value={galleryForm.eventId}
+                  onChange={(event: any) => {
+                    const selected = eventOptions.find((item) => item.id === event.target.value);
+                    setGalleryForm({
+                      ...galleryForm,
+                      eventId: event.target.value,
+                      eventName: selected?.title || galleryForm.eventName,
+                    });
+                  }}
+                  className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all"
+                >
+                  <option value="">No linked event</option>
+                  {eventOptions.map((event) => (
+                    <option key={event.id} value={event.id}>{event.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full" disabled={submittingGallery}>
               {submittingGallery ? "Submitting..." : "Submit for Review"}
             </BrutalButton>
@@ -243,6 +329,40 @@ export function GalleryPage() {
         )}
         {submitStatus && <p className="mt-4 text-sm font-bold">{submitStatus}</p>}
       </BrutalCard>
+      {selectedPhoto && (
+        <div className="fixed inset-0 z-50 bg-black/90 p-4 md:p-8 flex items-center justify-center" role="dialog" aria-modal="true">
+          <button onClick={() => setSelectedPhotoIndex(null)} className="absolute top-4 right-4 bg-white border-2 border-[#171717] p-3">
+            <X size={20} />
+          </button>
+          <button
+            onClick={() => setSelectedPhotoIndex((current) => current === null ? current : Math.max(0, current - 1))}
+            className="absolute left-3 md:left-8 bg-white border-2 border-[#171717] p-3 disabled:opacity-30"
+            disabled={selectedPhotoIndex === 0}
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <img src={selectedPhoto.url} alt={selectedPhoto.title} className="max-h-[78vh] max-w-full object-contain border-2 border-white" />
+          <button
+            onClick={() => setSelectedPhotoIndex((current) => current === null ? current : Math.min(filteredPhotos.length - 1, current + 1))}
+            className="absolute right-3 md:right-8 bg-white border-2 border-[#171717] p-3 disabled:opacity-30"
+            disabled={selectedPhotoIndex === filteredPhotos.length - 1}
+          >
+            <ChevronRight size={24} />
+          </button>
+          <div className="absolute bottom-4 left-4 right-4 md:left-8 md:right-8 bg-white border-2 border-[#171717] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-2xl uppercase" style={fonts.display}>{selectedPhoto.title}</h3>
+                <p className="font-mono text-xs text-slate-600">{selectedPhoto.event} {selectedPhoto.date && `- ${selectedPhoto.date}`}</p>
+              </div>
+              <button onClick={() => toggleLike(selectedPhoto.id)} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-xs">
+                <Heart size={16} className={likedPhotos.includes(selectedPhoto.id) ? "fill-[#FB7185] text-[#FB7185]" : "text-[#FB7185]"} />
+                Like
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -264,9 +384,10 @@ export function UserProfilePage() {
     bio: "",
     designation: "",
     designationStatus: "pending",
+    memberSince: "New member",
     year: "",
     major: "",
-    skills: ["Python", "Machine Learning", "Data Viz", "SQL"],
+    skills: [] as string[],
     github: "",
     linkedin: "",
     profileLinks: [] as Array<{ id?: string; label: string; url: string }>,
@@ -296,41 +417,47 @@ export function UserProfilePage() {
         userData.user.email ||
         "Member";
 
-      const [data, options, submissionRows] = await Promise.all([
-        apiGet<any>("/api/me", { auth: true }),
-        apiGet<any[]>("/api/designation-options"),
-        apiGet<any>("/api/me/submissions", { auth: true }),
-      ]);
+      try {
+        const [data, options, submissionRows] = await Promise.all([
+          apiGet<any>("/api/me", { auth: true }),
+          apiGet<any[]>("/api/designation-options"),
+          apiGet<any>("/api/me/submissions", { auth: true }),
+        ]);
 
-      if (!mounted) return;
-      const optionLabels = (options || []).map((option) => option.label);
-      if (data?.designation && !optionLabels.includes(data.designation)) {
-        optionLabels.push(data.designation);
+        if (!mounted) return;
+        const optionLabels = (options || []).map((option) => option.label);
+        if (data?.designation && !optionLabels.includes(data.designation)) {
+          optionLabels.push(data.designation);
+        }
+        setDesignationOptions(optionLabels);
+
+        setProfile((current) => ({
+          ...current,
+          name: data?.full_name || fallbackName,
+          email: data?.email || userData.user.email || "",
+          bio: data?.bio || "",
+          designation: data?.designation || "",
+          designationStatus: data?.designation_status || "pending",
+          memberSince: data?.created_at ? new Date(data.created_at).toLocaleDateString() : "New member",
+          year: data?.batch_year ? String(data.batch_year) : "",
+          major: data?.major || "",
+          github: data?.github_username || "",
+          linkedin: data?.linkedin_username || "",
+          profileLinks: Array.isArray(data?.profile_links) ? data.profile_links : [],
+          skills: Array.isArray(data?.skills) ? data.skills : [],
+        }));
+        setSubmissions([
+          ...(submissionRows.projects || []).map((item: any) => ({ ...item, type: "Project", date: item.submitted_at || item.published_at })),
+          ...(submissionRows.blog_posts || []).map((item: any) => ({ ...item, type: "Blog", date: item.published_at })),
+          ...(submissionRows.event_proposals || []).map((item: any) => ({ ...item, type: "Event Proposal", date: item.submitted_at })),
+          ...(submissionRows.gallery_submissions || []).map((item: any) => ({ ...item, type: "Gallery", date: item.created_at })),
+          ...(submissionRows.certificates || []).map((item: any) => ({ ...item, title: item.certificate_title || item.title, type: "Certificate", date: item.created_at })),
+        ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
+      } catch (error) {
+        if (mounted) setSaveStatus(userFriendlyErrorMessage(error, "Could not load your profile. Please refresh and try again."));
+      } finally {
+        if (mounted) setLoadingProfile(false);
       }
-      setDesignationOptions(optionLabels);
-
-      setProfile((current) => ({
-        ...current,
-        name: data?.full_name || fallbackName,
-        email: data?.email || userData.user.email || "",
-        bio: data?.bio || "",
-        designation: data?.designation || "",
-        designationStatus: data?.designation_status || "pending",
-        year: data?.batch_year ? String(data.batch_year) : "",
-        major: data?.major || "",
-        github: data?.github_username || "",
-        linkedin: data?.linkedin_username || "",
-        profileLinks: Array.isArray(data?.profile_links) ? data.profile_links : [],
-        skills: data?.skills?.length ? data.skills : current.skills,
-      }));
-      setSubmissions([
-        ...(submissionRows.projects || []).map((item: any) => ({ ...item, type: "Project", date: item.submitted_at || item.published_at })),
-        ...(submissionRows.blog_posts || []).map((item: any) => ({ ...item, type: "Blog", date: item.published_at })),
-        ...(submissionRows.event_proposals || []).map((item: any) => ({ ...item, type: "Event Proposal", date: item.submitted_at })),
-        ...(submissionRows.gallery_submissions || []).map((item: any) => ({ ...item, type: "Gallery", date: item.created_at })),
-        ...(submissionRows.certificates || []).map((item: any) => ({ ...item, title: item.certificate_title || item.title, type: "Certificate", date: item.created_at })),
-      ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
-      setLoadingProfile(false);
     }
 
     loadProfile();
@@ -372,7 +499,7 @@ export function UserProfilePage() {
           },
         }, { auth: true });
       } catch (error: any) {
-        setSaveStatus(error?.message || "Could not save profile.");
+        setSaveStatus(userFriendlyErrorMessage(error, "Could not save profile. Please check your details and try again."));
         return;
       }
       setSaveStatus("Profile saved. Designation changes need admin approval before they appear publicly.");
@@ -426,7 +553,7 @@ export function UserProfilePage() {
     eventsAttended: 0,
     projectsSubmitted: submissions.filter((item) => item.type === "Project").length,
     certificatesEarned: submissions.filter((item) => item.type === "Certificate" && ["approved", "published"].includes(item.status)).length,
-    memberSince: "New member"
+    memberSince: profile.memberSince
   };
   const recentActivity = submissions.slice(0, 4).map((item) => ({
     title: `${item.type}: ${item.title}`,
@@ -446,7 +573,7 @@ export function UserProfilePage() {
         <BrutalBadge color="bg-[#2563EB]" className="mb-4 inline-flex items-center gap-1">
           <User size={10} /> YOUR PROFILE
         </BrutalBadge>
-        <div className="flex items-end justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <h1 className="text-5xl md:text-7xl uppercase leading-none" style={fonts.display}>
             Profile
           </h1>
@@ -454,7 +581,7 @@ export function UserProfilePage() {
             color={isEditing ? "bg-green-500" : "bg-[#2563EB]"}
             text="text-white"
             onClick={handleEditToggle}
-            className="text-sm"
+            className="text-xs sm:text-sm px-4 py-2 sm:px-6 sm:py-3 w-full sm:w-auto"
           >
             {isEditing ? (
               <><Save size={14} className="inline mr-1" /> Save</>

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Award, Calendar, Download, Printer, X } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { userFriendlyErrorMessage } from "../lib/apiClient";
 import { getCertificatesByMember } from "../services/certificateService";
 import type { Certificate } from "../types/certificate";
 import { CertificatePrintStyles, CertificateRenderer, downloadCertificatePdf } from "./components/CertificateRenderer";
@@ -51,7 +52,7 @@ export function MyCertificates() {
         const rows = await getCertificatesByMember(userData.user.id);
         if (mounted) setCertificates(rows);
       } catch (loadError: any) {
-        if (mounted) setError(loadError.message || "Could not load certificates.");
+        if (mounted) setError(userFriendlyErrorMessage(loadError, "Could not load certificates. Please refresh and try again."));
       } finally {
         if (mounted) setLoading(false);
       }

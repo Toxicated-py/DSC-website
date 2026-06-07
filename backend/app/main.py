@@ -28,7 +28,20 @@ from .supabase_rest import SupabaseRestClient, SupabaseRestError
 
 
 def supabase_http_error(exc: SupabaseRestError) -> HTTPException:
-    return HTTPException(status_code=exc.status_code, detail=str(exc))
+    raw = str(exc).lower()
+    if exc.status_code in {401, 403}:
+        detail = "You do not have permission to do this. Please log in again."
+    elif exc.status_code == 404:
+        detail = "The requested item could not be found."
+    elif exc.status_code == 409 or "duplicate" in raw or "unique" in raw:
+        detail = "This item already exists."
+    elif "foreign key" in raw or "profile" in raw:
+        detail = "Your account profile is still being prepared. Please refresh and try again."
+    elif "null value" in raw or "schema cache" in raw or "column" in raw or exc.status_code >= 500:
+        detail = "We could not save this right now. Please check the form and try again."
+    else:
+        detail = "Something went wrong. Please try again."
+    return HTTPException(status_code=exc.status_code, detail=detail)
 
 
 def get_supabase(settings: Settings = Depends(get_settings)) -> SupabaseRestClient:
@@ -44,6 +57,13 @@ def get_user_supabase(settings: Settings, profile: dict[str, Any]) -> SupabaseRe
 
 def get_service_supabase(settings: Settings) -> SupabaseRestClient:
     return SupabaseRestClient(settings, use_service_role=True)
+
+
+def get_privileged_supabase(settings: Settings, auth_token: str | None = None) -> SupabaseRestClient:
+    try:
+        return get_service_supabase(settings)
+    except SupabaseRestError:
+        return SupabaseRestClient(settings, auth_token=auth_token)
 
 
 async def select_one(
@@ -176,7 +196,12 @@ async def attach_event_counts(client: SupabaseRestClient, events: list[dict[str,
     enriched: list[dict[str, Any]] = []
     for event in events:
         event_id = event.get("id")
-        registered_count = await active_registration_count(client, event_id) if event_id else 0
+        registered_count = 0
+        if event_id:
+            try:
+                registered_count = await active_registration_count(client, event_id)
+            except SupabaseRestError:
+                registered_count = int(event.get("registered_count") or event.get("registeredCount") or 0)
         enriched.append({**event, "registeredCount": registered_count, "registered_count": registered_count})
     return enriched
 
@@ -494,6 +519,7 @@ async def get_site_settings(client: SupabaseRestClient = Depends(get_supabase)) 
 @app.get("/api/events")
 async def list_events(
     status: str = Query("approved"),
+    settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
     try:
@@ -502,7 +528,7 @@ async def list_events(
             filters={"status": f"eq.{status}"},
             order="start_time.asc",
         )
-        return await attach_event_counts(client, events)
+        return await attach_event_counts(get_privileged_supabase(settings), events)
     except SupabaseRestError as exc:
         raise supabase_http_error(exc) from exc
 
@@ -514,21 +540,23 @@ async def event_workspace(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
+    service_client = get_privileged_supabase(settings)
     event = await select_one(
-        client,
+        service_client,
         "events",
         {"id": f"eq.{event_id}"},
     )
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
 
-    registered_count = await active_registration_count(client, event_id)
+    registered_count = await active_registration_count(service_client, event_id)
     profile = await optional_profile(authorization, settings, client)
-    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token")) if profile else None
-    manager = await can_manage_event(user_client or client, profile, event) if profile else False
+    manager = await can_manage_event(service_client, profile, event) if profile else False
+    if event.get("status") not in {"approved", "published"} and not manager:
+        raise HTTPException(status_code=404, detail="This event is not public yet.")
     my_registration: dict[str, Any] | None = None
     if profile:
-        existing_registration = await (user_client or client).select(
+        existing_registration = await service_client.select(
             "event_registrations",
             columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
             filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
@@ -537,7 +565,7 @@ async def event_workspace(
         my_registration = existing_registration[0] if existing_registration else None
     attendees: list[dict[str, Any]] = []
     if manager:
-        registrations = await (user_client or client).select(
+        registrations = await service_client.select(
             "event_registrations",
             columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
             filters={"event_id": f"eq.{event_id}"},
@@ -546,7 +574,7 @@ async def event_workspace(
         profile_ids = [row["user_id"] for row in registrations if row.get("user_id")]
         profile_rows = []
         for profile_id in profile_ids:
-            found = await select_one(client, "profiles", {"id": f"eq.{profile_id}"})
+            found = await select_one(service_client, "profiles", {"id": f"eq.{profile_id}"})
             if found:
                 profile_rows.append(found)
         profiles_by_id = {row["id"]: row for row in profile_rows}
@@ -567,7 +595,7 @@ async def reserve_event_spot(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
-    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
+    service_client = get_privileged_supabase(settings, profile.get("_auth_token") if profile else None)
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -582,23 +610,21 @@ async def reserve_event_spot(
         filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
         limit=1,
     )
-    if not existing:
-        existing = await user_client.select(
-            "event_registrations",
-            columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
-            filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
-            limit=1,
-        )
     if existing:
-        return {"message": "Already registered.", "registration": existing[0]}
+        count = await active_registration_count(client, event_id)
+        return {"message": "Already registered.", "registration": existing[0], "registered_count": count}
     registered_count = await active_registration_count(client, event_id)
     if event.get("capacity") and registered_count >= int(event.get("capacity")):
         raise HTTPException(status_code=400, detail="This event is full.")
-    rows = await user_client.insert(
+    rows = await service_client.insert(
         "event_registrations",
         {"event_id": event_id, "user_id": profile["id"], "status": "registered"},
     )
-    return {"message": "Registered.", "registration": rows[0] if rows else None}
+    return {
+        "message": "Registered.",
+        "registration": rows[0] if rows else None,
+        "registered_count": await active_registration_count(client, event_id),
+    }
 
 
 @app.get("/api/me/tickets")
@@ -750,15 +776,74 @@ async def list_blog_posts(
 
 
 @app.get("/api/gallery")
-async def list_gallery(client: SupabaseRestClient = Depends(get_supabase)) -> list[dict[str, Any]]:
+async def list_gallery(
+    authorization: str | None = Header(default=None),
+    settings: Settings = Depends(get_settings),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> list[dict[str, Any]]:
     try:
-        return await client.select(
+        rows = await client.select(
             "gallery_submissions",
             filters={"status": "in.(approved,published)"},
             order="created_at.desc",
         )
+        profile = await optional_profile(authorization, settings, client)
+        gallery_ids = [row.get("id") for row in rows if row.get("id")]
+        like_counts: dict[str, int] = {}
+        liked_ids: set[str] = set()
+        if gallery_ids:
+            service_client = get_privileged_supabase(settings, profile.get("_auth_token") if profile else None)
+            try:
+                likes = await service_client.select(
+                    "gallery_likes",
+                    columns="gallery_id,user_id",
+                    filters={"gallery_id": f"in.({','.join(gallery_ids)})"},
+                )
+                for like in likes or []:
+                    gallery_id = like.get("gallery_id")
+                    if gallery_id:
+                        like_counts[gallery_id] = like_counts.get(gallery_id, 0) + 1
+                    if profile and like.get("user_id") == profile.get("id"):
+                        liked_ids.add(gallery_id)
+            except SupabaseRestError:
+                like_counts = {}
+                liked_ids = set()
+        return [
+            {
+                **row,
+                "likes_count": like_counts.get(row.get("id"), 0),
+                "liked_by_me": row.get("id") in liked_ids,
+            }
+            for row in rows
+        ]
     except SupabaseRestError as exc:
         raise supabase_http_error(exc) from exc
+
+
+@app.post("/api/gallery/{gallery_id}/like")
+async def toggle_gallery_like(
+    gallery_id: str,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
+    gallery = await select_one(client, "gallery_submissions", {"id": f"eq.{gallery_id}"})
+    if not gallery or gallery.get("status") not in {"approved", "published"}:
+        raise HTTPException(status_code=404, detail="Gallery item not found.")
+    existing = await client.select(
+        "gallery_likes",
+        columns="id",
+        filters={"gallery_id": f"eq.{gallery_id}", "user_id": f"eq.{profile['id']}"},
+        limit=1,
+    )
+    liked = False
+    if existing:
+        await client.delete("gallery_likes", filters={"id": f"eq.{existing[0]['id']}"})
+    else:
+        await client.insert("gallery_likes", {"gallery_id": gallery_id, "user_id": profile["id"]})
+        liked = True
+    likes = await client.select("gallery_likes", columns="id", filters={"gallery_id": f"eq.{gallery_id}"})
+    return {"liked": liked, "likes_count": len(likes or [])}
 
 
 @app.get("/api/partners")
@@ -796,20 +881,32 @@ async def list_designation_options(client: SupabaseRestClient = Depends(get_supa
 
 
 @app.get("/api/home-summary")
-async def get_home_summary(client: SupabaseRestClient = Depends(get_supabase)) -> dict[str, Any]:
-    events = await list_events(status="approved", client=client)
+async def get_home_summary(
+    settings: Settings = Depends(get_settings),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> dict[str, Any]:
+    events = await list_events(status="approved", settings=settings, client=client)
     projects = await list_projects(status="published", client=client)
     posts = await list_blog_posts(status="published", client=client)
     partners = await list_partners(client=client)
-    members = await client.select(
-        "profiles",
-        columns="id",
-        filters={"membership_status": "in.(approved,published)"},
-    )
+    service_client = get_privileged_supabase(settings)
+    try:
+        members = await service_client.select(
+            "profiles",
+            columns="id",
+            filters={"membership_status": "in.(approved,published)"},
+        )
+    except SupabaseRestError:
+        members = []
     settings_rows = await client.select("site_settings", filters={"key": "eq.site"}, limit=1)
     settings_value = settings_rows[0].get("value") if settings_rows else {}
     team_members = settings_value.get("teamMembers") if isinstance(settings_value, dict) else []
     member_count = len(members or []) or (len(team_members) if isinstance(team_members, list) else 0)
+    today = date.today().isoformat()
+    upcoming_events = [
+        event for event in events
+        if not event.get("start_time") or str(event.get("start_time")) >= today
+    ][:8]
     return {
         "counts": {
             "events": len(events),
@@ -818,7 +915,8 @@ async def get_home_summary(client: SupabaseRestClient = Depends(get_supabase)) -
             "partners": len(partners),
             "members": member_count,
         },
-        "next_event": events[0] if events else None,
+        "next_event": upcoming_events[0] if upcoming_events else (events[0] if events else None),
+        "upcoming_events": upcoming_events,
         "featured_project": projects[0] if projects else None,
     }
 
@@ -826,11 +924,14 @@ async def get_home_summary(client: SupabaseRestClient = Depends(get_supabase)) -
 @app.post("/api/contact-messages", status_code=201)
 async def create_contact_message(
     payload: ContactMessageCreate,
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings)
     try:
         rows = await client.insert("contact_messages", payload.model_dump())
     except SupabaseRestError as exc:
+        if exc.status_code in {401, 403}:
+            raise HTTPException(status_code=503, detail="Messages are temporarily unavailable. Please try again later.") from exc
         raise supabase_http_error(exc) from exc
 
     return {"message": "Message received.", "data": rows[0] if rows else None}
@@ -841,7 +942,7 @@ async def verify_certificate(
     code: str,
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
-    client = get_service_supabase(settings)
+    client = get_privileged_supabase(settings)
     try:
         row = await client.select(
             "public_certificates",
@@ -851,6 +952,8 @@ async def verify_certificate(
     except SupabaseRestError as exc:
         if exc.status_code == 406:
             raise HTTPException(status_code=404, detail="Certificate not found.") from exc
+        if exc.status_code in {401, 403}:
+            raise HTTPException(status_code=503, detail="Certificate verification is temporarily unavailable. Please try again later.") from exc
         raise supabase_http_error(exc) from exc
 
     return row
@@ -860,8 +963,9 @@ async def verify_certificate(
 async def get_certificate(
     certificate_id: str,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     row = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
     if not row:
         raise HTTPException(status_code=404, detail="Certificate not found.")
@@ -882,8 +986,9 @@ async def get_me(profile: dict[str, Any] = Depends(get_current_profile)) -> dict
 async def update_me(
     payload: GenericPayload,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     allowed = {
         "full_name",
         "bio",
@@ -909,8 +1014,9 @@ async def update_me(
 @app.get("/api/me/submissions")
 async def get_my_submissions(
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, list[dict[str, Any]]]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     user_id = profile["id"]
     projects = await client.select("projects", filters={"author_id": f"eq.{user_id}"}, order="submitted_at.desc")
     blog_posts = await client.select("blog_posts", filters={"author_id": f"eq.{user_id}"}, order="published_at.desc")
@@ -929,8 +1035,9 @@ async def get_my_submissions(
 @app.get("/api/me/certificates")
 async def get_my_certificates(
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> list[dict[str, Any]]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     rows = await client.select(
         "certificates",
         filters={"member_id": f"eq.{profile['id']}"},
@@ -949,8 +1056,9 @@ async def get_my_certificates(
 async def submit_event_proposal(
     payload: EventProposalCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     await ensure_not_duplicate(
         client,
         "event_proposals",
@@ -974,8 +1082,9 @@ async def submit_event_proposal(
 async def submit_project(
     payload: ProjectCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     await ensure_not_duplicate(client, "projects", owner_column="author_id", owner_id=profile["id"], title=payload.title)
     row = await client.insert("projects", {**payload.model_dump(), "author_id": profile["id"], "status": "submitted"})
     return row[0]
@@ -985,8 +1094,9 @@ async def submit_project(
 async def submit_blog_post(
     payload: BlogPostCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     await ensure_not_duplicate(client, "blog_posts", owner_column="author_id", owner_id=profile["id"], title=payload.title)
     row = await client.insert("blog_posts", {**payload.model_dump(), "author_id": profile["id"], "status": "submitted"})
     return row[0]
@@ -996,8 +1106,9 @@ async def submit_blog_post(
 async def submit_gallery(
     payload: GallerySubmissionCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     existing = await client.select(
         "gallery_submissions",
         columns="id",
@@ -1026,7 +1137,7 @@ async def admin_list_resource(
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
     user_client = get_user_supabase(settings, profile)
-    service_client = get_service_supabase(settings) if resource == "profiles" and is_full_admin(profile) else None
+    service_client = get_privileged_supabase(settings, profile.get("_auth_token")) if resource == "profiles" and is_full_admin(profile) else None
     return await list_accessible_resource(user_client, profile, resource, status, service_client=service_client)
 
 
@@ -1036,7 +1147,7 @@ async def admin_list_audit_logs(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
-    user_client = get_user_supabase(settings, profile)
+    user_client = get_privileged_supabase(settings, profile.get("_auth_token"))
     try:
         return await user_client.select("audit_logs", order="created_at.desc", limit=250)
     except SupabaseRestError as exc:
@@ -1388,9 +1499,10 @@ async def admin_delete_contact(
 @app.get("/api/admin/events/{event_id}/certificate-queue")
 async def admin_certificate_queue(
     event_id: str,
-    _: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    profile: dict[str, Any] = Depends(require_admin),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -1427,8 +1539,9 @@ async def admin_certificate_queue(
 async def admin_issue_certificate(
     payload: CertificateIssue,
     profile: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     event = await select_one(client, "events", {"id": f"eq.{payload.event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -1449,8 +1562,10 @@ async def admin_issue_certificate(
 async def admin_issue_checked_in_certificates(
     payload: CertificateBulkIssue,
     profile: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    admin_profile = profile
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     event = await select_one(client, "events", {"id": f"eq.{payload.event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -1467,8 +1582,8 @@ async def admin_issue_checked_in_certificates(
         if not (registration.get("status") == "checked_in" or registration.get("checked_in_at")):
             continue
         member_id = registration.get("user_id")
-        profile = registration.get("profiles") or {}
-        label = profile.get("full_name") or profile.get("email") or member_id or "Unknown attendee"
+        attendee_profile = registration.get("profiles") or {}
+        label = attendee_profile.get("full_name") or attendee_profile.get("email") or member_id or "Unknown attendee"
         if not member_id:
             failed.append(f"{label}: missing member id")
             continue
@@ -1491,7 +1606,7 @@ async def admin_issue_checked_in_certificates(
 
     await write_audit_log(
         client,
-        profile,
+        admin_profile,
         action="bulk_issue",
         resource="certificates",
         resource_id=payload.event_id,
@@ -1504,9 +1619,10 @@ async def admin_issue_checked_in_certificates(
 @app.get("/api/admin/events/{event_id}/certificates")
 async def admin_event_certificates(
     event_id: str,
-    _: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    profile: dict[str, Any] = Depends(require_admin),
+    settings: Settings = Depends(get_settings),
 ) -> list[dict[str, Any]]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -1523,8 +1639,9 @@ async def admin_update_certificate(
     certificate_id: str,
     payload: CertificateUpdate,
     profile: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     certificate = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
     if not certificate:
         raise HTTPException(status_code=404, detail="Certificate not found.")
@@ -1551,8 +1668,9 @@ async def admin_update_certificate(
 async def admin_revoke_certificate(
     certificate_id: str,
     profile: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     certificate = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
     if not certificate:
         raise HTTPException(status_code=404, detail="Certificate not found.")
@@ -1575,8 +1693,9 @@ async def admin_revoke_certificate(
 async def admin_delete_certificate(
     certificate_id: str,
     profile: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, str]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     cert = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found.")

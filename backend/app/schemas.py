@@ -77,6 +77,7 @@ class GallerySubmissionCreate(BaseModel):
     title: str = Field(min_length=2, max_length=180)
     image_url: str = Field(min_length=5)
     event_name: str | None = None
+    event_id: str | None = None
 
 
 class SignatureData(BaseModel):
