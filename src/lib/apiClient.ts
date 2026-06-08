@@ -19,6 +19,9 @@ export function userFriendlyErrorMessage(error: unknown, fallback = "Something w
   const lower = raw.toLowerCase();
 
   if (!raw) return fallback;
+  if (lower.includes("failed to fetch") || lower.includes("networkerror") || lower.includes("load failed") || lower.includes("network request failed")) {
+    return "The server is not reachable right now. Please try again in a moment.";
+  }
   if (lower.includes("login required") || lower.includes("invalid or expired session") || lower.includes("jwt") || lower.includes("authorization")) {
     return "Please log in again to continue.";
   }
@@ -67,10 +70,18 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
     ...(options.headers || {}),
   };
 
-  const response = await fetch(path, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    throw new ApiError(
+      userFriendlyErrorMessage(error, "The server is not reachable right now. Please try again in a moment."),
+      503
+    );
+  }
 
   if (!response.ok) {
     let message = response.statusText || "Request failed.";

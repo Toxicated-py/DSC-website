@@ -55,10 +55,10 @@ class SupabaseRestClient:
 
         return await self._request("GET", table, params=params, headers=headers)
 
-    async def insert(self, table: str, payload: dict[str, Any]) -> Any:
+    async def insert(self, table: str, payload: dict[str, Any], *, return_representation: bool = True) -> Any:
         headers = {
             **self.headers,
-            "prefer": "return=representation",
+            "prefer": "return=representation" if return_representation else "return=minimal",
         }
         return await self._request("POST", table, json=payload, headers=headers)
 

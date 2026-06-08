@@ -65,13 +65,13 @@ interface BrutalInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const BrutalInput = ({ label, className = "", ...props }: BrutalInputProps) => (
-  <div className="mb-4 w-full">
-    {label && <label className="block text-xs font-bold uppercase tracking-widest mb-2">{label}</label>}
+  <label className="mb-4 block w-full">
+    {label && <span className="block text-xs font-bold uppercase tracking-widest mb-2">{label}</span>}
     <input
       className={`w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all ${className}`}
       {...props}
     />
-  </div>
+  </label>
 );
 
 // ─── BRUTAL TEXTAREA ───────────────────────────────────────────────────────────
@@ -80,14 +80,14 @@ interface BrutalTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaE
 }
 
 export const BrutalTextarea = ({ label, className = "", rows = 4, ...props }: BrutalTextareaProps) => (
-  <div className="mb-4 w-full">
-    {label && <label className="block text-xs font-bold uppercase tracking-widest mb-2">{label}</label>}
+  <label className="mb-4 block w-full">
+    {label && <span className="block text-xs font-bold uppercase tracking-widest mb-2">{label}</span>}
     <textarea
       className={`w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all resize-y ${className}`}
       rows={rows}
       {...props}
     />
-  </div>
+  </label>
 );
 
 // ─── BRUTAL FIELD (Custom State Friendly) ──────────────────────────────────────

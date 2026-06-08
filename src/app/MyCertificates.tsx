@@ -10,20 +10,7 @@ const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
 };
 
-const BrutalButton = ({ children, color = "bg-[#FFE800]", text = "text-[#171717]", className = "", ...props }: any) => (
-  <button
-    className={`px-6 py-3 ${color} ${text} border-2 border-[#171717] font-bold uppercase tracking-widest brutal-shadow brutal-shadow-hover transition-all disabled:opacity-50 ${className}`}
-    {...props}
-  >
-    {children}
-  </button>
-);
-
-const BrutalCard = ({ children, className = "", color = "bg-white", ...props }: any) => (
-  <div className={`border-2 border-[#171717] p-6 brutal-shadow-lg ${color} ${className}`} {...props}>
-    {children}
-  </div>
-);
+import { BrutalButton, BrutalCard } from "./components/ui/brutal";
 
 const Badge = ({ children, color = "bg-[#2563EB]" }: any) => (
   <span className={`px-2 py-1 ${color} border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest`}>

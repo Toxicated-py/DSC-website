@@ -32,26 +32,7 @@ const fonts = {
   sans: { fontFamily: "'Inter', sans-serif" },
 };
 
-const BrutalButton = ({ children, color = "bg-[#FFE800]", text = "text-[#171717]", className = "", ...props }: any) => (
-  <button 
-    className={`px-6 py-3 ${color} ${text} border-2 border-[#171717] font-bold uppercase tracking-widest brutal-shadow brutal-shadow-hover transition-all ${className}`} 
-    {...props}
-  >
-    {children}
-  </button>
-);
-
-const BrutalCard = ({ children, className = "", color = "bg-white", ...props }: any) => (
-  <div className={`border-2 border-[#171717] p-6 brutal-shadow-lg ${color} ${className}`} {...props}>
-    {children}
-  </div>
-);
-
-const BrutalBadge = ({ children, color = "bg-[#FB7185]", text="text-white", className = "" }: any) => (
-  <span className={`px-2 py-1 ${color} ${text} border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest ${className}`}>
-    {children}
-  </span>
-);
+import { BrutalButton, BrutalCard, BrutalBadge } from "./components/ui/brutal";
 
 // ─── New Login/Signup Page with Google Auth ───────────────────────────────────
 

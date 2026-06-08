@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Check, Users, ArrowRight, ArrowLeft, Database, MapPin } from "lucide-react";
 import { BrutalButton, BrutalCard, BrutalBadge } from "./components/ui/brutal";
 import { apiGet } from "../lib/apiClient";
+import { toast } from "sonner";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -276,7 +277,7 @@ export function HomePage() {
           </p>
           <BrutalButton
             color="bg-[#FFE800]"
-            onClick={() => alert("Sorry, currently we're not accepting applications. We'll announce it when we'll accept it.")}
+            onClick={() => toast.info("Membership applications are currently closed. We'll announce when they reopen.")}
           >
             Apply For Membership
           </BrutalButton>

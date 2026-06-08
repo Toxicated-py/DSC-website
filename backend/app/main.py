@@ -928,13 +928,13 @@ async def create_contact_message(
 ) -> dict[str, Any]:
     client = get_privileged_supabase(settings)
     try:
-        rows = await client.insert("contact_messages", payload.model_dump())
+        await client.insert("contact_messages", payload.model_dump(), return_representation=False)
     except SupabaseRestError as exc:
         if exc.status_code in {401, 403}:
             raise HTTPException(status_code=503, detail="Messages are temporarily unavailable. Please try again later.") from exc
         raise supabase_http_error(exc) from exc
 
-    return {"message": "Message received.", "data": rows[0] if rows else None}
+    return {"message": "Message received."}
 
 
 @app.get("/api/certificates/verify/{code}")

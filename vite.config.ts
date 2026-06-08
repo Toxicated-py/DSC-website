@@ -33,6 +33,30 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('html2canvas')) {
+            return 'html2canvas'
+          }
+          if (id.includes('jspdf') || id.includes('dompurify')) {
+            return 'jspdf'
+          }
+          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            return 'react-vendor'
+          }
+          if (id.includes('@supabase')) {
+            return 'supabase-vendor'
+          }
+          if (id.includes('@radix-ui') || id.includes('lucide-react') || id.includes('sonner')) {
+            return 'ui-vendor'
+          }
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {

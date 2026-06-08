@@ -1,22 +1,27 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { Suspense, lazy, useState, useEffect, useRef } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Database, Menu, X, Users, ArrowRight, ArrowLeft, Search, Camera, Check, Calendar, MapPin, Tag, QrCode, Trophy, TrendingUp, Bell, Zap, Target, Star, Award, Clock, BookOpen, Code, GitBranch, Home, Github, Linkedin, Twitter, Instagram, Mail, Facebook, UserCheck, GraduationCap, Shield, ChevronDown, Image, Handshake, LogOut, User, FileText, BookMarked } from "lucide-react";
 import { NewLoginPage, UserBadge } from "./AuthAndAdmin";
-import { ComprehensiveAdminPanel } from "./ComprehensiveAdmin";
-// New Pages
-import { ContactPage, ResourcesPage } from "./NewPages";
-import { MyCertificates } from "./MyCertificates";
-import { CertificateVerifyPage } from "./CertificateVerifyPage";
-import { GalleryPage, UserProfilePage, AchievementsPage, PartnersPage } from "./NewPages2";
-import { UpdatedAboutPage } from "./UpdatedAbout";
-import { TeamPage } from "./TeamPage";
-import { HomePage } from "./HomePage";
 import { UpdatedFooter } from "./UpdatedFooter";
 import { QRCodeCanvas } from "qrcode.react";
 import { getPersistenceLabel, publishBlogPost, submitEventProposal, submitProject } from "../lib/contentApi";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "./components/ui/brutal";
+import { Toaster } from "sonner";
+
+const HomePage = lazy(() => import("./HomePage").then((module) => ({ default: module.HomePage })));
+const UpdatedAboutPage = lazy(() => import("./UpdatedAbout").then((module) => ({ default: module.UpdatedAboutPage })));
+const TeamPage = lazy(() => import("./TeamPage").then((module) => ({ default: module.TeamPage })));
+const MyCertificates = lazy(() => import("./MyCertificates").then((module) => ({ default: module.MyCertificates })));
+const CertificateVerifyPage = lazy(() => import("./CertificateVerifyPage").then((module) => ({ default: module.CertificateVerifyPage })));
+const ContactPage = lazy(() => import("./NewPages").then((module) => ({ default: module.ContactPage })));
+const ResourcesPage = lazy(() => import("./NewPages").then((module) => ({ default: module.ResourcesPage })));
+const GalleryPage = lazy(() => import("./NewPages2").then((module) => ({ default: module.GalleryPage })));
+const UserProfilePage = lazy(() => import("./NewPages2").then((module) => ({ default: module.UserProfilePage })));
+const AchievementsPage = lazy(() => import("./NewPages2").then((module) => ({ default: module.AchievementsPage })));
+const PartnersPage = lazy(() => import("./NewPages2").then((module) => ({ default: module.PartnersPage })));
+const ComprehensiveAdminPanel = lazy(() => import("./ComprehensiveAdmin").then((module) => ({ default: module.ComprehensiveAdminPanel })));
 
 // ─── Custom Discord Icon ───────────────────────────────────────────────────────
 const DiscordIcon = ({ size = 18 }: { size?: number }) => (
@@ -80,6 +85,14 @@ const GlobalStyles = () => (
       }
     }
   `}</style>
+);
+
+const PageLoadingFallback = () => (
+  <div className="pt-32 pb-20 px-6 min-h-[60vh] flex items-center justify-center">
+    <BrutalCard color="bg-white">
+      <p className="font-mono text-sm text-slate-500">Loading page...</p>
+    </BrutalCard>
+  </div>
 );
 
 // Shared components imported from `./components/ui/brutal`
@@ -3042,45 +3055,48 @@ function DashboardPage() {
 export default function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="about" element={<UpdatedAboutPage />} />
-          <Route path="events" element={<EventsPage />} />
-          <Route path="events/propose" element={<EventProposalPage />} />
-          <Route path="events/:id" element={<EventDetailPage />} />
-          <Route path="projects" element={<ProjectsPage />} />
-          <Route path="projects/submit" element={<ProjectSubmissionPage />} />
-          <Route path="projects/:id" element={<ProjectDetailPage />} />
-          <Route path="blog" element={<BlogPage />} />
-          <Route path="blog/:id" element={<BlogDetailPage />} />
-          <Route path="blog/write" element={<BlogEditorPage />} />
-          <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="admin" element={<AdminRoute><ComprehensiveAdminPanel /></AdminRoute>} />
-          <Route path="admin/:adminTab" element={<AdminRoute><ComprehensiveAdminPanel /></AdminRoute>} />
+      <Toaster richColors position="top-right" />
+      <Suspense fallback={<PageLoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<HomePage />} />
+            <Route path="about" element={<UpdatedAboutPage />} />
+            <Route path="events" element={<EventsPage />} />
+            <Route path="events/propose" element={<EventProposalPage />} />
+            <Route path="events/:id" element={<EventDetailPage />} />
+            <Route path="projects" element={<ProjectsPage />} />
+            <Route path="projects/submit" element={<ProjectSubmissionPage />} />
+            <Route path="projects/:id" element={<ProjectDetailPage />} />
+            <Route path="blog" element={<BlogPage />} />
+            <Route path="blog/:id" element={<BlogDetailPage />} />
+            <Route path="blog/write" element={<BlogEditorPage />} />
+            <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="admin" element={<AdminRoute><ComprehensiveAdminPanel /></AdminRoute>} />
+            <Route path="admin/:adminTab" element={<AdminRoute><ComprehensiveAdminPanel /></AdminRoute>} />
+            
+            {/* New Pages */}
+            <Route path="certificates" element={<ProtectedRoute><MyCertificates /></ProtectedRoute>} />
+            <Route path="verify" element={<CertificateVerifyPage />} />
+            <Route path="verify/:code" element={<CertificateVerifyPage />} />
+            <Route path="team" element={<TeamPage />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="resources" element={<ResourcesPage />} />
+            <Route path="gallery" element={<GalleryPage />} />
+            <Route path="profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+            <Route path="achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
+            <Route path="partners" element={<PartnersPage />} />
+            <Route path="ticket" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
+            <Route path="ticket/:ticketId" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
+            <Route path="tickets" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
+            <Route path="tickets/:ticketId" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
+          </Route>
           
-          {/* New Pages */}
-          <Route path="certificates" element={<ProtectedRoute><MyCertificates /></ProtectedRoute>} />
-          <Route path="verify" element={<CertificateVerifyPage />} />
-          <Route path="verify/:code" element={<CertificateVerifyPage />} />
-          <Route path="team" element={<TeamPage />} />
-          <Route path="contact" element={<ContactPage />} />
-          <Route path="resources" element={<ResourcesPage />} />
-          <Route path="gallery" element={<GalleryPage />} />
-          <Route path="profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
-          <Route path="achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
-          <Route path="partners" element={<PartnersPage />} />
-          <Route path="ticket" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
-          <Route path="ticket/:ticketId" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
-          <Route path="tickets" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
-          <Route path="tickets/:ticketId" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
-        </Route>
-        
-        {/* Auth & Utility routes without standard Nav/Footer for immersion */}
-        <Route path="/login" element={<NewLoginPage />} />
-        <Route path="/register" element={<NewLoginPage />} />
-        <Route path="/scanner" element={<ScannerPage />} />
-      </Routes>
+          {/* Auth & Utility routes without standard Nav/Footer for immersion */}
+          <Route path="/login" element={<NewLoginPage />} />
+          <Route path="/register" element={<NewLoginPage />} />
+          <Route path="/scanner" element={<ScannerPage />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 }

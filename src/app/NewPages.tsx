@@ -24,6 +24,7 @@ import {
   FileText, ExternalLink, Search, Filter, ChevronDown, Shield, GraduationCap,
   UserCheck, Crown
 } from "lucide-react";
+import { toast } from "sonner";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { useSiteSettings } from "../lib/siteSettings";
 import { apiGet, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
@@ -61,6 +62,26 @@ const defaultCertificateSignatures = [
   { name: "DIRECTOR_NAME", title: "DIRECTOR" },
   { name: "CLUB_PRESIDENT_NAME", title: "PRESIDENT" },
 ];
+
+const contactFallbackMessage = "Could not send message right now. Please email us directly.";
+
+const submitContactMessage = async (payload: { name: string; email: string; subject: string; message: string }) => {
+  try {
+    await apiPost("/api/contact-messages", payload);
+    return "api";
+  } catch (error: any) {
+    if (error?.status !== 503 || !isSupabaseConfigured || !supabase) {
+      throw error;
+    }
+
+    const { error: insertError } = await supabase
+      .from("contact_messages")
+      .insert(payload);
+
+    if (insertError) throw insertError;
+    return "supabase";
+  }
+};
 
 const getCertificateDetails = (certificate: any) => {
   const event = certificate ? (Array.isArray(certificate.events) ? certificate.events[0] : certificate.events) : null;
@@ -319,9 +340,9 @@ export function CertificatePage() {
             .order("issued_at", { ascending: false, nullsFirst: false })
             .order("created_at", { ascending: false });
           setCertificates(legacyData || []);
-          setLoadError(legacyError ? legacyError.message : "");
+          setLoadError(legacyError ? userFriendlyErrorMessage(legacyError, "Could not load certificates. Please refresh and try again.") : "");
         } else {
-          setLoadError(error.message);
+          setLoadError(userFriendlyErrorMessage(error, "Could not load certificates. Please refresh and try again."));
           setCertificates([]);
         }
       } else {
@@ -513,9 +534,9 @@ export function CertificateDetailPage() {
             .eq("id", id)
             .maybeSingle();
           setCertificate(legacyData);
-          setError(legacyError ? legacyError.message : "");
+          setError(legacyError ? userFriendlyErrorMessage(legacyError, "Could not load certificate. Please refresh and try again.") : "");
         } else {
-          setError(loadError.message);
+          setError(userFriendlyErrorMessage(loadError, "Could not load certificate. Please refresh and try again."));
         }
       } else {
         setCertificate(data);
@@ -535,9 +556,11 @@ export function CertificateDetailPage() {
     if (!verifyUrl) return;
     try {
       await navigator.clipboard.writeText(verifyUrl);
-      alert("Verification link copied.");
+      toast.success("Verification link copied.");
     } catch {
-      alert(verifyUrl);
+      toast.info("Copy this verification link:", {
+        description: verifyUrl,
+      });
     }
   };
 
@@ -617,7 +640,7 @@ export function VerifyCertificatePage() {
       if (loadError) {
         setError(isCertificateSchemaError(loadError.message)
           ? certificateSchemaMessage
-          : loadError.message);
+          : userFriendlyErrorMessage(loadError, "Could not verify certificate. Please check the code and try again."));
       }
       else setCertificate(data);
       setLoading(false);
@@ -846,7 +869,7 @@ export function TeamPage() {
         <BrutalButton
           color="bg-[#171717]"
           text="text-white"
-          onClick={() => alert("Sorry, currently we're not accepting applications. We'll announce it when we'll accept it.")}
+          onClick={() => toast.info("Membership applications are currently closed. We'll announce when they reopen.")}
         >
           Apply Now
         </BrutalButton>
@@ -867,6 +890,7 @@ export function ContactPage() {
   });
   const [submittingMessage, setSubmittingMessage] = useState(false);
   const [contactStatus, setContactStatus] = useState("");
+  const [contactStatusType, setContactStatusType] = useState<"success" | "error">("success");
   
   const [openFAQ, setOpenFAQ] = useState<number | null>(0);
 
@@ -874,18 +898,31 @@ export function ContactPage() {
     e.preventDefault();
     setContactStatus("");
 
+    const payload = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      subject: formData.subject.trim(),
+      message: formData.message.trim(),
+    };
+
+    if (!payload.name || !payload.email || !payload.subject || !payload.message) {
+      setContactStatusType("error");
+      setContactStatus("Please fill out every field before sending.");
+      return;
+    }
+
     setSubmittingMessage(true);
     try {
-      await apiPost("/api/contact-messages", {
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        subject: formData.subject.trim(),
-        message: formData.message.trim(),
-      });
+      await submitContactMessage(payload);
+      setContactStatusType("success");
       setContactStatus("Message sent. We will get back to you soon.");
+      toast.success("Message sent.");
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (error: any) {
-      setContactStatus(userFriendlyErrorMessage(error, "Could not send message right now. Please email us directly."));
+      const message = userFriendlyErrorMessage(error, contactFallbackMessage);
+      setContactStatusType("error");
+      setContactStatus(message);
+      toast.error(message);
     } finally {
       setSubmittingMessage(false);
     }
@@ -975,7 +1012,9 @@ export function ContactPage() {
               <Send size={16} className="inline mr-2" /> {submittingMessage ? "Sending..." : "Send Message"}
             </BrutalButton>
             {contactStatus && (
-              <div className="mt-4 border-2 border-[#171717] bg-[#FFE800] p-3 text-xs font-bold uppercase tracking-widest">
+              <div className={`mt-4 border-2 border-[#171717] p-3 text-xs font-bold uppercase tracking-widest ${
+                contactStatusType === "success" ? "bg-[#FFE800]" : "bg-[#FB7185] text-white"
+              }`}>
                 {contactStatus}
               </div>
             )}
