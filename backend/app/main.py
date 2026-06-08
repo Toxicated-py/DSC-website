@@ -533,6 +533,20 @@ async def list_events(
         raise supabase_http_error(exc) from exc
 
 
+@app.get("/api/events/{event_id}")
+async def get_public_event(
+    event_id: str,
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    service_client = get_privileged_supabase(settings)
+    event = await select_one(service_client, "events", {"id": f"eq.{event_id}"})
+    if not event or event.get("status") not in {"approved", "published"}:
+        raise HTTPException(status_code=404, detail="Event not found.")
+
+    registered_count = await active_registration_count(service_client, event_id)
+    return {**event, "registeredCount": registered_count, "registered_count": registered_count}
+
+
 @app.get("/api/events/{event_id}/workspace")
 async def event_workspace(
     event_id: str,

@@ -1043,27 +1043,32 @@ function EventDetailPage() {
   useEffect(() => {
     let mounted = true;
 
-    async function loadEventWorkspace() {
+    async function loadEventDetails() {
       if (!isUuidEvent || !id) {
         setLoadingEvent(false);
         return;
       }
 
-      const workspace = await apiGet<any>(`/api/events/${id}/workspace`, { auth: "optional" }).catch(() => null);
+      const event = await apiGet<any>(`/api/events/${id}`).catch(() => null);
       if (!mounted) return;
-      if (!workspace?.event) {
+      if (!event) {
         setLoadingEvent(false);
         return;
       }
+
+      setEventInfo(event);
+      setLoadingEvent(false);
+
+      const workspace = await apiGet<any>(`/api/events/${id}/workspace`, { auth: "optional" }).catch(() => null);
+      if (!mounted || !workspace?.event) return;
 
       setEventInfo(workspace.event);
       setCanManageEvent(Boolean(workspace.can_manage));
       setMyRegistration(workspace.my_registration || null);
       setAttendees(workspace.attendees || []);
-      setLoadingEvent(false);
     }
 
-    loadEventWorkspace();
+    loadEventDetails();
 
     return () => {
       mounted = false;
