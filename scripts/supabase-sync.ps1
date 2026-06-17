@@ -60,7 +60,7 @@ switch ($Mode) {
   }
 
   "pull-schema" {
-    Invoke-Supabase link --project-ref oiqsxwzlgdfyselcpnco
+    Invoke-Supabase link --project-ref tpfyvmezktigmtyzixez
     $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
     Invoke-Supabase db pull "remote_schema_sync_$stamp"
     Invoke-Supabase db reset
@@ -73,7 +73,7 @@ switch ($Mode) {
       -Message "This will apply local migration files to the linked hosted Supabase project. It does not push local data." `
       -Expected "PUSH SCHEMA"
 
-    Invoke-Supabase link --project-ref oiqsxwzlgdfyselcpnco
+    Invoke-Supabase link --project-ref tpfyvmezktigmtyzixez
     Invoke-Supabase db push
   }
 
@@ -83,7 +83,7 @@ switch ($Mode) {
       -Expected "DUMP PUBLIC DATA"
 
     New-Item -ItemType Directory -Force -Path (Split-Path $dataDumpPath) | Out-Null
-    Invoke-Supabase link --project-ref oiqsxwzlgdfyselcpnco
+    Invoke-Supabase link --project-ref tpfyvmezktigmtyzixez
     Invoke-Supabase db dump --linked --data-only --schema public --file $dataDumpPath
     Write-Host ""
     Write-Host "Remote public data dumped to $dataDumpPath" -ForegroundColor Green

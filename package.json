@@ -12,7 +12,7 @@
     "supabase:stop": "npx supabase stop",
     "supabase:status": "npx supabase status",
     "supabase:reset": "npx supabase db reset",
-    "supabase:link": "npx supabase link --project-ref oiqsxwzlgdfyselcpnco",
+    "supabase:link": "npx supabase link --project-ref tpfyvmezktigmtyzixez",
     "supabase:pull": "npx supabase db pull",
     "supabase:push": "npx supabase db push",
     "sync:status": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode status",
