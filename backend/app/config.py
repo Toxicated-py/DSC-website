@@ -29,6 +29,20 @@ for env_file in (ROOT / ".env", ROOT / ".env.local", ROOT / ".env.api"):
     _load_env_file(env_file)
 
 
+DEFAULT_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+]
+
+
+def _csv_env(name: str, default: list[str]) -> list[str]:
+    value = os.getenv(name, "")
+    origins = [item.strip() for item in value.split(",") if item.strip()]
+    return origins or default
+
+
 class Settings(BaseModel):
     app_name: str = "DSC API"
     environment: str = os.getenv("APP_ENV", "development")
@@ -42,12 +56,7 @@ class Settings(BaseModel):
         or ""
     )
     admin_rpc_secret: str = os.getenv("ADMIN_RPC_SECRET", "")
-    allowed_origins: list[str] = [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-    ]
+    allowed_origins: list[str] = _csv_env("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
 
     @property
     def is_supabase_configured(self) -> bool:

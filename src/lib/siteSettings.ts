@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "./apiClient";
+import { siteConfig } from "../config/site";
 
 export interface SiteSettings {
   siteName: string;
@@ -131,12 +132,7 @@ export const defaultSiteSettings: SiteSettings = {
     },
   ],
   socialLinks: {
-    github: "https://github.com/datascienceclub",
-    linkedin: "https://linkedin.com/company/datascienceclub",
-    twitter: "https://twitter.com/datascienceclub",
-    facebook: "https://facebook.com/datascienceclub",
-    instagram: "https://instagram.com/datascienceclub",
-    discord: "https://discord.gg/datascienceclub",
+    ...siteConfig.socialLinks,
   },
 };
 

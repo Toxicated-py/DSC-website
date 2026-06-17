@@ -40,7 +40,7 @@ export function UpdatedFooter() {
       label: formatSocialLabel(platform),
     })),
     { icon: <Mail size={18} />, url: `mailto:${settings.contactEmail}`, label: "Email" },
-  ].filter((social) => social.url && social.url !== "mailto:");
+  ].filter((social) => social.url && social.url !== "#" && social.url !== "mailto:");
 
   return (
     <footer className="bg-[#F4EFEB] py-12 px-6 md:px-10 border-t-2 border-[#171717]">
