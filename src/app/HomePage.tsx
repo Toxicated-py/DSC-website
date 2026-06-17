@@ -111,6 +111,9 @@ export function HomePage() {
               <p className="text-xl md:text-2xl text-[#171717] leading-snug" style={fonts.serif}>
                 Student-run. Kathmandu-made. Data-driven with <i className="text-[#FB7185]">soul.</i>
               </p>
+              <p className="mt-3 max-w-lg text-sm md:text-base font-mono leading-relaxed text-slate-600">
+                A student-run club at SMS TU for workshops, projects, research, competitions, and data science collaboration.
+              </p>
               <div className="mt-8 flex gap-4 flex-wrap">
                 <Link to={localStorage.getItem("dsc-auth-state") === "logged-in" ? "/dashboard" : "/register"}>
                   <BrutalButton color="bg-[#FFE800]">Join the Club</BrutalButton>

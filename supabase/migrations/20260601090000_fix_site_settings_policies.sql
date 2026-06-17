@@ -42,12 +42,12 @@ values (
     "contactPhone": "+977-1-4331976",
     "address": "School of Mathematical Sciences, SMS, TU, Kathmandu, Nepal",
     "socialLinks": {
-      "github": "https://github.com/datascienceclub",
-      "linkedin": "https://linkedin.com/company/datascienceclub",
-      "twitter": "https://twitter.com/datascienceclub",
-      "facebook": "https://facebook.com/datascienceclub",
-      "instagram": "https://instagram.com/datascienceclub",
-      "discord": "https://discord.gg/datascienceclub"
+      "github": "#",
+      "linkedin": "#",
+      "twitter": "#",
+      "facebook": "#",
+      "instagram": "#",
+      "discord": "#"
     }
   }'::jsonb
 )

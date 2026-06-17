@@ -1,131 +1,154 @@
+# Data Science Club Website
 
-  # DSC
+Official website for the Data Science Club at the School of Mathematical Sciences, Tribhuvan University.
 
-  This is a code bundle for DSC. The original project is available at https://www.figma.com/design/9Cf6TxC4BTcBmXIy1RnmN8/DSC.
+The site supports club announcements, events, projects, blog posts, certificates, gallery pages, member areas, admin tools, and contact submissions. It uses a Vite/React frontend, a FastAPI backend, and Supabase for database, auth, and local development workflows.
 
-  ## Running the code
+## Tech Stack
 
-  Run `npm i` to install the dependencies.
+- Frontend: React, Vite, TypeScript-style TSX, Tailwind utility classes
+- Backend: FastAPI under `backend/`
+- Database/Auth: Supabase
+- Local tooling: Supabase CLI and Docker Desktop
 
-  Run `npm run dev` to start the development server.
+## Frontend Setup
 
-  ## Python backend
+Install dependencies:
 
-  The project now includes a FastAPI backend under `backend/`. It starts as a
-  sidecar API so we can move Supabase calls behind Python gradually without
-  breaking the existing website.
+```bash
+npm install
+```
 
-  Install backend dependencies:
+Start the Vite development server:
 
-  ```bash
-  npm run api:install
-  ```
+```bash
+npm run dev
+```
 
-  Start the Python API:
+The frontend runs at `http://localhost:5173` by default. During local development, Vite proxies `/api/*` and `/health` to the FastAPI backend.
 
-  ```bash
-  npm run api:dev
-  ```
+## FastAPI Backend Setup
 
-  The API runs at `http://127.0.0.1:8000`. Vite proxies `/api/*` and `/health`
-  to this backend during local development.
+Install backend dependencies:
 
-  Useful starting endpoints:
+```bash
+npm run api:install
+```
 
-  - `GET /health`
-  - `GET /api/site-settings`
-  - `GET /api/home-summary`
-  - `GET /api/events`
-  - `GET /api/projects`
-  - `GET /api/blog-posts`
-  - `POST /api/contact-messages`
-  - `GET /api/certificates/verify/{code}`
+Start the API:
 
-  ## Local Supabase development
+```bash
+npm run api:dev
+```
 
-  This project can run against a local Supabase database for offline-safe
-  development and testing. You need Docker Desktop running before starting
-  Supabase locally.
+The API runs at `http://127.0.0.1:8000`.
 
-  1. Start local Supabase:
+Useful endpoints:
 
-     ```bash
-     npm run supabase:start
-     ```
+- `GET /health`
+- `GET /api/site-settings`
+- `GET /api/home-summary`
+- `GET /api/events`
+- `GET /api/events/{event_id}`
+- `GET /api/projects`
+- `GET /api/blog-posts`
+- `POST /api/contact-messages`
+- `GET /api/certificates/verify/{code}`
 
-  2. Copy `.env.local.supabase.example` to `.env.local`.
+## Local Supabase Development
 
-  3. Get the local anon key:
+Docker Desktop must be running before starting Supabase locally.
 
-     ```bash
-     npm run supabase:status
-     ```
+Start local Supabase:
 
-     Paste the printed anon key into `VITE_SUPABASE_PUBLISHABLE_KEY` in
-     `.env.local`.
+```bash
+npm run supabase:start
+```
 
-  4. Apply all migrations to your local database:
+Copy `.env.local.supabase.example` to `.env.local`, then get the local anon/publishable key:
 
-     ```bash
-     npm run supabase:reset
-     ```
+```bash
+npm run supabase:status
+```
 
-  5. Start the Vite app:
+Paste the printed local key into `VITE_SUPABASE_PUBLISHABLE_KEY` in `.env.local`.
 
-     ```bash
-     npm run dev
-     ```
+Apply all migrations to the local database:
 
-  Local Supabase Studio opens at `http://127.0.0.1:54323`.
+```bash
+npm run supabase:reset
+```
 
-  ## Syncing local and remote Supabase
+Local Supabase Studio opens at `http://127.0.0.1:54323`.
 
-  Migrations are the source of truth for database structure. Local Docker
-  Supabase is for development and testing; the hosted Supabase project is for
-  production.
+## Supabase Sync Workflow
 
-  ### Everyday offline/local work
+Migrations are the source of truth for database structure. Local Supabase is for development and testing; the hosted Supabase project is for production.
 
-  Rebuild your local database from committed migrations:
+Rebuild local Supabase from committed migrations:
 
-  ```bash
-  npm run sync:local-reset
-  npm run dev
-  ```
+```bash
+npm run sync:local-reset
+```
 
-  ### Bring hosted schema changes into local
+Bring hosted schema changes into local after dashboard edits:
 
-  Use this after changing tables, views, policies, or functions in the Supabase
-  Dashboard:
+```bash
+npm run sync:pull-schema
+```
 
-  ```bash
-  npm run sync:pull-schema
-  ```
+Push tested local migrations to hosted Supabase:
 
-  This creates a new migration from the hosted schema and then rebuilds local
-  Supabase with it.
+```bash
+npm run sync:push-schema
+```
 
-  ### Push local schema changes to hosted Supabase
+Optional public-table data copy for development:
 
-  Use this only when your local migrations are tested and ready:
+```bash
+npm run sync:dump-public-data
+npm run sync:restore-public-data
+```
 
-  ```bash
-  npm run sync:push-schema
-  ```
+The dump is written under `supabase/.temp`, which is ignored by git. Do not use real private user data for local testing.
 
-  This applies migration files to the hosted project. It does not upload local
-  rows or test users.
+## Production Deployment
 
-  ### Optional public data copy for development
+Deploy the frontend and backend separately, with Supabase as the hosted database/auth provider.
 
-  Prefer adding fake rows to `supabase/seed.sql`. If you need a one-time copy of
-  hosted public-table data for testing:
+Frontend environment variables:
 
-  ```bash
-  npm run sync:dump-public-data
-  npm run sync:restore-public-data
-  ```
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_BASE_URL` or the configured API base URL used by the frontend host
 
-  The dump is written under `supabase/.temp`, which is ignored by git. Do not
-  use real private user data for local testing.
-  
+Backend environment variables:
+
+- `APP_ENV=production`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY` or `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` for server-only privileged operations
+- `ADMIN_RPC_SECRET` for protected admin RPC calls, if enabled
+- `ALLOWED_ORIGINS`, comma-separated, for production CORS origins
+
+Example:
+
+```bash
+ALLOWED_ORIGINS=https://datasarathi.org.np,https://www.datasarathi.org.np
+```
+
+Never expose service role keys, admin secrets, `.env` files, or private user data in frontend code, logs, commits, screenshots, or public hosting settings.
+
+## Quality Checks
+
+Build the frontend:
+
+```bash
+npm run build
+```
+
+Check that the FastAPI app imports:
+
+```bash
+python -c "from backend.app.main import app; print(app.title)"
+```
