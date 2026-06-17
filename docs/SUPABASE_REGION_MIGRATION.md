@@ -1,8 +1,27 @@
 # Supabase Region Migration: Seoul to Mumbai
 
-This document plans the DSC website migration from the current Supabase project in `ap-northeast-2` / Seoul to a new project in South Asia Mumbai / `ap-south-1`.
+This document tracks the DSC website migration from the original Supabase project in `ap-northeast-2` / Seoul to a new project in South Asia Mumbai / `ap-south-1`.
 
 Do not delete or pause the old Seoul project until the Mumbai project is fully tested in production-like hosting and the team has a rollback path.
+
+## Migration Status
+
+- Old Seoul project ref: `oiqsxwzlgdfyselcpnco`
+- New Mumbai project ref: `tpfyvmezktigmtyzixez`
+- New Mumbai project URL: `https://tpfyvmezktigmtyzixez.supabase.co`
+- Mumbai project status: created and healthy.
+- Schema status: all committed migrations have been applied to the Mumbai project.
+- Safe seed/default data status: default rows from migrations are present, including `designation_options` and `site_settings`.
+- Production data status: not migrated yet.
+- Auth user status: not migrated yet.
+- Storage file status: buckets exist, but files have not been copied yet.
+
+The Supabase CLI could not be linked from this workstation without an access token or database password, so the schema was applied through the Supabase management connector. Future local CLI work can use:
+
+```bash
+npx supabase login
+npm run supabase:link
+```
 
 ## Current Supabase Inventory
 
@@ -10,11 +29,11 @@ Do not delete or pause the old Seoul project until the Mumbai project is fully t
 
 - `package.json`
   - `supabase:start`, `supabase:stop`, `supabase:status`, `supabase:reset`
-  - `supabase:link` currently links to the old project ref: `oiqsxwzlgdfyselcpnco`
+  - `supabase:link` links to the Mumbai project ref: `tpfyvmezktigmtyzixez`
   - `supabase:pull`, `supabase:push`
   - `sync:*` scripts call `scripts/supabase-sync.ps1`
 - `scripts/supabase-sync.ps1`
-  - Uses the old project ref in `pull-schema`, `push-schema`, and `dump-public-data`
+  - Uses the Mumbai project ref in `pull-schema`, `push-schema`, and `dump-public-data`
   - Dumps public schema data to `supabase/.temp/remote-public-data.sql`
   - Has confirmation prompts for pushing schema and copying public data
 
@@ -28,8 +47,8 @@ Do not delete or pause the old Seoul project until the Mumbai project is fully t
 - `.env.local.supabase.example`
   - Local Supabase URL and local anon/publishable key placeholder
 - `.env.remote.supabase.example`
-  - Currently points at the old project URL
-  - Must be updated after the Mumbai project ref is known
+  - Points at the Mumbai project URL
+  - Keeps key values as placeholders
 
 Never commit real `.env`, `.env.local`, `.env.api`, service role keys, database passwords, JWT secrets, or exported private user data.
 
@@ -136,8 +155,8 @@ The app uses these public tables through migrations and backend/admin flows:
 
 ### 2. Create the new Mumbai project
 
-- Create a new Supabase project in South Asia Mumbai / `ap-south-1`.
-- Save the new project ref outside the repository.
+- Created a new Supabase project in South Asia Mumbai / `ap-south-1`.
+- New project ref: `tpfyvmezktigmtyzixez`.
 - Save the new API URL, publishable key, service role key, database password, and connection strings in a secure password manager or hosting secret store.
 - Match important dashboard settings from the Seoul project:
   - Auth providers
@@ -154,10 +173,10 @@ The app uses these public tables through migrations and backend/admin flows:
 After the new project ref is known, link locally with:
 
 ```bash
-npx supabase link --project-ref NEW_MUMBAI_PROJECT_REF
+npx supabase link --project-ref tpfyvmezktigmtyzixez
 ```
 
-Do not update `package.json` or `scripts/supabase-sync.ps1` with the new ref until the Mumbai project has been validated. When ready, replace the old `oiqsxwzlgdfyselcpnco` ref in:
+The repo now points non-secret Supabase CLI references at the Mumbai project:
 
 - `package.json`
 - `scripts/supabase-sync.ps1`
@@ -179,6 +198,35 @@ npx supabase migration list --linked
 
 Important: recent Supabase projects may not expose newly created public tables to the Data API automatically. Confirm that grants from migrations are sufficient for `anon`, `authenticated`, and `service_role` access. RLS still controls rows; grants control whether the Data API can reach the table at all.
 
+Applied migrations in Mumbai:
+
+- `20260527093000_add_site_settings`
+- `20260527094500_prevent_duplicate_event_certificates`
+- `20260528090000_coursera_style_certificates`
+- `20260531100000_full_certificate_system`
+- `20260531234000_certificate_event_manager_policies`
+- `20260531235000_drop_legacy_certificate_recipient_not_null`
+- `20260531235500_drop_legacy_certificate_not_nulls`
+- `20260601090000_fix_site_settings_policies`
+- `20260601093000_add_contact_messages`
+- `20260602120000_add_certificate_template_data`
+- `20260602123000_add_certificate_template_storage`
+- `20260602130000_add_profile_links`
+- `20260602133000_add_audit_logs`
+- `20260602180000_allow_users_insert_own_profile`
+- `20260603090000_fix_admin_role_helpers`
+- `20260603091000_add_admin_list_profiles_rpc`
+- `20260606100000_release_security_hardening`
+- `20260607081325_add_gallery_likes_and_event_links`
+- `20260607082030_remove_event_manager_certificate_policy`
+- `20260607083417_restore_public_contact_insert`
+- `20260607092644_remote_schema`
+- `20260607201336_fix_contact_message_public_insert`
+- `20260607201619_fix_contact_message_public_role_policy`
+- `20260607201819_fix_contact_message_email_policy_regex`
+- `20260607202012_fix_contact_message_explicit_anon_policy`
+- `20260617153612_cleanup_contact_message_legacy_policy`
+
 ### 5. Verify schema, policies, and functions
 
 - Confirm all expected public tables exist.
@@ -197,6 +245,19 @@ Important: recent Supabase projects may not expose newly created public tables t
 - Confirm grants on views/functions, especially:
   - `public.public_certificates`
   - `public.admin_list_profiles`
+
+Verified in Mumbai:
+
+- Expected public tables exist.
+- RLS is enabled on app tables.
+- Storage buckets exist: `signatures`, `certificate-templates`.
+- Contact message insert policy exists for `anon` and `authenticated`.
+- Public content tables are empty until production data is copied.
+
+Supabase advisors currently report:
+
+- Security: `public.public_certificates` is flagged as a security-definer view. Review before launch: https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view
+- Performance: existing RLS policies and indexes have optimization warnings, including auth function init-plan warnings, multiple permissive policies, duplicate certificate verification-code indexes, and unused indexes. These are follow-up schema hardening tasks, not blockers for creating the Mumbai project.
 
 ### 6. Copy safe seed data only
 
@@ -299,13 +360,11 @@ Keep `SUPABASE_SERVICE_ROLE_KEY` and `ADMIN_RPC_SECRET` server-only.
 
 ### 12. Update repo references after validation
 
-Only after the Mumbai project passes testing, update docs/examples/scripts to the new ref:
+Non-secret repo references now point at the Mumbai project:
 
 - `package.json` `supabase:link`
 - `scripts/supabase-sync.ps1`
 - `.env.remote.supabase.example`
-
-Do not hardcode the new project ref before it is provided and confirmed.
 
 ### 13. Build and test
 
