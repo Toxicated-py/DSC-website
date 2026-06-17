@@ -85,6 +85,8 @@ Local Supabase Studio opens at `http://127.0.0.1:54323`.
 
 Migrations are the source of truth for database structure. Local Supabase is for development and testing; the hosted Supabase project is for production.
 
+Planning a hosted project move, such as Seoul `ap-northeast-2` to Mumbai `ap-south-1`, is documented in [docs/SUPABASE_REGION_MIGRATION.md](docs/SUPABASE_REGION_MIGRATION.md). Do not update project refs or secrets in code until the new project has been created and tested.
+
 Rebuild local Supabase from committed migrations:
 
 ```bash
