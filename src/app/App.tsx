@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useState, useEffect, useRef } from "react";
 import { BrowserRouter as Router, Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Database, Users, ArrowRight, ArrowLeft, Search, Camera, Check, Calendar, MapPin, Tag, QrCode, Trophy, TrendingUp, Bell, Zap, Target, Star, Award, Clock, BookOpen, Code, GitBranch, Home, Mail, UserCheck, GraduationCap, User, FileText } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
+import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 import { getPersistenceLabel, publishBlogPost, submitEventProposal, submitProject } from "../lib/contentApi";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
@@ -270,6 +271,7 @@ function EventDetailPage() {
   const [myRegistration, setMyRegistration] = useState<any>(null);
   const [managerStatus, setManagerStatus] = useState("");
   const [loadingEvent, setLoadingEvent] = useState(true);
+  const [reservingSpot, setReservingSpot] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -324,6 +326,7 @@ function EventDetailPage() {
   };
 
   const reserveSpot = async () => {
+    if (reservingSpot) return;
     setReserveStatus("");
     if (!requireLoginForAction(navigate, `/events/${id}`)) return;
     if (!id) {
@@ -331,6 +334,7 @@ function EventDetailPage() {
       return;
     }
     try {
+      setReservingSpot(true);
       const result = await apiPost<any>(`/api/events/${id}/reserve`, {}, { auth: true });
       setMyRegistration(result.registration || null);
       if (result.message === "Already registered.") {
@@ -349,6 +353,8 @@ function EventDetailPage() {
         return;
       }
       setReserveStatus(userFriendlyErrorMessage(error, "Could not reserve a spot. Please try again."));
+    } finally {
+      setReservingSpot(false);
     }
   };
 
@@ -428,8 +434,8 @@ function EventDetailPage() {
                 </BrutalButton>
               </div>
             ) : (
-              <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white" disabled={registrationClosedByDeadline}>
-                {registrationClosedByDeadline ? "Registration Closed" : "Reserve Spot"}
+              <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white" disabled={registrationClosedByDeadline || reservingSpot}>
+                {registrationClosedByDeadline ? "Registration Closed" : reservingSpot ? "Reserving..." : "Reserve Spot"}
               </BrutalButton>
             )}
             {canManageEvent && (
@@ -1792,8 +1798,7 @@ function ScannerPage() {
   const [cameraStatus, setCameraStatus] = useState("Camera scanner is optional. You can enter the ticket code manually.");
   const [lastScan, setLastScan] = useState<any>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scanLoopRef = useRef<number | null>(null);
+  const scannerControlsRef = useRef<IScannerControls | null>(null);
   const scanBusyRef = useRef(false);
 
   useEffect(() => {
@@ -1838,8 +1843,7 @@ function ScannerPage() {
 
   useEffect(() => {
     return () => {
-      if (scanLoopRef.current) window.clearInterval(scanLoopRef.current);
-      streamRef.current?.getTracks().forEach((track) => track.stop());
+      scannerControlsRef.current?.stop();
     };
   }, []);
 
@@ -1865,39 +1869,51 @@ function ScannerPage() {
 
   const startCameraScanner = async () => {
     if (!scannerReady) return;
-    if (!("BarcodeDetector" in window)) {
-      setCameraStatus("Camera QR scanning is not supported in this browser. Use manual ticket code entry.");
+    if (cameraActive) {
+      setCameraStatus("Scanner already running.");
+      return;
+    }
+    const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+    if (!window.isSecureContext && !isLocalhost) {
+      setCameraStatus("Camera scanning requires HTTPS or localhost. Use manual ticket code entry or open the deployed HTTPS site.");
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraStatus("This browser does not support camera access. Use manual ticket code entry.");
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setCameraActive(true);
-      setCameraStatus("Camera active. Hold the QR code inside the frame.");
-      const Detector = (window as any).BarcodeDetector;
-      const detector = new Detector({ formats: ["qr_code"] });
-      scanLoopRef.current = window.setInterval(async () => {
-        if (!videoRef.current || checkingIn) return;
-        const barcodes = await detector.detect(videoRef.current).catch(() => []);
-        const value = barcodes?.[0]?.rawValue;
-        if (value) {
+      const reader = new BrowserQRCodeReader();
+      scannerControlsRef.current = await reader.decodeFromConstraints(
+        { video: { facingMode: { ideal: "environment" } } },
+        videoRef.current || undefined,
+        async (result) => {
+          const value = result?.getText();
+          if (!value || scanBusyRef.current) return;
+          scannerControlsRef.current?.stop();
+          scannerControlsRef.current = null;
+          setCameraActive(false);
+          setCameraStatus("QR code scanned. Checking ticket...");
           await scanTicket(value);
         }
-      }, 1200);
-    } catch {
-      setCameraStatus("Could not open camera. Check browser permission or use manual entry.");
+      );
+      setCameraActive(true);
+      setCameraStatus("Scanner started. Hold the QR code inside the frame.");
+    } catch (error: any) {
+      const name = error?.name || "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setCameraStatus("Camera permission denied. Allow camera access or use manual ticket code entry.");
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        setCameraStatus("No camera found. Use manual ticket code entry.");
+      } else {
+        setCameraStatus("Could not open camera. Check browser support or use manual ticket code entry.");
+      }
     }
   };
 
   const stopCameraScanner = () => {
-    if (scanLoopRef.current) window.clearInterval(scanLoopRef.current);
-    scanLoopRef.current = null;
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
+    scannerControlsRef.current?.stop();
+    scannerControlsRef.current = null;
     setCameraActive(false);
     setCameraStatus("Camera stopped. Manual ticket code entry is still available.");
   };
@@ -1927,7 +1943,7 @@ function ScannerPage() {
         <video ref={videoRef} className={`absolute inset-0 h-full w-full object-cover ${cameraActive ? "block" : "hidden"}`} muted playsInline />
         {!cameraActive && (
           <p className="font-mono text-slate-600 text-sm flex items-center gap-2">
-            <Camera size={16} /> CAMERA READY
+            <Camera size={16} /> {scannerReady ? "CAMERA READY" : "EVENT REQUIRED"}
           </p>
         )}
       </div>

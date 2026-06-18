@@ -41,7 +41,7 @@ Start the API:
 npm run api:dev
 ```
 
-The API runs at `http://127.0.0.1:8000`.
+The API runs at `http://127.0.0.1:8001`.
 
 Useful endpoints:
 

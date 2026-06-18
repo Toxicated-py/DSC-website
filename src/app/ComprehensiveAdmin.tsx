@@ -283,6 +283,8 @@ export function ComprehensiveAdminPanel() {
   const [settingsStatus, setSettingsStatus] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingEvent, setSavingEvent] = useState(false);
+  const [savingProject, setSavingProject] = useState(false);
+  const [savingBlog, setSavingBlog] = useState(false);
   const [openSettingsSections, setOpenSettingsSections] = useState<Record<string, boolean>>({
     site: true,
     contact: false,
@@ -1268,6 +1270,7 @@ export function ComprehensiveAdminPanel() {
 
   const saveProject = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (savingProject) return;
     if (!editingProjectId) return;
     const technologies = projectForm.technologies
       .split(",")
@@ -1287,10 +1290,13 @@ export function ComprehensiveAdminPanel() {
     };
     let data: any;
     try {
+      setSavingProject(true);
       data = await adminUpdateResource("projects", editingProjectId, payload);
     } catch (error: any) {
       setAdminStatus(error.message || "Could not update project.");
       return;
+    } finally {
+      setSavingProject(false);
     }
     const author = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
     const mapped = {
@@ -1369,6 +1375,7 @@ export function ComprehensiveAdminPanel() {
 
   const saveBlogPost = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (savingBlog) return;
     const tags = blogForm.tags
       .split(",")
       .map((tag) => tag.trim())
@@ -1385,12 +1392,15 @@ export function ComprehensiveAdminPanel() {
     };
     let data: any;
     try {
+      setSavingBlog(true);
       data = editingBlogId
         ? await adminUpdateResource("blog-posts", editingBlogId, payload)
         : await adminCreateResource("blog-posts", payload);
     } catch (error: any) {
       setAdminStatus(error.message || "Could not save blog post.");
       return;
+    } finally {
+      setSavingBlog(false);
     }
     const author = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
     const mapped = {
@@ -4459,8 +4469,8 @@ export function ComprehensiveAdminPanel() {
                 ]}
               />
               <div className="flex gap-3">
-                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1">
-                  <Save size={16} className="inline mr-2" /> Save Project
+                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1" disabled={savingProject}>
+                  <Save size={16} className="inline mr-2" /> {savingProject ? "Saving..." : "Save Project"}
                 </BrutalButton>
                 <button
                   type="button"
@@ -4505,8 +4515,8 @@ export function ComprehensiveAdminPanel() {
                 ]}
               />
               <div className="flex gap-3">
-                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1">
-                  <Save size={16} className="inline mr-2" /> {editingBlogId ? "Save Post" : "Create Post"}
+                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1" disabled={savingBlog}>
+                  <Save size={16} className="inline mr-2" /> {savingBlog ? "Saving..." : editingBlogId ? "Save Post" : "Create Post"}
                 </BrutalButton>
                 <button
                   type="button"
