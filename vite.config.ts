@@ -50,7 +50,7 @@ export default defineConfig({
           if (id.includes('@supabase')) {
             return 'supabase-vendor'
           }
-          if (id.includes('@radix-ui') || id.includes('lucide-react') || id.includes('sonner')) {
+          if (id.includes('lucide-react') || id.includes('sonner')) {
             return 'ui-vendor'
           }
         },
