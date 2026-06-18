@@ -1331,8 +1331,9 @@ async def admin_delete_resource(
 async def admin_event_staff(
     event_id: str,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> list[dict[str, Any]]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -1351,8 +1352,9 @@ async def admin_replace_event_staff(
     event_id: str,
     payload: EventStaffUpdate,
     profile: dict[str, Any] = Depends(get_current_profile),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> list[dict[str, Any]]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
@@ -1391,8 +1393,9 @@ async def admin_replace_event_staff(
 async def admin_create_event_from_proposal(
     proposal_id: str,
     profile: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     proposal = await select_one(client, "event_proposals", {"id": f"eq.{proposal_id}"})
     if not proposal:
         raise HTTPException(status_code=404, detail="Proposal not found.")
@@ -1473,8 +1476,9 @@ async def admin_create_event_from_proposal(
 async def admin_update_site_settings(
     payload: SiteSettingsUpdate,
     profile: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     rows = await client.upsert(
         "site_settings",
         {"key": "site", "value": payload.value, "updated_by": profile["id"]},
@@ -1495,9 +1499,10 @@ async def admin_update_site_settings(
 
 @app.get("/api/admin/contacts")
 async def admin_list_contacts(
-    _: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    profile: dict[str, Any] = Depends(require_admin),
+    settings: Settings = Depends(get_settings),
 ) -> list[dict[str, Any]]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     return await client.select("contact_messages", order="created_at.desc")
 
 
@@ -1506,8 +1511,9 @@ async def admin_update_contact_status(
     message_id: str,
     payload: StatusUpdate,
     profile: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     rows = await client.update("contact_messages", {"status": payload.status}, filters={"id": f"eq.{message_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Message not found.")
@@ -1528,8 +1534,9 @@ async def admin_update_contact_status(
 async def admin_delete_contact(
     message_id: str,
     profile: dict[str, Any] = Depends(require_admin),
-    client: SupabaseRestClient = Depends(get_supabase),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, str]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
     await client.delete("contact_messages", filters={"id": f"eq.{message_id}"})
     await write_audit_log(
         client,
