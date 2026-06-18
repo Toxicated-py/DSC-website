@@ -5,6 +5,7 @@ import { siteConfig } from "../config/site";
 export interface SiteSettings {
   siteName: string;
   tagline: string;
+  home: HomeSettings;
   contactEmail: string;
   contactPhone: string;
   address: string;
@@ -13,6 +14,31 @@ export interface SiteSettings {
   faqs: FAQItem[];
   teamMembers: TeamMember[];
   socialLinks: Record<string, string>;
+}
+
+export interface HomeFeatureItem {
+  id: string;
+  icon: "users" | "database" | "map";
+  title: string;
+  description: string;
+}
+
+export interface HomeSettings {
+  brandTitle: string;
+  heroTagline: string;
+  heroDescription: string;
+  membershipLabel: string;
+  membershipTitle: string;
+  membershipDescription: string;
+  communityIntro: string;
+  memberStatDescription: string;
+  eventStatDescription: string;
+  projectStatDescription: string;
+  featureItems: HomeFeatureItem[];
+  ctaTitle: string;
+  ctaDescription: string;
+  ctaButtonLabel: string;
+  ctaClosedMessage: string;
 }
 
 export interface ContactItem {
@@ -51,9 +77,32 @@ export interface ProfileLink {
   url: string;
 }
 
+export const defaultHomeSettings: HomeSettings = {
+  brandTitle: "DATA SARATHI",
+  heroTagline: "Student-run. Kathmandu-made. Data-driven with soul.",
+  heroDescription: "A student-run club at SMS TU for workshops, projects, research, competitions, and data science collaboration.",
+  membershipLabel: "Membership",
+  membershipTitle: "COMMUNITY",
+  membershipDescription: "Members, organizers, and builders",
+  communityIntro: "We started as a handful of students at SMS who wanted to do more than just pass exams. Today, we host hackathons, conduct workshops, and maintain an open-source culture - proudly student-run and deeply passionate about the future of AI in Nepal.",
+  memberStatDescription: "Members added through the connected account system will make up the active club community.",
+  eventStatDescription: "Approved events added by admins will power the public events page and member dashboard.",
+  projectStatDescription: "Published student projects will appear in the showcase after admin review.",
+  featureItems: [
+    { id: "student-run", icon: "users", title: "Student-Run", description: "Every decision, event, and project is led by students, for students." },
+    { id: "open-source", icon: "database", title: "Open-Source First", description: "All our tooling and project repos are publicly available on GitHub." },
+    { id: "kathmandu-made", icon: "map", title: "Kathmandu-Made", description: "Rooted at SMS TU, Kirtipur - but thinking global." },
+  ],
+  ctaTitle: "Ready to build?",
+  ctaDescription: "Join the community of builders, researchers, and data enthusiasts at SMS TU.",
+  ctaButtonLabel: "Apply For Membership",
+  ctaClosedMessage: "Membership applications are currently closed. We'll announce when they reopen.",
+};
+
 export const defaultSiteSettings: SiteSettings = {
   siteName: "Data Science Club - SMS TU",
   tagline: "Empowering Students Through Data",
+  home: defaultHomeSettings,
   contactEmail: "contact@datascienceclub.sms.tu.edu.np",
   contactPhone: "+977-1-4331976",
   address: "School of Mathematical Sciences, SMS, TU, Kathmandu, Nepal",
@@ -152,10 +201,16 @@ export function mergeSiteSettings(value?: Partial<SiteSettings> | null): SiteSet
   const officeHours = value?.officeHours || defaultSiteSettings.officeHours;
   const faqs = value?.faqs?.length ? value.faqs : defaultSiteSettings.faqs;
   const teamMembers = value?.teamMembers?.length ? value.teamMembers : defaultSiteSettings.teamMembers;
+  const home = {
+    ...defaultHomeSettings,
+    ...(value?.home || {}),
+    featureItems: value?.home?.featureItems?.length ? value.home.featureItems : defaultHomeSettings.featureItems,
+  };
 
   return {
     ...defaultSiteSettings,
     ...(value || {}),
+    home,
     contactEmail: primaryEmail,
     contactPhone: primaryPhone,
     address: primaryAddress,

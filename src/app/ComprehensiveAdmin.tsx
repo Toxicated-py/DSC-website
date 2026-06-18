@@ -493,7 +493,7 @@ export function ComprehensiveAdminPanel() {
 
       await adminSaveSiteSettings(normalizedSettings as unknown as Record<string, unknown>);
       setSiteSettings(normalizedSettings);
-      setSettingsStatus("Settings saved and connected to the public footer.");
+      setSettingsStatus("Settings saved and connected to the public site.");
     } catch (error: any) {
       const message = error.message || "Could not save settings.";
       setSettingsStatus(
@@ -504,6 +504,26 @@ export function ComprehensiveAdminPanel() {
     } finally {
       setSavingSettings(false);
     }
+  };
+
+  const updateHomeSettings = (patch: Partial<typeof siteSettings.home>) => {
+    setSiteSettings({
+      ...siteSettings,
+      home: {
+        ...siteSettings.home,
+        ...patch,
+      },
+    });
+  };
+
+  const updateHomeFeature = (id: string, patch: Partial<typeof siteSettings.home.featureItems[number]>) => {
+    setSiteSettings({
+      ...siteSettings,
+      home: {
+        ...siteSettings.home,
+        featureItems: siteSettings.home.featureItems.map((item) => item.id === id ? { ...item, ...patch } : item),
+      },
+    });
   };
 
   const updateContactItem = (id: string, patch: Partial<ContactItem>) => {
@@ -3396,9 +3416,50 @@ export function ComprehensiveAdminPanel() {
         <div className="space-y-6">
           <BrutalCard>
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Homepage Content</h2>
-            <BrutalInput label="Hero Title" defaultValue="Welcome to Data Science Club" />
-            <BrutalTextarea label="Hero Description" defaultValue="Join our community of data enthusiasts..." />
-            <BrutalButton color="bg-[#2563EB]" text="text-white">
+            <div className="grid md:grid-cols-2 gap-4">
+              <BrutalInput label="Brand Title" value={siteSettings.home.brandTitle} onChange={(e: any) => updateHomeSettings({ brandTitle: e.target.value })} />
+              <BrutalInput label="Hero Tagline" value={siteSettings.home.heroTagline} onChange={(e: any) => updateHomeSettings({ heroTagline: e.target.value })} />
+            </div>
+            <BrutalTextarea label="Hero Description" value={siteSettings.home.heroDescription} onChange={(e: any) => updateHomeSettings({ heroDescription: e.target.value })} />
+            <div className="grid md:grid-cols-3 gap-4">
+              <BrutalInput label="Membership Label" value={siteSettings.home.membershipLabel} onChange={(e: any) => updateHomeSettings({ membershipLabel: e.target.value })} />
+              <BrutalInput label="Membership Title" value={siteSettings.home.membershipTitle} onChange={(e: any) => updateHomeSettings({ membershipTitle: e.target.value })} />
+              <BrutalInput label="Membership Description" value={siteSettings.home.membershipDescription} onChange={(e: any) => updateHomeSettings({ membershipDescription: e.target.value })} />
+            </div>
+            <BrutalTextarea label="Community Intro" value={siteSettings.home.communityIntro} onChange={(e: any) => updateHomeSettings({ communityIntro: e.target.value })} />
+            <div className="grid md:grid-cols-3 gap-4">
+              <BrutalTextarea label="Member Stat Text" value={siteSettings.home.memberStatDescription} onChange={(e: any) => updateHomeSettings({ memberStatDescription: e.target.value })} />
+              <BrutalTextarea label="Event Stat Text" value={siteSettings.home.eventStatDescription} onChange={(e: any) => updateHomeSettings({ eventStatDescription: e.target.value })} />
+              <BrutalTextarea label="Project Stat Text" value={siteSettings.home.projectStatDescription} onChange={(e: any) => updateHomeSettings({ projectStatDescription: e.target.value })} />
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-xl uppercase" style={fonts.display}>Homepage Feature Cards</h3>
+              {siteSettings.home.featureItems.map((item) => (
+                <div key={item.id} className="grid md:grid-cols-[180px_1fr_1fr] gap-4 border-2 border-[#171717] p-4">
+                  <select
+                    value={item.icon}
+                    onChange={(e) => updateHomeFeature(item.id, { icon: e.target.value as any })}
+                    className="w-full px-3 py-3 border-2 border-[#171717] bg-white font-mono text-sm brutal-shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFE800]"
+                  >
+                    <option value="users">Users</option>
+                    <option value="database">Database</option>
+                    <option value="map">Map</option>
+                  </select>
+                  <BrutalInput label="Title" value={item.title} onChange={(e: any) => updateHomeFeature(item.id, { title: e.target.value })} />
+                  <BrutalTextarea label="Description" value={item.description} onChange={(e: any) => updateHomeFeature(item.id, { description: e.target.value })} />
+                </div>
+              ))}
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <BrutalInput label="CTA Title" value={siteSettings.home.ctaTitle} onChange={(e: any) => updateHomeSettings({ ctaTitle: e.target.value })} />
+              <BrutalInput label="CTA Button Label" value={siteSettings.home.ctaButtonLabel} onChange={(e: any) => updateHomeSettings({ ctaButtonLabel: e.target.value })} />
+            </div>
+            <BrutalTextarea label="CTA Description" value={siteSettings.home.ctaDescription} onChange={(e: any) => updateHomeSettings({ ctaDescription: e.target.value })} />
+            <BrutalTextarea label="CTA Closed Message" value={siteSettings.home.ctaClosedMessage} onChange={(e: any) => updateHomeSettings({ ctaClosedMessage: e.target.value })} />
+            {settingsStatus && (
+              <p className={`mb-4 text-sm font-bold ${settingsStatus.toLowerCase().includes("saved") ? "text-green-700" : "text-red-700"}`}>{settingsStatus}</p>
+            )}
+            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> Save Changes
             </BrutalButton>
           </BrutalCard>
