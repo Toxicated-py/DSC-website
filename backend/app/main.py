@@ -263,6 +263,7 @@ async def list_accessible_resource(
     if is_full_admin(profile):
         if resource == "profiles":
             admin_client = service_client or client
+            await backfill_profiles_from_auth(admin_client)
             return await admin_client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
         return await client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
     await require_resource_access(client, profile, resource)
@@ -277,6 +278,37 @@ async def list_accessible_resource(
         rows = await client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
         return [row for row in rows if row.get("event_id") in ids]
     raise HTTPException(status_code=403, detail="This area is restricted to admins.")
+
+
+async def backfill_profiles_from_auth(client: SupabaseRestClient) -> None:
+    try:
+        auth_users = await client.list_auth_users()
+        profiles = await client.select("profiles", columns="id")
+    except SupabaseRestError:
+        return
+
+    existing_ids = {row.get("id") for row in profiles or []}
+    missing_profiles = []
+    for user in auth_users:
+        user_id = user.get("id")
+        email = user.get("email") or ""
+        if not user_id or user_id in existing_ids:
+            continue
+        metadata = user.get("user_metadata") or {}
+        missing_profiles.append({
+            "id": user_id,
+            "email": email,
+            "full_name": metadata.get("full_name") or metadata.get("name") or email.split("@")[0] or "Member",
+            "role": "member",
+            "roles": ["member"],
+            "membership_status": "approved",
+        })
+
+    for row in missing_profiles:
+        try:
+            await client.upsert("profiles", row, on_conflict="id")
+        except SupabaseRestError:
+            continue
 
 
 def normalize_certificate(row: dict[str, Any]) -> dict[str, Any]:

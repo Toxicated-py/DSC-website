@@ -96,6 +96,19 @@ class SupabaseRestClient:
     async def rpc(self, function_name: str, payload: dict[str, Any] | None = None) -> Any:
         return await self._request("POST", f"rpc/{function_name}", json=payload or {})
 
+    async def list_auth_users(self, *, page: int = 1, per_page: int = 100) -> list[dict[str, Any]]:
+        url = f"{self.base_url}/auth/v1/admin/users"
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.get(url, headers=self.headers, params={"page": page, "per_page": per_page})
+        except httpx.RequestError as exc:
+            raise SupabaseRestError("Supabase Auth is not reachable.", 503) from exc
+
+        if response.status_code >= 400:
+            raise SupabaseRestError(response.text, response.status_code)
+        data = response.json()
+        return data.get("users", []) if isinstance(data, dict) else []
+
     async def _request(
         self,
         method: str,
