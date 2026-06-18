@@ -65,7 +65,10 @@ const isFullAdminProfile = (profile: any) => {
   return roles.has("admin") || roles.has("president");
 };
 
-const isOrganizerProfile = (profile: any) => getRoleSet(profile).has("organizer");
+const isOrganizerProfile = (profile: any) => {
+  const roles = getRoleSet(profile);
+  return roles.has("organizer") || roles.has("event_manager");
+};
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -151,7 +154,13 @@ const certificateTemplateOptions = [
   { value: "custom-image", label: "Custom Image", accent: "bg-[#7C3AED]", surface: "bg-white", text: "text-[#171717]" },
 ];
 
-const assignableRoleOptions = ["member", "student", "organizer", "president", "admin"];
+const assignableRoleOptions = ["member", "student", "teacher", "event_manager", "organizer", "president", "admin"];
+
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
 export function ComprehensiveAdminPanel() {
   const navigate = useNavigate();
@@ -217,6 +226,7 @@ export function ComprehensiveAdminPanel() {
   });
   const [eventForm, setEventForm] = useState({
     title: "",
+    slug: "",
     eventType: "WORKSHOP",
     description: "",
     shortDescription: "",
@@ -226,10 +236,12 @@ export function ComprehensiveAdminPanel() {
     capacity: "40",
     status: "approved",
     registrationOpen: true,
+    registrationDeadline: "",
     coordinatorEmails: "",
   });
   const [projectForm, setProjectForm] = useState({
     title: "",
+    slug: "",
     category: "Machine Learning",
     team: "",
     technologies: "",
@@ -240,6 +252,7 @@ export function ComprehensiveAdminPanel() {
   });
   const [blogForm, setBlogForm] = useState({
     title: "",
+    slug: "",
     summary: "",
     tags: "",
     content: "",
@@ -254,6 +267,7 @@ export function ComprehensiveAdminPanel() {
   const [showBlogModal, setShowBlogModal] = useState(false);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [savingUser, setSavingUser] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState("");
   const [editingBlogId, setEditingBlogId] = useState("");
   const [editingPartnerId, setEditingPartnerId] = useState("");
@@ -268,6 +282,9 @@ export function ComprehensiveAdminPanel() {
   const [siteSettings, setSiteSettings] = useState(defaultSiteSettings);
   const [settingsStatus, setSettingsStatus] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
+  const [savingEvent, setSavingEvent] = useState(false);
+  const [savingProject, setSavingProject] = useState(false);
+  const [savingBlog, setSavingBlog] = useState(false);
   const [openSettingsSections, setOpenSettingsSections] = useState<Record<string, boolean>>({
     site: true,
     contact: false,
@@ -316,8 +333,9 @@ export function ComprehensiveAdminPanel() {
   const isFullAdmin = isFullAdminProfile(adminProfile);
   const isOrganizerAdmin = isOrganizerProfile(adminProfile);
   const canAccessAdmin = isFullAdmin || isOrganizerAdmin;
-  const activeTab = isFullAdmin ? selectedTab : "events";
-  const visibleTabs = isFullAdmin ? tabs : isOrganizerAdmin ? tabs.filter((tab) => tab.id === "events") : [];
+  const managerTabs = new Set(["events", "projects", "blogs", "gallery"]);
+  const visibleTabs = isFullAdmin ? tabs : isOrganizerAdmin ? tabs.filter((tab) => managerTabs.has(tab.id)) : [];
+  const activeTab = isFullAdmin ? selectedTab : managerTabs.has(selectedTab) ? selectedTab : "events";
   const openAdminTab = (tabId: string, replace = false) => {
     setSelectedTab(tabId);
     navigate(tabId === "overview" ? "/admin" : `/admin/${tabId}`, { replace });
@@ -493,7 +511,7 @@ export function ComprehensiveAdminPanel() {
 
       await adminSaveSiteSettings(normalizedSettings as unknown as Record<string, unknown>);
       setSiteSettings(normalizedSettings);
-      setSettingsStatus("Settings saved and connected to the public footer.");
+      setSettingsStatus("Settings saved and connected to the public site.");
     } catch (error: any) {
       const message = error.message || "Could not save settings.";
       setSettingsStatus(
@@ -504,6 +522,26 @@ export function ComprehensiveAdminPanel() {
     } finally {
       setSavingSettings(false);
     }
+  };
+
+  const updateHomeSettings = (patch: Partial<typeof siteSettings.home>) => {
+    setSiteSettings({
+      ...siteSettings,
+      home: {
+        ...siteSettings.home,
+        ...patch,
+      },
+    });
+  };
+
+  const updateHomeFeature = (id: string, patch: Partial<typeof siteSettings.home.featureItems[number]>) => {
+    setSiteSettings({
+      ...siteSettings,
+      home: {
+        ...siteSettings.home,
+        featureItems: siteSettings.home.featureItems.map((item) => item.id === id ? { ...item, ...patch } : item),
+      },
+    });
   };
 
   const updateContactItem = (id: string, patch: Partial<ContactItem>) => {
@@ -772,6 +810,64 @@ export function ComprehensiveAdminPanel() {
     setAdminStatus("User updated.");
   };
 
+  const saveUser = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingItem?.id || savingUser) return;
+    const form = new FormData(event.currentTarget);
+    const roles = String(form.get("roles") || "")
+      .split(",")
+      .map((role) => role.trim().toLowerCase())
+      .filter(Boolean);
+    const role = String(form.get("role") || "member").toLowerCase();
+    if (!roles.includes("member")) roles.unshift("member");
+    if (!roles.includes(role)) roles.push(role);
+    const membershipStatus = String(form.get("membership_status") || "pending");
+    const patch = {
+      full_name: String(form.get("full_name") || "").trim(),
+      email: String(form.get("email") || "").trim(),
+      phone: String(form.get("phone") || "").trim() || null,
+      batch_year: String(form.get("batch_year") || "").trim() || null,
+      role,
+      roles,
+      designation: String(form.get("designation") || "").trim() || null,
+      designation_status: String(form.get("designation_status") || "pending"),
+      membership_status: membershipStatus === "verified" ? "approved" : membershipStatus,
+    };
+
+    setAdminStatus("");
+    setSavingUser(true);
+    try {
+      await adminUpdateResource("profiles", editingItem.id, patch);
+      setUsers(users.map((user) => user.id === editingItem.id ? {
+        ...user,
+        ...patch,
+        name: patch.full_name || user.name,
+        membershipStatus: patch.membership_status,
+        designationStatus: patch.designation_status,
+        verified: patch.membership_status === "approved",
+      } : user));
+      setShowUserModal(false);
+      setEditingItem(null);
+      setAdminStatus("User profile updated.");
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not update user profile.");
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const deleteUserProfile = async (user: any) => {
+    const ok = window.confirm(`Dangerous action: delete the profile for ${user.email || user.name}. This does not delete the Supabase Auth user. Continue?`);
+    if (!ok) return;
+    try {
+      await adminDeleteResource("profiles", user.id);
+      setUsers(users.filter((row) => row.id !== user.id));
+      setAdminStatus("Profile deleted. Auth user was not deleted.");
+    } catch (error: any) {
+      setAdminStatus(error.message || "Could not delete profile.");
+    }
+  };
+
   const toggleUserRole = async (user: any, role: string) => {
     const currentRoles = new Set<string>(Array.isArray(user.roles) ? user.roles : []);
     if (currentRoles.has(role)) {
@@ -784,7 +880,7 @@ export function ComprehensiveAdminPanel() {
     const nextRoles = Array.from(currentRoles);
     const nextPrimaryRole = nextRoles.includes("admin")
       ? "admin"
-      : nextRoles.includes("organizer")
+      : nextRoles.includes("organizer") || nextRoles.includes("event_manager")
         ? "organizer"
         : nextRoles.includes("student")
           ? "student"
@@ -984,6 +1080,7 @@ export function ComprehensiveAdminPanel() {
     setEditingItem(null);
     setEventForm({
       title: "",
+      slug: "",
       eventType: "WORKSHOP",
       description: "",
       shortDescription: "",
@@ -993,6 +1090,7 @@ export function ComprehensiveAdminPanel() {
       capacity: "40",
       status: "approved",
       registrationOpen: true,
+      registrationDeadline: "",
       coordinatorEmails: "",
     });
   };
@@ -1001,6 +1099,7 @@ export function ComprehensiveAdminPanel() {
     setEditingProjectId("");
     setProjectForm({
       title: "",
+      slug: "",
       category: "Machine Learning",
       team: "",
       technologies: "",
@@ -1015,6 +1114,7 @@ export function ComprehensiveAdminPanel() {
     setEditingBlogId("");
     setBlogForm({
       title: "",
+      slug: "",
       summary: "",
       tags: "",
       content: "",
@@ -1028,6 +1128,7 @@ export function ComprehensiveAdminPanel() {
     setEditingItem(event || null);
     setEventForm({
       title: event?.title || "",
+      slug: event?.slug || "",
       eventType: event?.event_type || event?.category || "WORKSHOP",
       description: event?.description || "",
       shortDescription: event?.short_description || "",
@@ -1037,6 +1138,7 @@ export function ComprehensiveAdminPanel() {
       capacity: event?.capacity ? String(event.capacity) : "40",
       status: event?.status || "approved",
       registrationOpen: event?.registration_open ?? true,
+      registrationDeadline: event?.registration_deadline ? event.registration_deadline.slice(0, 16) : "",
       coordinatorEmails: "",
     });
 
@@ -1052,11 +1154,9 @@ export function ComprehensiveAdminPanel() {
 
   const saveEvent = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (savingEvent) return;
 
-    const slug = `${eventForm.title}-${editingItem?.id || Date.now()}`
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+    const slug = slugify(eventForm.slug || eventForm.title);
     const payload = {
       title: eventForm.title,
       slug,
@@ -1069,17 +1169,21 @@ export function ComprehensiveAdminPanel() {
       capacity: Number(eventForm.capacity) || 40,
       status: eventForm.status,
       registration_open: eventForm.registrationOpen,
+      registration_deadline: eventForm.registrationDeadline ? new Date(eventForm.registrationDeadline).toISOString() : null,
       created_by: editingItem?.created_by || adminProfile?.id || null,
     };
 
     let savedEvent: any;
     try {
+      setSavingEvent(true);
       savedEvent = editingItem?.id
         ? await adminUpdateResource("events", editingItem.id, payload)
         : await adminCreateResource("events", payload);
     } catch (error: any) {
       setAdminStatus(error.message || "Could not save event.");
       return;
+    } finally {
+      setSavingEvent(false);
     }
 
     const coordinatorEmails = eventForm.coordinatorEmails
@@ -1152,6 +1256,7 @@ export function ComprehensiveAdminPanel() {
     setEditingProjectId(project.id);
     setProjectForm({
       title: project.title || "",
+      slug: project.slug || "",
       category: project.category || "Machine Learning",
       team: project.team || "",
       technologies: (project.technologies || project.tags || []).join(", "),
@@ -1165,6 +1270,7 @@ export function ComprehensiveAdminPanel() {
 
   const saveProject = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (savingProject) return;
     if (!editingProjectId) return;
     const technologies = projectForm.technologies
       .split(",")
@@ -1172,6 +1278,7 @@ export function ComprehensiveAdminPanel() {
       .filter(Boolean);
     const payload = {
       title: projectForm.title,
+      slug: slugify(projectForm.slug || projectForm.title),
       category: projectForm.category,
       team: projectForm.team || null,
       technologies,
@@ -1183,10 +1290,13 @@ export function ComprehensiveAdminPanel() {
     };
     let data: any;
     try {
+      setSavingProject(true);
       data = await adminUpdateResource("projects", editingProjectId, payload);
     } catch (error: any) {
       setAdminStatus(error.message || "Could not update project.");
       return;
+    } finally {
+      setSavingProject(false);
     }
     const author = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
     const mapped = {
@@ -1253,6 +1363,7 @@ export function ComprehensiveAdminPanel() {
     setEditingBlogId(post?.id || "");
     setBlogForm({
       title: post?.title || "",
+      slug: post?.slug || "",
       summary: post?.summary || "",
       tags: (post?.tags || []).join(", "),
       content: post?.content || "",
@@ -1264,12 +1375,14 @@ export function ComprehensiveAdminPanel() {
 
   const saveBlogPost = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (savingBlog) return;
     const tags = blogForm.tags
       .split(",")
       .map((tag) => tag.trim())
       .filter(Boolean);
     const payload = {
       title: blogForm.title,
+      slug: slugify(blogForm.slug || blogForm.title),
       summary: blogForm.summary,
       tags,
       content: blogForm.content,
@@ -1279,12 +1392,15 @@ export function ComprehensiveAdminPanel() {
     };
     let data: any;
     try {
+      setSavingBlog(true);
       data = editingBlogId
         ? await adminUpdateResource("blog-posts", editingBlogId, payload)
         : await adminCreateResource("blog-posts", payload);
     } catch (error: any) {
       setAdminStatus(error.message || "Could not save blog post.");
       return;
+    } finally {
+      setSavingBlog(false);
     }
     const author = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
     const mapped = {
@@ -2212,51 +2328,23 @@ export function ComprehensiveAdminPanel() {
                         )}
                       </td>
                       <td className="p-4">
-                        <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-end gap-2">
-                          <div className="flex max-w-sm flex-wrap justify-end gap-1">
-                            {assignableRoleOptions.map((role) => {
-                              const userRoles = new Set<string>(Array.isArray(user.roles) ? user.roles : []);
-                              const isActive = userRoles.has(role) || user.role === role;
-                              return (
-                                <button
-                                  key={role}
-                                  type="button"
-                                  onClick={() => void toggleUserRole(user, role)}
-                                  disabled={role === "member" && isActive}
-                                  className={`border-2 border-[#171717] px-2 py-1 text-[10px] font-bold uppercase tracking-widest transition-all ${
-                                    isActive
-                                      ? "bg-[#2563EB] text-white"
-                                      : "bg-white hover:bg-[#FFE800] text-[#171717]"
-                                  } ${role === "member" && isActive ? "cursor-not-allowed opacity-80" : ""}`}
-                                  title={role === "member" ? "Every logged-in account keeps member access." : `Toggle ${role}`}
-                                >
-                                  {role}
-                                </button>
-                              );
-                            })}
-                          </div>
+                        <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => updateProfile(user.id, { membership_status: user.membershipStatus === "approved" ? "pending" : "approved" })}
-                            className="p-2 hover:bg-[#2563EB] hover:text-white border-2 border-[#171717] bg-white transition-all text-xs font-bold uppercase"
+                            type="button"
+                            onClick={() => { setEditingItem(user); setShowUserModal(true); }}
+                            className="p-2 hover:bg-[#2563EB] hover:text-white border-2 border-[#171717] bg-white transition-all"
+                            title="Edit user"
                           >
-                            {user.membershipStatus === "approved" ? "Unverify" : "Verify"}
+                            <Edit size={16} />
                           </button>
-                          {user.designation && (
-                            <>
-                              <button
-                                onClick={() => updateProfile(user.id, { designation_status: "approved" })}
-                                className="p-2 hover:bg-green-500 hover:text-white border-2 border-[#171717] bg-white transition-all text-xs font-bold uppercase"
-                              >
-                                Approve Designation
-                              </button>
-                              <button
-                                onClick={() => updateProfile(user.id, { designation_status: "rejected" })}
-                                className="p-2 hover:bg-[#FB7185] hover:text-white border-2 border-[#171717] bg-white transition-all text-xs font-bold uppercase"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => void deleteUserProfile(user)}
+                            className="p-2 hover:bg-[#FB7185] hover:text-white border-2 border-[#171717] bg-white transition-all"
+                            title="Delete profile"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -2513,7 +2601,7 @@ export function ComprehensiveAdminPanel() {
         </div>
       )}
 
-      {activeTab === "projects" && isFullAdmin && (
+      {activeTab === "projects" && (isFullAdmin || isOrganizerAdmin) && (
         <>
           <div className="mb-8 flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
@@ -2649,7 +2737,7 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* ─── CONTENT TAB ───────────────────────────────────────────────────────── */}
-      {["blogs", "gallery", "partners", "resources"].includes(activeTab) && isFullAdmin && (
+      {["blogs", "gallery", "partners", "resources"].includes(activeTab) && (isFullAdmin || (isOrganizerAdmin && ["blogs", "gallery"].includes(activeTab))) && (
         <div className="space-y-6">
           {activeTab === "blogs" && (
             <>
@@ -3396,9 +3484,50 @@ export function ComprehensiveAdminPanel() {
         <div className="space-y-6">
           <BrutalCard>
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Homepage Content</h2>
-            <BrutalInput label="Hero Title" defaultValue="Welcome to Data Science Club" />
-            <BrutalTextarea label="Hero Description" defaultValue="Join our community of data enthusiasts..." />
-            <BrutalButton color="bg-[#2563EB]" text="text-white">
+            <div className="grid md:grid-cols-2 gap-4">
+              <BrutalInput label="Brand Title" value={siteSettings.home.brandTitle} onChange={(e: any) => updateHomeSettings({ brandTitle: e.target.value })} />
+              <BrutalInput label="Hero Tagline" value={siteSettings.home.heroTagline} onChange={(e: any) => updateHomeSettings({ heroTagline: e.target.value })} />
+            </div>
+            <BrutalTextarea label="Hero Description" value={siteSettings.home.heroDescription} onChange={(e: any) => updateHomeSettings({ heroDescription: e.target.value })} />
+            <div className="grid md:grid-cols-3 gap-4">
+              <BrutalInput label="Membership Label" value={siteSettings.home.membershipLabel} onChange={(e: any) => updateHomeSettings({ membershipLabel: e.target.value })} />
+              <BrutalInput label="Membership Title" value={siteSettings.home.membershipTitle} onChange={(e: any) => updateHomeSettings({ membershipTitle: e.target.value })} />
+              <BrutalInput label="Membership Description" value={siteSettings.home.membershipDescription} onChange={(e: any) => updateHomeSettings({ membershipDescription: e.target.value })} />
+            </div>
+            <BrutalTextarea label="Community Intro" value={siteSettings.home.communityIntro} onChange={(e: any) => updateHomeSettings({ communityIntro: e.target.value })} />
+            <div className="grid md:grid-cols-3 gap-4">
+              <BrutalTextarea label="Member Stat Text" value={siteSettings.home.memberStatDescription} onChange={(e: any) => updateHomeSettings({ memberStatDescription: e.target.value })} />
+              <BrutalTextarea label="Event Stat Text" value={siteSettings.home.eventStatDescription} onChange={(e: any) => updateHomeSettings({ eventStatDescription: e.target.value })} />
+              <BrutalTextarea label="Project Stat Text" value={siteSettings.home.projectStatDescription} onChange={(e: any) => updateHomeSettings({ projectStatDescription: e.target.value })} />
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-xl uppercase" style={fonts.display}>Homepage Feature Cards</h3>
+              {siteSettings.home.featureItems.map((item) => (
+                <div key={item.id} className="grid md:grid-cols-[180px_1fr_1fr] gap-4 border-2 border-[#171717] p-4">
+                  <select
+                    value={item.icon}
+                    onChange={(e) => updateHomeFeature(item.id, { icon: e.target.value as any })}
+                    className="w-full px-3 py-3 border-2 border-[#171717] bg-white font-mono text-sm brutal-shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFE800]"
+                  >
+                    <option value="users">Users</option>
+                    <option value="database">Database</option>
+                    <option value="map">Map</option>
+                  </select>
+                  <BrutalInput label="Title" value={item.title} onChange={(e: any) => updateHomeFeature(item.id, { title: e.target.value })} />
+                  <BrutalTextarea label="Description" value={item.description} onChange={(e: any) => updateHomeFeature(item.id, { description: e.target.value })} />
+                </div>
+              ))}
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <BrutalInput label="CTA Title" value={siteSettings.home.ctaTitle} onChange={(e: any) => updateHomeSettings({ ctaTitle: e.target.value })} />
+              <BrutalInput label="CTA Button Label" value={siteSettings.home.ctaButtonLabel} onChange={(e: any) => updateHomeSettings({ ctaButtonLabel: e.target.value })} />
+            </div>
+            <BrutalTextarea label="CTA Description" value={siteSettings.home.ctaDescription} onChange={(e: any) => updateHomeSettings({ ctaDescription: e.target.value })} />
+            <BrutalTextarea label="CTA Closed Message" value={siteSettings.home.ctaClosedMessage} onChange={(e: any) => updateHomeSettings({ ctaClosedMessage: e.target.value })} />
+            {settingsStatus && (
+              <p className={`mb-4 text-sm font-bold ${settingsStatus.toLowerCase().includes("saved") ? "text-green-700" : "text-red-700"}`}>{settingsStatus}</p>
+            )}
+            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> Save Changes
             </BrutalButton>
           </BrutalCard>
@@ -4176,38 +4305,53 @@ export function ComprehensiveAdminPanel() {
                 <X size={20} />
               </button>
             </div>
-            <BrutalInput label="Full Name" defaultValue={editingItem?.name || ""} />
-            <BrutalInput label="Email" type="email" defaultValue={editingItem?.email || ""} />
-            <BrutalSelect
-              label="Role"
-              defaultValue={editingItem?.role || "Member"}
-              options={[
-                { value: "Member", label: "Member" },
-                { value: "Club Member", label: "Club Member" },
-                { value: "Teacher", label: "Teacher" },
-                { value: "Admin", label: "Admin" },
-              ]}
-            />
-            <BrutalInput label="Designation (optional)" defaultValue={editingItem?.designation || ""} />
-            <BrutalSelect
-              label="Status"
-              defaultValue={editingItem?.verified ? "verified" : "pending"}
-              options={[
-                { value: "verified", label: "Verified" },
-                { value: "pending", label: "Pending" },
-              ]}
-            />
-            <div className="flex gap-3">
-              <BrutalButton color="bg-[#2563EB]" text="text-white" className="flex-1">
-                <Save size={16} className="inline mr-2" /> Save User
-              </BrutalButton>
-              <button
-                onClick={() => setShowUserModal(false)}
-                className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
-              >
-                Cancel
-              </button>
-            </div>
+            <form onSubmit={saveUser}>
+              <BrutalInput name="full_name" label="Full Name" defaultValue={editingItem?.name || ""} />
+              <BrutalInput name="email" label="Email" type="email" defaultValue={editingItem?.email || ""} />
+              <div className="grid md:grid-cols-2 gap-4">
+                <BrutalInput name="phone" label="Phone" defaultValue={editingItem?.phone || ""} />
+                <BrutalInput name="batch_year" label="Batch / Year" defaultValue={editingItem?.batchYear || editingItem?.batch_year || ""} />
+              </div>
+              <BrutalSelect
+                name="role"
+                label="Primary Role"
+                defaultValue={editingItem?.role || "member"}
+                options={assignableRoleOptions.map((role) => ({ value: role, label: role.replace("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) }))}
+              />
+              <BrutalInput name="roles" label="Roles (comma separated)" defaultValue={(editingItem?.roles || [editingItem?.role || "member"]).join(", ")} />
+              <BrutalInput name="designation" label="Designation (admin assigned)" defaultValue={editingItem?.designation || ""} />
+              <BrutalSelect
+                name="designation_status"
+                label="Designation Status"
+                defaultValue={editingItem?.designationStatus || "pending"}
+                options={[
+                  { value: "pending", label: "Pending" },
+                  { value: "approved", label: "Approved" },
+                  { value: "rejected", label: "Rejected" },
+                ]}
+              />
+              <BrutalSelect
+                name="membership_status"
+                label="Status"
+                defaultValue={editingItem?.membershipStatus || (editingItem?.verified ? "approved" : "pending")}
+                options={[
+                  { value: "approved", label: "Verified" },
+                  { value: "pending", label: "Pending" },
+                ]}
+              />
+              <div className="flex flex-col sm:flex-row gap-3">
+                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1" disabled={savingUser}>
+                  <Save size={16} className="inline mr-2" /> {savingUser ? "Saving..." : "Save User"}
+                </BrutalButton>
+                <button
+                  type="button"
+                  onClick={() => setShowUserModal(false)}
+                  className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </BrutalCard>
         </div>
       )}
@@ -4226,12 +4370,14 @@ export function ComprehensiveAdminPanel() {
             </div>
             <form onSubmit={saveEvent}>
               <BrutalInput label="Event Title" value={eventForm.title} onChange={(event: any) => setEventForm({ ...eventForm, title: event.target.value })} required />
+              <BrutalInput label="Slug" value={eventForm.slug} onChange={(event: any) => setEventForm({ ...eventForm, slug: event.target.value })} placeholder="power-bi-workshop" />
               <BrutalTextarea label="Description" value={eventForm.description} onChange={(event: any) => setEventForm({ ...eventForm, description: event.target.value })} required />
               <BrutalInput label="Short Description" value={eventForm.shortDescription} onChange={(event: any) => setEventForm({ ...eventForm, shortDescription: event.target.value })} />
               <div className="grid md:grid-cols-2 gap-4">
                 <BrutalInput label="Start Time" type="datetime-local" value={eventForm.startTime} onChange={(event: any) => setEventForm({ ...eventForm, startTime: event.target.value })} />
                 <BrutalInput label="End Time" type="datetime-local" value={eventForm.endTime} onChange={(event: any) => setEventForm({ ...eventForm, endTime: event.target.value })} />
               </div>
+              <BrutalInput label="Registration Deadline" type="datetime-local" value={eventForm.registrationDeadline} onChange={(event: any) => setEventForm({ ...eventForm, registrationDeadline: event.target.value })} />
               <div className="grid md:grid-cols-2 gap-4">
                 <BrutalInput label="Location" value={eventForm.venue} onChange={(event: any) => setEventForm({ ...eventForm, venue: event.target.value })} />
                 <BrutalInput label="Capacity" type="number" value={eventForm.capacity} onChange={(event: any) => setEventForm({ ...eventForm, capacity: event.target.value })} />
@@ -4274,8 +4420,8 @@ export function ComprehensiveAdminPanel() {
                 Registration open
               </label>
               <div className="flex gap-3">
-                <BrutalButton type="submit" color="bg-[#7C3AED]" text="text-white" className="flex-1">
-                  <Save size={16} className="inline mr-2" /> Save Event
+                <BrutalButton type="submit" color="bg-[#7C3AED]" text="text-white" className="flex-1" disabled={savingEvent}>
+                  <Save size={16} className="inline mr-2" /> {savingEvent ? "Saving..." : "Save Event"}
                 </BrutalButton>
               <button
                 type="button"
@@ -4301,6 +4447,7 @@ export function ComprehensiveAdminPanel() {
             </div>
             <form onSubmit={saveProject}>
               <BrutalInput label="Project Title" value={projectForm.title} onChange={(event: any) => setProjectForm({ ...projectForm, title: event.target.value })} required />
+              <BrutalInput label="Slug" value={projectForm.slug} onChange={(event: any) => setProjectForm({ ...projectForm, slug: event.target.value })} placeholder="data-analysis-dashboard" />
               <div className="grid md:grid-cols-2 gap-4">
                 <BrutalInput label="Category" value={projectForm.category} onChange={(event: any) => setProjectForm({ ...projectForm, category: event.target.value })} required />
                 <BrutalInput label="Team" value={projectForm.team} onChange={(event: any) => setProjectForm({ ...projectForm, team: event.target.value })} />
@@ -4322,8 +4469,8 @@ export function ComprehensiveAdminPanel() {
                 ]}
               />
               <div className="flex gap-3">
-                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1">
-                  <Save size={16} className="inline mr-2" /> Save Project
+                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1" disabled={savingProject}>
+                  <Save size={16} className="inline mr-2" /> {savingProject ? "Saving..." : "Save Project"}
                 </BrutalButton>
                 <button
                   type="button"
@@ -4351,6 +4498,7 @@ export function ComprehensiveAdminPanel() {
             </div>
             <form onSubmit={saveBlogPost}>
               <BrutalInput label="Post Title" value={blogForm.title} onChange={(event: any) => setBlogForm({ ...blogForm, title: event.target.value })} required />
+              <BrutalInput label="Slug" value={blogForm.slug} onChange={(event: any) => setBlogForm({ ...blogForm, slug: event.target.value })} placeholder="my-first-post" />
               <BrutalTextarea label="Summary" value={blogForm.summary} onChange={(event: any) => setBlogForm({ ...blogForm, summary: event.target.value })} required />
               <BrutalInput label="Tags" value={blogForm.tags} onChange={(event: any) => setBlogForm({ ...blogForm, tags: event.target.value })} placeholder="AI, Events, Research" />
               <BrutalTextarea label="Content" value={blogForm.content} onChange={(event: any) => setBlogForm({ ...blogForm, content: event.target.value })} required />
@@ -4367,8 +4515,8 @@ export function ComprehensiveAdminPanel() {
                 ]}
               />
               <div className="flex gap-3">
-                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1">
-                  <Save size={16} className="inline mr-2" /> {editingBlogId ? "Save Post" : "Create Post"}
+                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1" disabled={savingBlog}>
+                  <Save size={16} className="inline mr-2" /> {savingBlog ? "Saving..." : editingBlogId ? "Save Post" : "Create Post"}
                 </BrutalButton>
                 <button
                   type="button"

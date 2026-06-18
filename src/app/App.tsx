@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useState, useEffect, useRef } from "react";
 import { BrowserRouter as Router, Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Database, Users, ArrowRight, ArrowLeft, Search, Camera, Check, Calendar, MapPin, Tag, QrCode, Trophy, TrendingUp, Bell, Zap, Target, Star, Award, Clock, BookOpen, Code, GitBranch, Home, Mail, UserCheck, GraduationCap, User, FileText } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 import { getPersistenceLabel, publishBlogPost, submitEventProposal, submitProject } from "../lib/contentApi";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
@@ -73,6 +73,7 @@ function EventsPage() {
           const filled = Number(event.registeredCount || event.registered_count || 0);
           return {
             id: event.id,
+            slug: event.slug,
             title: event.title,
             date: start.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }).toUpperCase(),
             dateSort: start.toISOString().slice(0, 10),
@@ -200,7 +201,7 @@ function EventsPage() {
             return (
               <div
                 key={ev.id}
-                onClick={() => navigate(`/events/${ev.id}`)}
+                onClick={() => navigate(`/events/${ev.slug || ev.id}`)}
                 className={`relative cursor-pointer ${ev.color} border-2 border-[#171717] p-6 flex flex-col text-white brutal-shadow-lg brutal-shadow-hover transition-all group`}
               >
                 {(ev as any).hot && (
@@ -270,14 +271,13 @@ function EventDetailPage() {
   const [myRegistration, setMyRegistration] = useState<any>(null);
   const [managerStatus, setManagerStatus] = useState("");
   const [loadingEvent, setLoadingEvent] = useState(true);
-
-  const isUuidEvent = Boolean(id && /^[0-9a-f-]{36}$/i.test(id));
+  const [reservingSpot, setReservingSpot] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadEventDetails() {
-      if (!isUuidEvent || !id) {
+      if (!id) {
         setLoadingEvent(false);
         return;
       }
@@ -306,7 +306,7 @@ function EventDetailPage() {
     return () => {
       mounted = false;
     };
-  }, [id, isUuidEvent]);
+  }, [id]);
 
   const checkInAttendee = async (registrationId: string) => {
     if (!id) return;
@@ -326,18 +326,15 @@ function EventDetailPage() {
   };
 
   const reserveSpot = async () => {
+    if (reservingSpot) return;
     setReserveStatus("");
     if (!requireLoginForAction(navigate, `/events/${id}`)) return;
     if (!id) {
       setReserveStatus("Invalid event.");
       return;
     }
-    if (!isUuidEvent) {
-      navigate("/ticket");
-      return;
-    }
-
     try {
+      setReservingSpot(true);
       const result = await apiPost<any>(`/api/events/${id}/reserve`, {}, { auth: true });
       setMyRegistration(result.registration || null);
       if (result.message === "Already registered.") {
@@ -356,6 +353,8 @@ function EventDetailPage() {
         return;
       }
       setReserveStatus(userFriendlyErrorMessage(error, "Could not reserve a spot. Please try again."));
+    } finally {
+      setReservingSpot(false);
     }
   };
 
@@ -387,6 +386,8 @@ function EventDetailPage() {
 
   const startDate = displayEvent.start_time ? new Date(displayEvent.start_time) : null;
   const eventEnded = Boolean(displayEvent.end_time && new Date(displayEvent.end_time).getTime() < Date.now());
+  const registrationDeadline = displayEvent.registration_deadline ? new Date(displayEvent.registration_deadline) : null;
+  const registrationClosedByDeadline = Boolean(registrationDeadline && registrationDeadline.getTime() < Date.now());
   const isReserved = Boolean(myRegistration?.id);
 
   return (
@@ -419,7 +420,9 @@ function EventDetailPage() {
         <div>
           <BrutalCard className="sticky top-32">
             <h3 className="uppercase font-bold tracking-widest text-lg mb-6">Registration</h3>
-            <p className="text-sm font-mono text-slate-500 mb-6">Registration closes in 48 hours.</p>
+            <p className="text-sm font-mono text-slate-500 mb-6">
+              {registrationDeadline ? `Registration deadline: ${registrationDeadline.toLocaleString()}` : "Registration deadline not set."}
+            </p>
             {reserveStatus && <p className="mb-4 text-xs font-bold text-[#FB7185]">{reserveStatus}</p>}
             {isReserved ? (
               <div className="space-y-3">
@@ -431,9 +434,11 @@ function EventDetailPage() {
                 </BrutalButton>
               </div>
             ) : (
-              <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white">Reserve Spot</BrutalButton>
+              <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white" disabled={registrationClosedByDeadline || reservingSpot}>
+                {registrationClosedByDeadline ? "Registration Closed" : reservingSpot ? "Reserving..." : "Reserve Spot"}
+              </BrutalButton>
             )}
-            {canManageEvent && isUuidEvent && (
+            {canManageEvent && (
               <div className="mt-4 pt-4 border-t-2 border-[#171717] space-y-3">
                 <BrutalButton onClick={() => navigate(`/scanner?event=${id}`)} className="w-full text-xs" color="bg-[#171717]" text="text-white">
                   <QrCode size={14} className="inline mr-2" /> Scan Tickets
@@ -444,7 +449,7 @@ function EventDetailPage() {
         </div>
       </div>
 
-      {canManageEvent && isUuidEvent && (
+      {canManageEvent && (
         <BrutalCard color="bg-white" className="mt-10">
           <div className="flex items-center justify-between gap-4 mb-6">
             <h2 className="text-3xl uppercase" style={fonts.display}>Organizer Workspace</h2>
@@ -512,7 +517,6 @@ function EventProposalPage() {
     };
   });
   const [status, setStatus] = useState("");
-  const [submittingProject, setSubmittingProject] = useState(false);
   const [submittingProposal, setSubmittingProposal] = useState(false);
 
   const updateField = (field: string, value: string) => {
@@ -668,7 +672,7 @@ function ProjectsPage() {
       }
       const { data } = await supabase
         .from("projects")
-        .select("id,title,category,technologies,summary,published_at,submitted_at,status")
+        .select("id,slug,title,category,technologies,summary,published_at,submitted_at,status")
         .in("status", ["approved", "published"])
         .order("published_at", { ascending: false, nullsFirst: false });
       if (!mounted) return;
@@ -685,6 +689,7 @@ function ProjectsPage() {
         const date = project.published_at || project.submitted_at;
         return {
           id: project.id,
+          slug: project.slug,
           title: project.title,
           tags: project.technologies?.length ? project.technologies : [project.category || "Project"],
           author: "Club Member",
@@ -795,7 +800,7 @@ function ProjectsPage() {
           {paginated.map(proj => (
             <div
               key={proj.id}
-              onClick={() => navigate(`/projects/${proj.id}`)}
+              onClick={() => navigate(`/projects/${proj.slug || proj.id}`)}
               className={`cursor-pointer border-2 border-[#171717] flex flex-col brutal-shadow brutal-shadow-hover transition-all group ${proj.color} ${proj.text}`}
             >
               <div className="w-full aspect-video border-b-2 border-[#171717] relative overflow-hidden flex items-center justify-center bg-black/10">
@@ -865,12 +870,14 @@ function ProjectDetailPage() {
         setLoadingProject(false);
         return;
       }
-      const { data } = await supabase
+      const query = supabase
         .from("projects")
-        .select("id,title,category,technologies,summary,content,published_at,status")
-        .eq("id", id)
-        .in("status", ["approved", "published"])
-        .maybeSingle();
+        .select("id,slug,title,category,technologies,summary,content,published_at,status")
+        .in("status", ["approved", "published"]);
+      const isUuid = /^[0-9a-f-]{36}$/i.test(id);
+      const { data } = isUuid
+        ? await query.eq("id", id).maybeSingle()
+        : await query.eq("slug", id).maybeSingle();
       if (!mounted) return;
       setProject(data);
       setLoadingProject(false);
@@ -927,6 +934,7 @@ function ProjectSubmissionPage() {
     };
   });
   const [status, setStatus] = useState("");
+  const [submittingProject, setSubmittingProject] = useState(false);
 
   const updateField = (field: string, value: string) => {
     const next = { ...form, [field]: value };
@@ -1046,7 +1054,7 @@ function BlogPage() {
       }
       const { data } = await supabase
         .from("blog_posts")
-        .select("id,title,summary,tags,content,cover_image_url,published_at,status,profiles:author_id(full_name,email)")
+        .select("id,slug,title,summary,tags,content,cover_image_url,published_at,status,profiles:author_id(full_name,email)")
         .in("status", ["approved", "published"])
         .order("published_at", { ascending: false, nullsFirst: false });
       if (!mounted) return;
@@ -1056,6 +1064,7 @@ function BlogPage() {
         const words = `${post.summary || ""} ${post.content || ""}`.trim().split(/\s+/).filter(Boolean).length;
         return {
           id: post.id,
+          slug: post.slug,
           title: post.title,
           date: date ? new Date(date).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" }) : "",
           dateSort: date ? new Date(date).toISOString().slice(0, 10) : "",
@@ -1178,11 +1187,11 @@ function BlogPage() {
               key={post.id}
               role="button"
               tabIndex={0}
-              onClick={() => navigate(`/blog/${post.id}`)}
+              onClick={() => navigate(`/blog/${post.slug || post.id}`)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
-                  navigate(`/blog/${post.id}`);
+                  navigate(`/blog/${post.slug || post.id}`);
                 }
               }}
               className={`p-8 cursor-pointer group hover:bg-[#171717] hover:text-white transition-all border-[#171717] ${
@@ -1269,12 +1278,14 @@ function BlogDetailPage() {
         return;
       }
 
-      const { data } = await supabase
+      const query = supabase
         .from("blog_posts")
-        .select("id,title,summary,tags,cover_image_url,content,published_at,status,profiles:author_id(full_name,email)")
-        .eq("id", id)
-        .in("status", ["approved", "published"])
-        .maybeSingle();
+        .select("id,slug,title,summary,tags,cover_image_url,content,published_at,status,profiles:author_id(full_name,email)")
+        .in("status", ["approved", "published"]);
+      const isUuid = /^[0-9a-f-]{36}$/i.test(id);
+      const { data } = isUuid
+        ? await query.eq("id", id).maybeSingle()
+        : await query.eq("slug", id).maybeSingle();
 
       if (!mounted) return;
       setPost(data);
@@ -1778,7 +1789,6 @@ function TicketPage() {
 function ScannerPage() {
   const navigate = useNavigate();
   const eventId = new URLSearchParams(window.location.search).get("event") || "";
-  const scannerElementId = "dsc-ticket-qr-reader";
   const [ticketCode, setTicketCode] = useState("");
   const [scannerStatus, setScannerStatus] = useState("Checking scanner access...");
   const [scannerReady, setScannerReady] = useState(false);
@@ -1787,11 +1797,9 @@ function ScannerPage() {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraStatus, setCameraStatus] = useState("Camera scanner is optional. You can enter the ticket code manually.");
   const [lastScan, setLastScan] = useState<any>(null);
-  const qrScannerRef = useRef<Html5Qrcode | null>(null);
-  const cameraActiveRef = useRef(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const scannerControlsRef = useRef<IScannerControls | null>(null);
   const scanBusyRef = useRef(false);
-  const lastScannedCodeRef = useRef("");
-  const lastScannedAtRef = useRef(0);
 
   useEffect(() => {
     let mounted = true;
@@ -1835,22 +1843,11 @@ function ScannerPage() {
 
   useEffect(() => {
     return () => {
-      void stopCameraScanner("Scanner stopped because you left this page.");
+      scannerControlsRef.current?.stop();
     };
   }, []);
 
-  const isLocalCameraHost = () => {
-    const host = window.location.hostname;
-    return host === "localhost" || host === "127.0.0.1" || host === "::1";
-  };
-
-  const resetScanLockSoon = () => {
-    window.setTimeout(() => {
-      scanBusyRef.current = false;
-    }, 900);
-  };
-
-  const scanTicket = async (codeOverride?: string, options: { stopCameraOnSuccess?: boolean } = {}) => {
+  const scanTicket = async (codeOverride?: string) => {
     const code = (codeOverride || ticketCode).trim();
     if (!scannerReady || !eventId || !code || scanBusyRef.current) return;
     scanBusyRef.current = true;
@@ -1862,170 +1859,117 @@ function ScannerPage() {
       setLastScan(result);
       setScannerStatus(result.already_checked_in ? `${attendeeName} was already checked in.` : `${attendeeName} checked in successfully.`);
       setTicketCode("");
-      if (options.stopCameraOnSuccess) {
-        await stopCameraScanner("Scan accepted. Camera stopped to prevent duplicate check-ins.");
-      }
     } catch (error: any) {
       setScannerStatus(error.message || "Ticket not found for this event.");
     } finally {
-      resetScanLockSoon();
+      scanBusyRef.current = false;
       setCheckingIn(false);
     }
   };
 
-  async function stopCameraScanner(message = "Scanner stopped. Manual ticket code entry is still available.") {
-    const scanner = qrScannerRef.current;
-    qrScannerRef.current = null;
-    cameraActiveRef.current = false;
-    setCameraActive(false);
-
-    if (scanner) {
-      try {
-        if (scanner.isScanning) {
-          await scanner.stop();
-        }
-      } catch {
-        // The camera may already be stopped by the browser or route transition.
-      }
-      try {
-        await scanner.clear();
-      } catch {
-        // Clearing can fail after some browsers detach the video node.
-      }
-    }
-
-    setCameraStatus(message);
-  }
-
   const startCameraScanner = async () => {
     if (!scannerReady) return;
-    if (cameraActiveRef.current || qrScannerRef.current) {
-      setCameraStatus("Scanner already running. Hold the QR code inside the frame.");
+    if (cameraActive) {
+      setCameraStatus("Scanner already running.");
       return;
     }
-
-    if (!window.isSecureContext && !isLocalCameraHost()) {
+    const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+    if (!window.isSecureContext && !isLocalhost) {
       setCameraStatus("Camera scanning requires HTTPS or localhost. Use manual ticket code entry or open the deployed HTTPS site.");
       return;
     }
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setCameraStatus("Camera scanning is not supported in this browser. Use manual ticket code entry.");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraStatus("This browser does not support camera access. Use manual ticket code entry.");
       return;
     }
-
     try {
-      setCameraStatus("Requesting camera permission...");
-      const cameras = await Html5Qrcode.getCameras();
-      if (!cameras.length) {
-        setCameraStatus("No camera found on this device. Use manual ticket code entry.");
-        return;
-      }
-
-      const rearCamera = cameras.find((camera) => /back|rear|environment/i.test(camera.label || ""));
-      const cameraId = rearCamera?.id || cameras[cameras.length - 1]?.id || cameras[0].id;
-      const scanner = new Html5Qrcode(scannerElementId, {
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        verbose: false,
-      });
-      qrScannerRef.current = scanner;
-      cameraActiveRef.current = true;
-      setCameraActive(true);
-      setCameraStatus("Scanner started. Hold the ticket QR code inside the frame.");
-
-      await scanner.start(
-        cameraId,
-        {
-          fps: 10,
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const size = Math.max(180, Math.min(280, Math.floor(minEdge * 0.72)));
-            return { width: size, height: size };
-          },
-          aspectRatio: 1,
-          disableFlip: false,
-        },
-        (decodedText) => {
-          const code = decodedText.trim();
-          if (!code) return;
-          const now = Date.now();
-          if (code === lastScannedCodeRef.current && now - lastScannedAtRef.current < 5000) return;
-          lastScannedCodeRef.current = code;
-          lastScannedAtRef.current = now;
-          setCameraStatus("QR code detected. Checking ticket...");
-          void scanTicket(code, { stopCameraOnSuccess: true });
-        },
-        () => {
-          // Per-frame decode misses are expected and should not interrupt scanning.
+      const reader = new BrowserQRCodeReader();
+      scannerControlsRef.current = await reader.decodeFromConstraints(
+        { video: { facingMode: { ideal: "environment" } } },
+        videoRef.current || undefined,
+        async (result) => {
+          const value = result?.getText();
+          if (!value || scanBusyRef.current) return;
+          scannerControlsRef.current?.stop();
+          scannerControlsRef.current = null;
+          setCameraActive(false);
+          setCameraStatus("QR code scanned. Checking ticket...");
+          await scanTicket(value);
         }
       );
+      setCameraActive(true);
+      setCameraStatus("Scanner started. Hold the QR code inside the frame.");
     } catch (error: any) {
-      await stopCameraScanner();
-      const errorText = `${error?.name || ""} ${error?.message || error || ""}`.toLowerCase();
-      if (errorText.includes("notallowed") || errorText.includes("permission") || errorText.includes("denied")) {
-        setCameraStatus("Camera permission denied. Allow camera access in your browser settings or use manual ticket code entry.");
-      } else if (errorText.includes("notfound") || errorText.includes("no camera") || errorText.includes("devicesnotfound")) {
-        setCameraStatus("No camera found on this device. Use manual ticket code entry.");
-      } else if (errorText.includes("notreadable") || errorText.includes("in use")) {
-        setCameraStatus("Camera is already in use by another app or tab. Close it and try again.");
+      const name = error?.name || "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setCameraStatus("Camera permission denied. Allow camera access or use manual ticket code entry.");
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        setCameraStatus("No camera found. Use manual ticket code entry.");
       } else {
-        setCameraStatus("Could not start camera scanning in this browser. Use manual ticket code entry.");
+        setCameraStatus("Could not open camera. Check browser support or use manual ticket code entry.");
       }
     }
   };
 
+  const stopCameraScanner = () => {
+    scannerControlsRef.current?.stop();
+    scannerControlsRef.current = null;
+    setCameraActive(false);
+    setCameraStatus("Camera stopped. Manual ticket code entry is still available.");
+  };
+
   return (
-    <div className="min-h-screen bg-[#171717] pt-10 pb-16 px-4 sm:px-6 flex flex-col items-center justify-center text-white relative overflow-x-hidden">
-      <div className="text-center mb-6 w-full max-w-[420px]">
-        <h1 className="text-4xl sm:text-5xl uppercase leading-none break-words" style={fonts.display}>Scanner Protocol</h1>
-        <p className="font-mono text-slate-400 mt-3 text-xs sm:text-sm break-words">{scannerStatus}</p>
+    <div className="min-h-screen bg-[#171717] pt-12 pb-20 px-6 flex flex-col items-center justify-center text-white relative">
+      <div className="text-center mb-8">
+        <h1 className="text-5xl uppercase" style={fonts.display}>Scanner Protocol</h1>
+        <p className="font-mono text-slate-400 mt-2">{scannerStatus}</p>
         {scannerEvent && (
-          <p className="font-mono text-xs text-slate-500 mt-2 break-words">
+          <p className="font-mono text-xs text-slate-500 mt-2">
             {scannerEvent.start_time ? new Date(scannerEvent.start_time).toLocaleString() : "Date TBA"} - {scannerEvent.venue || "Venue TBA"}
           </p>
         )}
       </div>
       
-      <div className="relative w-full max-w-[min(100%,380px)] aspect-square bg-black border-4 border-[#2563EB] mb-6 overflow-hidden flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.3)]">
+      <div className="relative w-full max-w-sm aspect-square bg-black border-4 border-[#2563EB] mb-12 overflow-hidden flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.3)]">
         {/* Viewfinder brackets */}
-        <div className="pointer-events-none absolute top-4 left-4 z-10 w-10 h-10 sm:w-12 sm:h-12 border-t-4 border-l-4 border-[#FFE800]" />
-        <div className="pointer-events-none absolute top-4 right-4 z-10 w-10 h-10 sm:w-12 sm:h-12 border-t-4 border-r-4 border-[#FFE800]" />
-        <div className="pointer-events-none absolute bottom-4 left-4 z-10 w-10 h-10 sm:w-12 sm:h-12 border-b-4 border-l-4 border-[#FFE800]" />
-        <div className="pointer-events-none absolute bottom-4 right-4 z-10 w-10 h-10 sm:w-12 sm:h-12 border-b-4 border-r-4 border-[#FFE800]" />
+        <div className="absolute top-4 left-4 w-12 h-12 border-t-4 border-l-4 border-[#FFE800]" />
+        <div className="absolute top-4 right-4 w-12 h-12 border-t-4 border-r-4 border-[#FFE800]" />
+        <div className="absolute bottom-4 left-4 w-12 h-12 border-b-4 border-l-4 border-[#FFE800]" />
+        <div className="absolute bottom-4 right-4 w-12 h-12 border-b-4 border-r-4 border-[#FFE800]" />
         
         {/* Scanning line */}
-        {cameraActive && <div className="pointer-events-none absolute top-0 left-0 z-10 w-full h-1 bg-[#FB7185] shadow-[0_0_15px_#FB7185] animate-[scan_2s_ease-in-out_infinite]" />}
+        <div className="absolute top-0 left-0 w-full h-1 bg-[#FB7185] shadow-[0_0_15px_#FB7185] animate-[scan_2s_ease-in-out_infinite]" />
 
-        <div id={scannerElementId} className={`absolute inset-0 h-full w-full [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover [&_img]:hidden ${cameraActive ? "block" : "hidden"}`} />
+        <video ref={videoRef} className={`absolute inset-0 h-full w-full object-cover ${cameraActive ? "block" : "hidden"}`} muted playsInline />
         {!cameraActive && (
-          <p className="font-mono text-slate-500 text-sm flex items-center gap-2 text-center px-4">
-            <Camera size={16} /> CAMERA READY
+          <p className="font-mono text-slate-600 text-sm flex items-center gap-2">
+            <Camera size={16} /> {scannerReady ? "CAMERA READY" : "EVENT REQUIRED"}
           </p>
         )}
       </div>
 
-      <p className="mb-4 w-full max-w-[420px] text-center font-mono text-xs sm:text-sm leading-relaxed text-slate-300 break-words">{cameraStatus}</p>
-      <div className="mb-4 flex flex-col sm:flex-row gap-3 w-full max-w-[420px]">
-        <BrutalButton onClick={cameraActive ? () => void stopCameraScanner() : startCameraScanner} disabled={!scannerReady} color={cameraActive ? "bg-[#FB7185]" : "bg-[#2563EB]"} text="text-white" className="w-full justify-center">
+      <p className="mb-4 max-w-sm text-center font-mono text-xs text-slate-400">{cameraStatus}</p>
+      <div className="mb-4 flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+        <BrutalButton onClick={cameraActive ? stopCameraScanner : startCameraScanner} disabled={!scannerReady} color="bg-[#2563EB]" text="text-white" className="flex-1">
           <Camera size={16} /> {cameraActive ? "Stop Camera" : "Start Camera"}
         </BrutalButton>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-[420px]">
+      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
         <input
           value={ticketCode}
           onChange={(event) => setTicketCode(event.target.value)}
           placeholder="Ticket code"
           disabled={!scannerReady || checkingIn}
-          className="min-w-0 flex-1 border-2 border-[#FFE800] bg-black p-3 font-mono text-base sm:text-sm text-white focus:outline-none disabled:opacity-40"
+          className="flex-1 border-2 border-[#FFE800] bg-black p-3 font-mono text-sm text-white focus:outline-none disabled:opacity-40"
         />
-        <BrutalButton onClick={() => scanTicket()} disabled={!scannerReady || checkingIn || !ticketCode.trim()} color="bg-[#FFE800]" className="w-full sm:w-auto justify-center">
+        <BrutalButton onClick={() => scanTicket()} disabled={!scannerReady || checkingIn || !ticketCode.trim()} color="bg-[#FFE800]" className="flex-1">
           {checkingIn ? "Checking..." : "Check In"}
         </BrutalButton>
       </div>
 
       {lastScan && (
-        <div className="mt-6 w-full max-w-[420px] border-2 border-[#FFE800] bg-black p-4 font-mono text-sm break-words">
+        <div className="mt-6 w-full max-w-sm border-2 border-[#FFE800] bg-black p-4 font-mono text-sm">
           <p className="font-bold text-[#FFE800] uppercase">{lastScan.already_checked_in ? "Already checked in" : "Scan accepted"}</p>
           <p className="mt-2">{lastScan.profile?.full_name || lastScan.profile?.email || "Member"}</p>
           <p className="mt-1 break-all text-slate-400">{lastScan.registration?.ticket_code}</p>
@@ -2164,9 +2108,9 @@ function DashboardPage() {
           <p className="mt-4 font-mono text-sm text-slate-500">Member since: {member.memberSince}</p>
         </div>
         <div className="flex gap-3 flex-wrap">
-          <BrutalButton color="bg-white" className="text-xs px-4 py-2" onClick={() => setDashboardNotice("No new notifications right now.")}>
+          <BrutalButton color="bg-white" className="text-xs px-4 py-2" onClick={() => setDashboardNotice(announcements.length ? announcements.map((item) => item.title).join(" | ") : "No new notifications right now.")}>
             <Bell size={14} className="inline mr-2" />
-            Notifications (3)
+            Notifications ({announcements.length})
           </BrutalButton>
           <BrutalButton color="bg-[#171717]" text="text-white" className="text-xs px-4 py-2" onClick={() => navigate("/profile")}>
             Edit Profile
@@ -2224,7 +2168,7 @@ function DashboardPage() {
             </div>
             <BrutalCard color="bg-white" className="p-0 overflow-hidden">
               {nextEvent ? (
-              <div className="p-5 md:p-6 cursor-pointer" onClick={() => navigate(`/events/${nextEvent.id}`)}>
+              <div className="p-5 md:p-6 cursor-pointer" onClick={() => navigate(`/events/${nextEvent.slug || nextEvent.id}`)}>
                 <div className="flex items-start justify-between gap-4 mb-5 md:mb-6">
                   <div>
                     <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">NEXT UP</div>

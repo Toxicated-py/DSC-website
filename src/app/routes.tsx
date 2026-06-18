@@ -5,6 +5,18 @@ import { AdminRoute } from "./auth/AdminRoute";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Layout } from "./layout/Layout";
 
+function NotFoundPage() {
+  return (
+    <div className="min-h-[70vh] px-6 py-24 text-center">
+      <h1 className="text-4xl font-black uppercase tracking-tight">Page not found</h1>
+      <p className="mt-3 text-sm text-slate-600">This page does not exist or has moved.</p>
+      <a href="/" className="mt-6 inline-flex border-2 border-[#171717] bg-[#FFE800] px-5 py-3 text-xs font-bold uppercase tracking-widest">
+        Back Home
+      </a>
+    </div>
+  );
+}
+
 type RouteComponent = React.ComponentType;
 
 export type AppRoutePages = {
@@ -93,11 +105,13 @@ export function AppRoutes({ pages }: { pages: AppRoutePages }) {
         <Route path="ticket/:ticketId" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
         <Route path="tickets" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
         <Route path="tickets/:ticketId" element={<ProtectedRoute><TicketPage /></ProtectedRoute>} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
 
       <Route path="/login" element={<NewLoginPage />} />
       <Route path="/register" element={<NewLoginPage />} />
       <Route path="/scanner" element={<ScannerPage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
