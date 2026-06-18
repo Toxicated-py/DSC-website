@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from typing import Any
+from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -66,6 +67,12 @@ def get_privileged_supabase(settings: Settings, auth_token: str | None = None) -
         return SupabaseRestClient(settings, auth_token=auth_token)
 
 
+def get_admin_resource_client(settings: Settings, profile: dict[str, Any], resource: str) -> SupabaseRestClient:
+    if is_full_admin(profile) or (is_event_manager(profile) and resource in {"events", "projects", "blog-posts", "gallery"}):
+        return get_privileged_supabase(settings, profile.get("_auth_token"))
+    return get_user_supabase(settings, profile)
+
+
 async def select_one(
     client: SupabaseRestClient,
     table: str,
@@ -78,6 +85,17 @@ async def select_one(
         if exc.status_code == 406:
             return None
         raise
+
+
+async def select_by_id_or_slug(client: SupabaseRestClient, table: str, value: str) -> dict[str, Any] | None:
+    try:
+        UUID(value)
+        row = await select_one(client, table, {"id": f"eq.{value}"})
+        if row:
+            return row
+    except ValueError:
+        pass
+    return await select_one(client, table, {"slug": f"eq.{value}"})
 
 
 async def ensure_not_duplicate(
@@ -162,7 +180,11 @@ def is_full_admin(profile: dict[str, Any]) -> bool:
 
 
 def is_organizer(profile: dict[str, Any]) -> bool:
-    return bool(profile_roles(profile) & {"organizer"})
+    return bool(profile_roles(profile) & {"organizer", "event_manager"})
+
+
+def is_event_manager(profile: dict[str, Any]) -> bool:
+    return bool(profile_roles(profile) & {"event_manager"})
 
 
 RESOURCE_OWNER_COLUMNS = {
@@ -242,6 +264,8 @@ async def require_resource_access(
         row = await select_one(client, table, {"id": f"eq.{item_id}"})
         if not row:
             raise HTTPException(status_code=404, detail="Item not found.")
+        if is_event_manager(profile) and resource in {"events", "projects", "blog-posts", "gallery"}:
+            return row
         owner_column = RESOURCE_OWNER_COLUMNS.get(resource)
         if owner_column and row.get(owner_column) == profile["id"]:
             return row
@@ -267,6 +291,8 @@ async def list_accessible_resource(
             return await admin_client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
         return await client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
     await require_resource_access(client, profile, resource)
+    if is_event_manager(profile) and resource in {"events", "projects", "blog-posts", "gallery"}:
+        return await client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
     owner_column = RESOURCE_OWNER_COLUMNS.get(resource)
     if owner_column:
         scoped_filters = {**(filters or {}), owner_column: f"eq.{profile['id']}"}
@@ -300,7 +326,7 @@ async def backfill_profiles_from_auth(client: SupabaseRestClient) -> None:
             "email": email,
             "full_name": metadata.get("full_name") or metadata.get("name") or email.split("@")[0] or "Member",
             "role": "member",
-            "roles": ["member"],
+            "roles": ["member", "student"] if email.lower().endswith("@sms.tu.edu.np") else ["member"],
             "membership_status": "approved",
         })
 
@@ -571,11 +597,11 @@ async def get_public_event(
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
     service_client = get_privileged_supabase(settings)
-    event = await select_one(service_client, "events", {"id": f"eq.{event_id}"})
+    event = await select_by_id_or_slug(service_client, "events", event_id)
     if not event or event.get("status") not in {"approved", "published"}:
         raise HTTPException(status_code=404, detail="Event not found.")
 
-    registered_count = await active_registration_count(service_client, event_id)
+    registered_count = await active_registration_count(service_client, event["id"])
     return {**event, "registeredCount": registered_count, "registered_count": registered_count}
 
 
@@ -587,14 +613,11 @@ async def event_workspace(
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     service_client = get_privileged_supabase(settings)
-    event = await select_one(
-        service_client,
-        "events",
-        {"id": f"eq.{event_id}"},
-    )
+    event = await select_by_id_or_slug(service_client, "events", event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
 
+    event_id = event["id"]
     registered_count = await active_registration_count(service_client, event_id)
     profile = await optional_profile(authorization, settings, client)
     manager = await can_manage_event(service_client, profile, event) if profile else False
@@ -642,14 +665,18 @@ async def reserve_event_spot(
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     service_client = get_privileged_supabase(settings, profile.get("_auth_token") if profile else None)
-    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
+    event = await select_by_id_or_slug(service_client, "events", event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
+    event_id = event["id"]
     if not event.get("registration_open") or event.get("status") == "archived":
         raise HTTPException(status_code=400, detail="Registration is closed for this event.")
     start_time = event.get("start_time")
     if start_time and str(start_time) < date.today().isoformat():
         raise HTTPException(status_code=400, detail="This event has ended.")
+    deadline = event.get("registration_deadline")
+    if deadline and str(deadline) < datetime.now(timezone.utc).isoformat():
+        raise HTTPException(status_code=400, detail="Registration deadline has passed.")
     existing = await client.select(
         "event_registrations",
         columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
@@ -720,9 +747,10 @@ async def check_in_registration(
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
-    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
+    event = await select_by_id_or_slug(client, "events", event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
+    event_id = event["id"]
     if not await can_manage_event(user_client, profile, event):
         raise HTTPException(status_code=403, detail="You are not allowed to manage this event.")
     rows = await user_client.update(
@@ -744,9 +772,10 @@ async def scan_event_ticket(
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
     user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
-    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
+    event = await select_by_id_or_slug(client, "events", event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
+    event_id = event["id"]
     if event.get("end_time") and str(event.get("end_time")) < datetime.now(timezone.utc).isoformat():
         raise HTTPException(status_code=400, detail="Scanner is closed because this event has ended.")
     if not await can_manage_event(user_client, profile, event):
@@ -1051,6 +1080,11 @@ async def update_me(
     updates = {key: value for key, value in payload.data.items() if key in allowed}
     if "designation" in updates and updates.get("designation") != profile.get("designation"):
         updates["designation_status"] = "pending"
+    sms_email = str(updates.get("student_email") or profile.get("student_email") or updates.get("email") or profile.get("email") or "").lower()
+    if sms_email.endswith("@sms.tu.edu.np"):
+        roles = profile_roles(profile)
+        roles.update({"member", "student"})
+        updates["roles"] = sorted(roles)
     rows = await client.update("profiles", updates, filters={"id": f"eq.{profile['id']}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Profile not found.")
@@ -1116,6 +1150,9 @@ async def submit_event_proposal(
         "event_proposals",
         {
             **payload.model_dump(),
+            "proposed_date": payload.proposed_date or None,
+            "proposed_time": payload.proposed_time or None,
+            "capacity": payload.capacity or None,
             "coordinator_emails": [str(email) for email in payload.coordinator_emails],
             "proposed_by": profile["id"],
             "status": "pending",
@@ -1182,9 +1219,8 @@ async def admin_list_resource(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
-    user_client = get_user_supabase(settings, profile)
-    service_client = get_privileged_supabase(settings, profile.get("_auth_token")) if resource == "profiles" and is_full_admin(profile) else None
-    return await list_accessible_resource(user_client, profile, resource, status, service_client=service_client)
+    user_client = get_admin_resource_client(settings, profile, resource)
+    return await list_accessible_resource(user_client, profile, resource, status, service_client=user_client if resource == "profiles" and is_full_admin(profile) else None)
 
 
 @app.get("/api/admin/audit-logs")
@@ -1210,7 +1246,7 @@ async def admin_create_resource(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
-    user_client = get_user_supabase(settings, profile)
+    user_client = get_admin_resource_client(settings, profile, resource)
     await require_resource_access(user_client, profile, resource, action="create")
     table = table_for_resource(resource)
     data = dict(payload.data)
@@ -1244,17 +1280,18 @@ async def admin_update_resource(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
-    user_client = get_user_supabase(settings, profile)
+    user_client = get_admin_resource_client(settings, profile, resource)
     await require_resource_access(user_client, profile, resource, item_id=item_id, action="update")
     table = table_for_resource(resource)
     data = dict(payload.data)
     if not is_full_admin(profile):
         for protected_key in ("created_by", "author_id", "proposed_by", "reviewed_by", "role", "roles"):
             data.pop(protected_key, None)
-        if resource in {"projects", "blog-posts"} and data.get("status") == "published":
-            data["status"] = "submitted"
-        if resource == "events":
-            data.pop("status", None)
+        if not is_event_manager(profile):
+            if resource in {"projects", "blog-posts"} and data.get("status") == "published":
+                data["status"] = "submitted"
+            if resource == "events":
+                data.pop("status", None)
     rows = await user_client.update(table, data, filters={"id": f"eq.{item_id}"})
     if not rows:
         raise HTTPException(status_code=404, detail="Item not found.")
@@ -1280,9 +1317,9 @@ async def admin_update_resource_status(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
-    user_client = get_user_supabase(settings, profile)
+    user_client = get_admin_resource_client(settings, profile, resource)
     await require_resource_access(user_client, profile, resource, item_id=item_id, action="status")
-    if not is_full_admin(profile):
+    if not is_full_admin(profile) and not (is_event_manager(profile) and resource in {"events", "projects", "blog-posts", "gallery"}):
         raise HTTPException(status_code=403, detail="Only admins can approve, publish, archive, or restore items.")
     table = table_for_resource(resource)
     rows = await user_client.update(table, {"status": payload.status}, filters={"id": f"eq.{item_id}"})
@@ -1309,9 +1346,9 @@ async def admin_delete_resource(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, str]:
-    user_client = get_user_supabase(settings, profile)
+    user_client = get_admin_resource_client(settings, profile, resource)
     await require_resource_access(user_client, profile, resource, item_id=item_id, action="delete")
-    if not is_full_admin(profile) and resource not in {"events", "projects", "blog-posts"}:
+    if not is_full_admin(profile) and resource not in {"events", "projects", "blog-posts", "gallery"}:
         raise HTTPException(status_code=403, detail="Only admins can delete this item.")
     table = table_for_resource(resource)
     await user_client.delete(table, filters={"id": f"eq.{item_id}"})

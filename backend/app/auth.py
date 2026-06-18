@@ -64,6 +64,7 @@ async def get_current_profile(
             email = user.get("email") or ""
             metadata = user.get("user_metadata") or {}
             full_name = metadata.get("full_name") or metadata.get("name") or email.split("@")[0] or "Member"
+            roles = ["member", "student"] if email.lower().endswith("@sms.tu.edu.np") else ["member"]
             try:
                 try:
                     write_client = SupabaseRestClient(settings, use_service_role=True)
@@ -76,7 +77,7 @@ async def get_current_profile(
                         "email": email,
                         "full_name": full_name,
                         "role": "member",
-                        "roles": ["member"],
+                        "roles": roles,
                         "membership_status": "approved",
                     },
                 )

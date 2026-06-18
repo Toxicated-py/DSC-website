@@ -336,7 +336,6 @@ export function UserProfilePage() {
   const [saveStatus, setSaveStatus] = useState("");
   const [newSkill, setNewSkill] = useState("");
   const [newProfileLink, setNewProfileLink] = useState({ label: "", url: "" });
-  const [designationOptions, setDesignationOptions] = useState<string[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [profile, setProfile] = useState({
     name: "Member",
@@ -380,17 +379,11 @@ export function UserProfilePage() {
       try {
         const [data, options, submissionRows] = await Promise.all([
           apiGet<any>("/api/me", { auth: true }),
-          apiGet<any[]>("/api/designation-options"),
+          Promise.resolve([]),
           apiGet<any>("/api/me/submissions", { auth: true }),
         ]);
 
         if (!mounted) return;
-        const optionLabels = (options || []).map((option) => option.label);
-        if (data?.designation && !optionLabels.includes(data.designation)) {
-          optionLabels.push(data.designation);
-        }
-        setDesignationOptions(optionLabels);
-
         setProfile((current) => ({
           ...current,
           name: data?.full_name || fallbackName,
@@ -447,7 +440,6 @@ export function UserProfilePage() {
           data: {
           full_name: profile.name,
           bio: profile.bio,
-          designation: profile.designation,
           batch_year: Number.isFinite(parsedYear) ? parsedYear : null,
           major: profile.major,
           github_username: profile.github,
@@ -462,7 +454,7 @@ export function UserProfilePage() {
         setSaveStatus(userFriendlyErrorMessage(error, "Could not save profile. Please check your details and try again."));
         return;
       }
-      setSaveStatus("Profile saved. Designation changes need admin approval before they appear publicly.");
+      setSaveStatus("Profile saved.");
     }
 
     setIsEditing(false);
@@ -621,22 +613,6 @@ export function UserProfilePage() {
                   value={profile.major}
                   onChange={(e: any) => setProfile({ ...profile, major: e.target.value })}
                 />
-                <div className="mb-4">
-                  <label className="block text-xs font-bold uppercase tracking-widest mb-2">Requested Designation</label>
-                  <select
-                    value={profile.designation}
-                    onChange={(e: any) => setProfile({ ...profile, designation: e.target.value })}
-                    className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all bg-white"
-                  >
-                    <option value="">No designation requested</option>
-                    {designationOptions.map((designation) => (
-                      <option key={designation} value={designation}>{designation}</option>
-                    ))}
-                  </select>
-                  <p className="mt-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                    Admin approval is required before this appears publicly.
-                  </p>
-                </div>
               </>
             ) : (
               <>

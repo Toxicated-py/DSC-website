@@ -43,6 +43,7 @@ export function HomePage() {
         const start = event.start_time ? new Date(event.start_time) : null;
         return {
           id: event.id,
+          slug: event.slug,
           num: start ? start.toLocaleDateString(undefined, { day: "2-digit" }) : "--",
           month: start ? start.toLocaleDateString(undefined, { month: "short", year: "numeric" }).toUpperCase() : "DATE TBD",
           label: event.title,
@@ -112,9 +113,6 @@ export function HomePage() {
                 {homeSettings.heroDescription}
               </p>
               <div className="mt-8 flex gap-4 flex-wrap">
-                <Link to={localStorage.getItem("dsc-auth-state") === "logged-in" ? "/dashboard" : "/register"}>
-                  <BrutalButton color="bg-[#FFE800]">Join the Club</BrutalButton>
-                </Link>
                 <Link to="/events">
                   <BrutalButton color="bg-white">See Events</BrutalButton>
                 </Link>
@@ -135,7 +133,7 @@ export function HomePage() {
             </div>
 
             <Link
-              to={nextEvent ? `/events/${nextEvent.id}` : "/events"}
+              to={nextEvent ? `/events/${nextEvent.slug || nextEvent.id}` : "/events"}
               className="block bg-white border-2 border-[#171717] p-5 brutal-shadow brutal-shadow-hover lg:-rotate-1 transition-all group"
               aria-label={nextEvent ? `Open event ${nextEvent.label}` : "Open events"}
             >
@@ -154,7 +152,7 @@ export function HomePage() {
             </Link>
 
             <Link
-              to={homeProject ? `/projects/${homeProject.id}` : "/projects"}
+              to={homeProject ? `/projects/${homeProject.slug || homeProject.id}` : "/projects"}
               className="block bg-[#7C3AED] border-2 border-[#171717] p-5 brutal-shadow brutal-shadow-hover lg:rotate-1 transition-all group cursor-pointer"
               aria-label={homeProject ? `Open project ${homeProject.title}` : "Open projects"}
             >
@@ -182,7 +180,7 @@ export function HomePage() {
                 </div>
               ) : homeEvents.map((ev, i) => (
                 <Link
-                  to={`/events/${ev.id}`}
+                  to={`/events/${ev.slug || ev.id}`}
                   key={ev.id || i}
                   className={`relative ${ev.color} border-r-2 border-b-2 md:border-b-0 border-[#171717] last:border-r-0 p-4 md:p-6 flex flex-col text-white hover:opacity-90 transition-opacity group min-h-[150px] min-w-[78vw] sm:min-w-[280px] md:min-w-0 snap-start`}
                 >

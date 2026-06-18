@@ -72,6 +72,7 @@ function EventsPage() {
           const filled = Number(event.registeredCount || event.registered_count || 0);
           return {
             id: event.id,
+            slug: event.slug,
             title: event.title,
             date: start.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }).toUpperCase(),
             dateSort: start.toISOString().slice(0, 10),
@@ -199,7 +200,7 @@ function EventsPage() {
             return (
               <div
                 key={ev.id}
-                onClick={() => navigate(`/events/${ev.id}`)}
+                onClick={() => navigate(`/events/${ev.slug || ev.id}`)}
                 className={`relative cursor-pointer ${ev.color} border-2 border-[#171717] p-6 flex flex-col text-white brutal-shadow-lg brutal-shadow-hover transition-all group`}
               >
                 {(ev as any).hot && (
@@ -270,13 +271,11 @@ function EventDetailPage() {
   const [managerStatus, setManagerStatus] = useState("");
   const [loadingEvent, setLoadingEvent] = useState(true);
 
-  const isUuidEvent = Boolean(id && /^[0-9a-f-]{36}$/i.test(id));
-
   useEffect(() => {
     let mounted = true;
 
     async function loadEventDetails() {
-      if (!isUuidEvent || !id) {
+      if (!id) {
         setLoadingEvent(false);
         return;
       }
@@ -305,7 +304,7 @@ function EventDetailPage() {
     return () => {
       mounted = false;
     };
-  }, [id, isUuidEvent]);
+  }, [id]);
 
   const checkInAttendee = async (registrationId: string) => {
     if (!id) return;
@@ -331,11 +330,6 @@ function EventDetailPage() {
       setReserveStatus("Invalid event.");
       return;
     }
-    if (!isUuidEvent) {
-      navigate("/ticket");
-      return;
-    }
-
     try {
       const result = await apiPost<any>(`/api/events/${id}/reserve`, {}, { auth: true });
       setMyRegistration(result.registration || null);
@@ -386,6 +380,8 @@ function EventDetailPage() {
 
   const startDate = displayEvent.start_time ? new Date(displayEvent.start_time) : null;
   const eventEnded = Boolean(displayEvent.end_time && new Date(displayEvent.end_time).getTime() < Date.now());
+  const registrationDeadline = displayEvent.registration_deadline ? new Date(displayEvent.registration_deadline) : null;
+  const registrationClosedByDeadline = Boolean(registrationDeadline && registrationDeadline.getTime() < Date.now());
   const isReserved = Boolean(myRegistration?.id);
 
   return (
@@ -418,7 +414,9 @@ function EventDetailPage() {
         <div>
           <BrutalCard className="sticky top-32">
             <h3 className="uppercase font-bold tracking-widest text-lg mb-6">Registration</h3>
-            <p className="text-sm font-mono text-slate-500 mb-6">Registration closes in 48 hours.</p>
+            <p className="text-sm font-mono text-slate-500 mb-6">
+              {registrationDeadline ? `Registration deadline: ${registrationDeadline.toLocaleString()}` : "Registration deadline not set."}
+            </p>
             {reserveStatus && <p className="mb-4 text-xs font-bold text-[#FB7185]">{reserveStatus}</p>}
             {isReserved ? (
               <div className="space-y-3">
@@ -430,9 +428,11 @@ function EventDetailPage() {
                 </BrutalButton>
               </div>
             ) : (
-              <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white">Reserve Spot</BrutalButton>
+              <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white" disabled={registrationClosedByDeadline}>
+                {registrationClosedByDeadline ? "Registration Closed" : "Reserve Spot"}
+              </BrutalButton>
             )}
-            {canManageEvent && isUuidEvent && (
+            {canManageEvent && (
               <div className="mt-4 pt-4 border-t-2 border-[#171717] space-y-3">
                 <BrutalButton onClick={() => navigate(`/scanner?event=${id}`)} className="w-full text-xs" color="bg-[#171717]" text="text-white">
                   <QrCode size={14} className="inline mr-2" /> Scan Tickets
@@ -443,7 +443,7 @@ function EventDetailPage() {
         </div>
       </div>
 
-      {canManageEvent && isUuidEvent && (
+      {canManageEvent && (
         <BrutalCard color="bg-white" className="mt-10">
           <div className="flex items-center justify-between gap-4 mb-6">
             <h2 className="text-3xl uppercase" style={fonts.display}>Organizer Workspace</h2>
@@ -511,7 +511,6 @@ function EventProposalPage() {
     };
   });
   const [status, setStatus] = useState("");
-  const [submittingProject, setSubmittingProject] = useState(false);
   const [submittingProposal, setSubmittingProposal] = useState(false);
 
   const updateField = (field: string, value: string) => {
@@ -667,7 +666,7 @@ function ProjectsPage() {
       }
       const { data } = await supabase
         .from("projects")
-        .select("id,title,category,technologies,summary,published_at,submitted_at,status")
+        .select("id,slug,title,category,technologies,summary,published_at,submitted_at,status")
         .in("status", ["approved", "published"])
         .order("published_at", { ascending: false, nullsFirst: false });
       if (!mounted) return;
@@ -684,6 +683,7 @@ function ProjectsPage() {
         const date = project.published_at || project.submitted_at;
         return {
           id: project.id,
+          slug: project.slug,
           title: project.title,
           tags: project.technologies?.length ? project.technologies : [project.category || "Project"],
           author: "Club Member",
@@ -794,7 +794,7 @@ function ProjectsPage() {
           {paginated.map(proj => (
             <div
               key={proj.id}
-              onClick={() => navigate(`/projects/${proj.id}`)}
+              onClick={() => navigate(`/projects/${proj.slug || proj.id}`)}
               className={`cursor-pointer border-2 border-[#171717] flex flex-col brutal-shadow brutal-shadow-hover transition-all group ${proj.color} ${proj.text}`}
             >
               <div className="w-full aspect-video border-b-2 border-[#171717] relative overflow-hidden flex items-center justify-center bg-black/10">
@@ -864,12 +864,14 @@ function ProjectDetailPage() {
         setLoadingProject(false);
         return;
       }
-      const { data } = await supabase
+      const query = supabase
         .from("projects")
-        .select("id,title,category,technologies,summary,content,published_at,status")
-        .eq("id", id)
-        .in("status", ["approved", "published"])
-        .maybeSingle();
+        .select("id,slug,title,category,technologies,summary,content,published_at,status")
+        .in("status", ["approved", "published"]);
+      const isUuid = /^[0-9a-f-]{36}$/i.test(id);
+      const { data } = isUuid
+        ? await query.eq("id", id).maybeSingle()
+        : await query.eq("slug", id).maybeSingle();
       if (!mounted) return;
       setProject(data);
       setLoadingProject(false);
@@ -926,6 +928,7 @@ function ProjectSubmissionPage() {
     };
   });
   const [status, setStatus] = useState("");
+  const [submittingProject, setSubmittingProject] = useState(false);
 
   const updateField = (field: string, value: string) => {
     const next = { ...form, [field]: value };
@@ -1045,7 +1048,7 @@ function BlogPage() {
       }
       const { data } = await supabase
         .from("blog_posts")
-        .select("id,title,summary,tags,content,cover_image_url,published_at,status,profiles:author_id(full_name,email)")
+        .select("id,slug,title,summary,tags,content,cover_image_url,published_at,status,profiles:author_id(full_name,email)")
         .in("status", ["approved", "published"])
         .order("published_at", { ascending: false, nullsFirst: false });
       if (!mounted) return;
@@ -1055,6 +1058,7 @@ function BlogPage() {
         const words = `${post.summary || ""} ${post.content || ""}`.trim().split(/\s+/).filter(Boolean).length;
         return {
           id: post.id,
+          slug: post.slug,
           title: post.title,
           date: date ? new Date(date).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" }) : "",
           dateSort: date ? new Date(date).toISOString().slice(0, 10) : "",
@@ -1177,11 +1181,11 @@ function BlogPage() {
               key={post.id}
               role="button"
               tabIndex={0}
-              onClick={() => navigate(`/blog/${post.id}`)}
+              onClick={() => navigate(`/blog/${post.slug || post.id}`)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
-                  navigate(`/blog/${post.id}`);
+                  navigate(`/blog/${post.slug || post.id}`);
                 }
               }}
               className={`p-8 cursor-pointer group hover:bg-[#171717] hover:text-white transition-all border-[#171717] ${
@@ -1268,12 +1272,14 @@ function BlogDetailPage() {
         return;
       }
 
-      const { data } = await supabase
+      const query = supabase
         .from("blog_posts")
-        .select("id,title,summary,tags,cover_image_url,content,published_at,status,profiles:author_id(full_name,email)")
-        .eq("id", id)
-        .in("status", ["approved", "published"])
-        .maybeSingle();
+        .select("id,slug,title,summary,tags,cover_image_url,content,published_at,status,profiles:author_id(full_name,email)")
+        .in("status", ["approved", "published"]);
+      const isUuid = /^[0-9a-f-]{36}$/i.test(id);
+      const { data } = isUuid
+        ? await query.eq("id", id).maybeSingle()
+        : await query.eq("slug", id).maybeSingle();
 
       if (!mounted) return;
       setPost(data);
@@ -2086,9 +2092,9 @@ function DashboardPage() {
           <p className="mt-4 font-mono text-sm text-slate-500">Member since: {member.memberSince}</p>
         </div>
         <div className="flex gap-3 flex-wrap">
-          <BrutalButton color="bg-white" className="text-xs px-4 py-2" onClick={() => setDashboardNotice("No new notifications right now.")}>
+          <BrutalButton color="bg-white" className="text-xs px-4 py-2" onClick={() => setDashboardNotice(announcements.length ? announcements.map((item) => item.title).join(" | ") : "No new notifications right now.")}>
             <Bell size={14} className="inline mr-2" />
-            Notifications (3)
+            Notifications ({announcements.length})
           </BrutalButton>
           <BrutalButton color="bg-[#171717]" text="text-white" className="text-xs px-4 py-2" onClick={() => navigate("/profile")}>
             Edit Profile
@@ -2146,7 +2152,7 @@ function DashboardPage() {
             </div>
             <BrutalCard color="bg-white" className="p-0 overflow-hidden">
               {nextEvent ? (
-              <div className="p-5 md:p-6 cursor-pointer" onClick={() => navigate(`/events/${nextEvent.id}`)}>
+              <div className="p-5 md:p-6 cursor-pointer" onClick={() => navigate(`/events/${nextEvent.slug || nextEvent.id}`)}>
                 <div className="flex items-start justify-between gap-4 mb-5 md:mb-6">
                   <div>
                     <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">NEXT UP</div>
