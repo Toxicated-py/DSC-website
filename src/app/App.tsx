@@ -26,6 +26,11 @@ const ComprehensiveAdminPanel = lazy(() => import("./ComprehensiveAdmin").then((
 
 
 // Shared components imported from `./components/ui/brutal`
+const fonts = {
+  display: { fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0" },
+  sans: { fontFamily: "'Inter', sans-serif" },
+  serif: { fontFamily: "'Newsreader', serif" },
+};
 
 function requireLoginForAction(navigate: ReturnType<typeof useNavigate>, returnTo: string) {
   if (!isSupabaseConfigured || !supabase || localStorage.getItem("dsc-auth-state") !== "logged-in") {
