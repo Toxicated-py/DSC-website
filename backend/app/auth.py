@@ -1,4 +1,5 @@
 from __future__ import annotations
+from __future__ import annotations
 
 from typing import Any
 
@@ -7,6 +8,7 @@ from fastapi import Depends, Header, HTTPException
 
 from .config import Settings, get_settings
 from .supabase_rest import SupabaseRestClient, SupabaseRestError
+from .http_client import get_http_client
 
 
 ADMIN_ROLES = {"admin", "president"}
@@ -34,8 +36,7 @@ async def get_current_user(
         "apikey": settings.supabase_key,
         "authorization": f"Bearer {token}",
     }
-    async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.get(url, headers=headers)
+    response = await get_http_client().get(url, headers=headers)
 
     if response.status_code >= 400:
         raise HTTPException(status_code=401, detail="Invalid or expired session.")
@@ -48,7 +49,7 @@ async def get_current_profile(
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
     token = _token_from_header(authorization)
-    client = SupabaseRestClient(settings, auth_token=token)
+    client = SupabaseRestClient(settings, get_http_client(), auth_token=token)
     user_id = user.get("id")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid session.")
@@ -67,7 +68,7 @@ async def get_current_profile(
             roles = ["member", "student"] if email.lower().endswith("@sms.tu.edu.np") else ["member"]
             try:
                 try:
-                    write_client = SupabaseRestClient(settings, use_service_role=True)
+                    write_client = SupabaseRestClient(settings, get_http_client(), use_service_role=True)
                 except SupabaseRestError:
                     write_client = client
                 rows = await write_client.insert(

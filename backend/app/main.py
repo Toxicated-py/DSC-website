@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import asyncio
 import time
+from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone
 from typing import Any
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+
+from .http_client import close_http_client, get_http_client
 
 from .auth import get_current_profile, get_current_user, profile_roles, require_admin
 from .config import Settings, get_settings
@@ -36,12 +39,23 @@ rate_limit_hits: dict[str, list[float]] = {}
 
 
 def check_public_post_rate_limit(request: Request, bucket: str) -> None:
+    now = time.time()
+    cutoff = now - RATE_LIMIT_WINDOW_SECONDS
+
+    # Prevent memory leaks by pruning when the dictionary grows
+    if len(rate_limit_hits) > 1000:
+        for k in list(rate_limit_hits.keys()):
+            valid_hits = [t for t in rate_limit_hits[k] if t > cutoff]
+            if not valid_hits:
+                del rate_limit_hits[k]
+            else:
+                rate_limit_hits[k] = valid_hits
+
     forwarded_for = request.headers.get("x-forwarded-for", "")
     ip = forwarded_for.split(",", 1)[0].strip() if forwarded_for else ""
     ip = ip or (request.client.host if request.client else "unknown")
     key = f"{bucket}:{ip}"
-    now = time.time()
-    cutoff = now - RATE_LIMIT_WINDOW_SECONDS
+    
     hits = [timestamp for timestamp in rate_limit_hits.get(key, []) if timestamp > cutoff]
     if len(hits) >= RATE_LIMIT_MAX_REQUESTS:
         raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
@@ -68,24 +82,24 @@ def supabase_http_error(exc: SupabaseRestError) -> HTTPException:
 
 def get_supabase(settings: Settings = Depends(get_settings)) -> SupabaseRestClient:
     try:
-        return SupabaseRestClient(settings)
+        return SupabaseRestClient(settings, get_http_client())
     except SupabaseRestError as exc:
         raise supabase_http_error(exc) from exc
 
 
 def get_user_supabase(settings: Settings, profile: dict[str, Any]) -> SupabaseRestClient:
-    return SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
+    return SupabaseRestClient(settings, get_http_client(), auth_token=profile.get("_auth_token"))
 
 
 def get_service_supabase(settings: Settings) -> SupabaseRestClient:
-    return SupabaseRestClient(settings, use_service_role=True)
+    return SupabaseRestClient(settings, get_http_client(), use_service_role=True)
 
 
 def get_privileged_supabase(settings: Settings, auth_token: str | None = None) -> SupabaseRestClient:
     try:
         return get_service_supabase(settings)
     except SupabaseRestError:
-        return SupabaseRestClient(settings, auth_token=auth_token)
+        return SupabaseRestClient(settings, get_http_client(), auth_token=auth_token)
 
 
 def get_admin_resource_client(settings: Settings, profile: dict[str, Any], resource: str) -> SupabaseRestClient:
@@ -467,8 +481,15 @@ async def issue_certificate_row(client: SupabaseRestClient, payload: Certificate
     return normalize_certificate(inserted[0])
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        yield
+    finally:
+        await close_http_client()
+
 settings = get_settings()
-app = FastAPI(title=settings.app_name, version="0.1.0")
+app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 
 ADMIN_TABLES = {
     "events": "events",
@@ -730,7 +751,7 @@ async def get_my_tickets(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
-    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
+    user_client = SupabaseRestClient(settings, get_http_client(), auth_token=profile.get("_auth_token"))
     registrations = await user_client.select(
         "event_registrations",
         columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
@@ -1073,9 +1094,11 @@ async def create_contact_message(
 
 @app.get("/api/certificates/verify/{code}")
 async def verify_certificate(
+    request: Request,
     code: str,
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    check_public_post_rate_limit(request, "verify_cert")
     client = get_privileged_supabase(settings)
     try:
         row = await client.select(
@@ -1221,10 +1244,12 @@ async def submit_event_proposal(
 
 @app.post("/api/submissions/projects", status_code=201)
 async def submit_project(
+    request: Request,
     payload: ProjectCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    check_public_post_rate_limit(request, "submit_project")
     client = get_privileged_supabase(settings, profile.get("_auth_token"))
     await ensure_not_duplicate(client, "projects", owner_column="author_id", owner_id=profile["id"], title=payload.title)
     row = await client.insert("projects", {**payload.model_dump(), "author_id": profile["id"], "status": "submitted"})
@@ -1233,10 +1258,12 @@ async def submit_project(
 
 @app.post("/api/submissions/blog-posts", status_code=201)
 async def submit_blog_post(
+    request: Request,
     payload: BlogPostCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    check_public_post_rate_limit(request, "submit_blog")
     client = get_privileged_supabase(settings, profile.get("_auth_token"))
     await ensure_not_duplicate(client, "blog_posts", owner_column="author_id", owner_id=profile["id"], title=payload.title)
     row = await client.insert("blog_posts", {**payload.model_dump(), "author_id": profile["id"], "status": "submitted"})
@@ -1245,10 +1272,12 @@ async def submit_blog_post(
 
 @app.post("/api/submissions/gallery", status_code=201)
 async def submit_gallery(
+    request: Request,
     payload: GallerySubmissionCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    check_public_post_rate_limit(request, "submit_gallery")
     client = get_privileged_supabase(settings, profile.get("_auth_token"))
     existing = await client.select(
         "gallery_submissions",
