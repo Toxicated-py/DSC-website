@@ -7,22 +7,12 @@ import { getPersistenceLabel, publishBlogPost, submitEventProposal, submitProjec
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
+import { requireLoginForAction } from "../utils/authNavigation";
 const fonts = {
   display: { fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0" },
   sans: { fontFamily: "'Inter', sans-serif" },
   serif: { fontFamily: "'Newsreader', serif" },
 };
-
-function requireLoginForAction(navigate: ReturnType<typeof useNavigate>, returnTo: string) {
-  if (!isSupabaseConfigured || !supabase || localStorage.getItem("dsc-auth-state") !== "logged-in") {
-    localStorage.setItem("dsc-auth-state", "logged-out");
-    navigate(`/login?redirect=${encodeURIComponent(returnTo)}`);
-    return false;
-  }
-  return true;
-}
-
-
 
 export function EventsPage() {
   const navigate = useNavigate();
