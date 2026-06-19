@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Shield } from "lucide-react";
 import { Navigate, useLocation } from "react-router-dom";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
-import { BrutalCard } from "../components/ui/brutal";
+import { BrutalCard } from "../../components/ui/brutal";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },

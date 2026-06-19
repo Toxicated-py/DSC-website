@@ -1,8 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Facebook, Github, Globe, Instagram, Linkedin, Mail, Twitter } from "lucide-react";
-import { useSiteSettings } from "../lib/siteSettings";
-import { DSC_LOGO_SRC } from "../config/assets";
+import { useSiteSettings } from "../../lib/siteSettings";
+import { DSC_LOGO_SRC } from "../../config/assets";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -121,3 +121,4 @@ export function UpdatedFooter() {
     </footer>
   );
 }
+

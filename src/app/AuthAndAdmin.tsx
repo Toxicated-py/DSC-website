@@ -33,7 +33,7 @@ const fonts = {
   sans: { fontFamily: "'Inter', sans-serif" },
 };
 
-import { BrutalButton, BrutalCard, BrutalBadge } from "./components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge } from "../components/ui/brutal";
 
 // ─── New Login/Signup Page with Google Auth ───────────────────────────────────
 

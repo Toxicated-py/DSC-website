@@ -6,7 +6,7 @@ import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 import { getPersistenceLabel, publishBlogPost, submitEventProposal, submitProject } from "../lib/contentApi";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../app/components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
 const fonts = {
   display: { fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0" },
   sans: { fontFamily: "'Inter', sans-serif" },
@@ -2304,6 +2304,3 @@ export function DashboardPage() {
     </div>
   );
 }
-
-
-

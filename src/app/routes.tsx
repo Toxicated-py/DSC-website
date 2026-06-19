@@ -3,7 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { NewLoginPage } from "./AuthAndAdmin";
 import { AdminRoute } from "./auth/AdminRoute";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
-import { Layout } from "./layout/Layout";
+import { Layout } from "../components/layout/Layout";
 
 function NotFoundPage() {
   return (

@@ -43,7 +43,7 @@ const certificateTemplates: Record<string, { accent: string; surface: string; te
   event: { accent: "bg-[#2563EB]", surface: "bg-[#F4EFEB]", text: "text-[#171717]", label: "Event" },
 };
 
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "./components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui/brutal";
 
 const certificateSelect =
   "id,recipient_id,title,certificate_type,issuer_name,status,issued_at,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,signature_data,revoked_at,certificate_url,thumbnail_url,description,events:event_id(title,start_time)";

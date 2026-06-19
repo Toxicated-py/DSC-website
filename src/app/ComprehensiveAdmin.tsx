@@ -47,7 +47,7 @@ import {
   uploadCertificateTemplateImage,
   uploadSignatureImage,
 } from "../services/certificateService";
-import { CertificateRenderer } from "./components/CertificateRenderer";
+import { CertificateRenderer } from "../components/CertificateRenderer";
 
 const getRoleSet = (profile: any) => {
   const roles = new Set<string>();

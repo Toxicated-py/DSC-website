@@ -24,7 +24,7 @@ const fonts = {
   sans: { fontFamily: "'Inter', sans-serif" },
 };
 
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "./components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui/brutal";
 
 // ─── 5. GALLERY PAGE ───────────────────────────────────────────────────────────
 

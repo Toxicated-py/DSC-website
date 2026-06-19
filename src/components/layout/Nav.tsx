@@ -18,9 +18,9 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { UserBadge } from "../AuthAndAdmin";
+import { UserBadge } from "../../app/AuthAndAdmin";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
-import { canOpenAdminPanel } from "../auth/AdminRoute";
+import { canOpenAdminPanel } from "../../app/auth/AdminRoute";
 import { DSC_LOGO_SRC } from "../../config/assets";
 
 const fonts = {
@@ -428,3 +428,4 @@ export function Nav() {
     </header>
   );
 }
+
