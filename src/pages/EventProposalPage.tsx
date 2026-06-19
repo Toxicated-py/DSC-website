@@ -1,0 +1,1 @@
+export { EventProposalPage } from "./legacyPages";
