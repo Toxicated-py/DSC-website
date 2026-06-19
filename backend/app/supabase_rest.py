@@ -8,16 +8,6 @@ import httpx
 from .config import Settings
 
 
-from __future__ import annotations
-
-from typing import Any
-from urllib.parse import urlencode
-
-import httpx
-
-from .config import Settings
-
-
 class SupabaseRestError(RuntimeError):
     def __init__(self, message: str, status_code: int = 500) -> None:
         super().__init__(message)

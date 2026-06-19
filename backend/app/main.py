@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import time
-import httpx
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone
 from typing import Any
@@ -11,8 +10,7 @@ from uuid import UUID
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from .http_client import get_http_client
-import backend.app.http_client as http_client_module
+from .http_client import close_http_client, get_http_client
 
 from .auth import get_current_profile, get_current_user, profile_roles, require_admin
 from .config import Settings, get_settings
@@ -485,9 +483,10 @@ async def issue_certificate_row(client: SupabaseRestClient, payload: Certificate
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    http_client_module.global_http_client = httpx.AsyncClient(timeout=20)
-    yield
-    await http_client_module.global_http_client.aclose()
+    try:
+        yield
+    finally:
+        await close_http_client()
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
@@ -752,7 +751,7 @@ async def get_my_tickets(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
-    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
+    user_client = SupabaseRestClient(settings, get_http_client(), auth_token=profile.get("_auth_token"))
     registrations = await user_client.select(
         "event_registrations",
         columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
