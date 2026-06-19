@@ -125,7 +125,7 @@ class SupabaseRestClient:
             async with httpx.AsyncClient(timeout=20) as client:
                 response = await client.request(method, url, headers=headers or self.headers, json=json)
         except httpx.RequestError as exc:
-            raise SupabaseRestError("Supabase is not reachable. Start local Supabase or check the configured URL.", 503) from exc
+            raise SupabaseRestError("Supabase is not reachable. Check the configured hosted Supabase URL.", 503) from exc
 
         if response.status_code >= 400:
             detail = response.text

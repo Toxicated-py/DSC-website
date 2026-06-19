@@ -1,6 +1,6 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
-import { NewLoginPage } from "./AuthAndAdmin";
+import { NewLoginPage } from "../components/auth/AuthAndAdmin";
 import { AdminRoute } from "./auth/AdminRoute";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Layout } from "../components/layout/Layout";

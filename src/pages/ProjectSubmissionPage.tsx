@@ -16,24 +16,19 @@ const fonts = {
 
 export function ProjectSubmissionPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState(() => {
-    const saved = localStorage.getItem("dsc-project-draft");
-    return saved ? JSON.parse(saved) : {
-      title: "",
-      category: "Machine Learning",
-      team: "",
-      technologies: "",
-      summary: "",
-      content: "# Problem\n\n# Methodology\n\n# Results\n",
-    };
+  const [form, setForm] = useState({
+    title: "",
+    category: "Machine Learning",
+    team: "",
+    technologies: "",
+    summary: "",
+    content: "# Problem\n\n# Methodology\n\n# Results\n",
   });
   const [status, setStatus] = useState("");
   const [submittingProject, setSubmittingProject] = useState(false);
 
   const updateField = (field: string, value: string) => {
-    const next = { ...form, [field]: value };
-    setForm(next);
-    localStorage.setItem("dsc-project-draft", JSON.stringify(next));
+    setForm({ ...form, [field]: value });
   };
 
   const submitProjectForm = async (e: React.FormEvent) => {
@@ -55,7 +50,6 @@ export function ProjectSubmissionPage() {
         content: form.content,
         status: "submitted",
       });
-      localStorage.removeItem("dsc-project-draft");
       setStatus(`Project submitted for review. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
       setStatus(userFriendlyErrorMessage(error, "Could not submit project. Please check the fields and try again."));
@@ -73,7 +67,7 @@ export function ProjectSubmissionPage() {
       <div className="border-b-4 border-[#171717] pb-8 mb-10">
         <BrutalBadge color="bg-[#FB7185]" className="mb-4 inline-block">Project Submission</BrutalBadge>
         <h1 className="text-5xl md:text-7xl uppercase leading-none" style={fonts.display}>Submit Project</h1>
-        <p className="mt-3 text-slate-600 max-w-2xl">Create a full project case study for the public gallery. Drafts save automatically in this browser.</p>
+        <p className="mt-3 text-slate-600 max-w-2xl">Create a full project case study for the public gallery and submit it to the online review queue.</p>
       </div>
 
       <form onSubmit={submitProjectForm} className="grid lg:grid-cols-[1fr_380px] gap-8">
@@ -96,7 +90,7 @@ export function ProjectSubmissionPage() {
               <h3 className="text-2xl uppercase leading-tight mt-2" style={fonts.display}>{form.title || "Project title"}</h3>
               <p className="text-sm text-slate-600 mt-2">{form.summary || "Your summary preview will appear here."}</p>
             </div>
-            <p className="text-xs font-mono text-slate-700">Draft autosaves locally after each edit.</p>
+            <p className="text-xs font-mono text-slate-700">Submissions are saved to the online review queue.</p>
           </BrutalCard>
 
           {status && (

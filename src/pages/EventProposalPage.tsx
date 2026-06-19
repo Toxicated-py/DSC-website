@@ -16,29 +16,24 @@ const fonts = {
 
 export function EventProposalPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState(() => {
-    const saved = localStorage.getItem("dsc-event-proposal-draft");
-    return saved ? JSON.parse(saved) : {
-      title: "",
-      type: "WORKSHOP",
-      proposedDate: "",
-      proposedTime: "",
-      venue: "",
-      capacity: "40",
-      host: "",
-      coordinators: "",
-      summary: "",
-      prerequisites: "",
-      outcomes: "",
-    };
+  const [form, setForm] = useState({
+    title: "",
+    type: "WORKSHOP",
+    proposedDate: "",
+    proposedTime: "",
+    venue: "",
+    capacity: "40",
+    host: "",
+    coordinators: "",
+    summary: "",
+    prerequisites: "",
+    outcomes: "",
   });
   const [status, setStatus] = useState("");
   const [submittingProposal, setSubmittingProposal] = useState(false);
 
   const updateField = (field: string, value: string) => {
-    const next = { ...form, [field]: value };
-    setForm(next);
-    localStorage.setItem("dsc-event-proposal-draft", JSON.stringify(next));
+    setForm({ ...form, [field]: value });
   };
 
   const submitProposal = async (event: React.FormEvent) => {
@@ -74,7 +69,6 @@ export function EventProposalPage() {
         outcomes: form.outcomes,
         status: "pending",
       });
-      localStorage.removeItem("dsc-event-proposal-draft");
       setStatus(`Event proposal submitted. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
       setStatus(userFriendlyErrorMessage(error, "Could not submit proposal. Please check the fields and try again."));
@@ -136,7 +130,7 @@ export function EventProposalPage() {
                 {form.proposedDate || "Date TBD"} {form.proposedTime && `at ${form.proposedTime}`} · {form.venue || "Venue TBD"}
               </div>
             </div>
-            <p className="mt-4 text-xs font-mono text-slate-700">Draft autosaves locally after each edit.</p>
+            <p className="mt-4 text-xs font-mono text-slate-700">Submissions are saved to the online review queue.</p>
           </BrutalCard>
 
           {status && (

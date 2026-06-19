@@ -23,9 +23,9 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check, Shield, User, UserCheck, GraduationCap, Settings, Search, Edit, Trash2, Crown, X, Eye, EyeOff } from "lucide-react";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { DSC_LOGO_SRC } from "../config/assets";
-import { userFriendlyErrorMessage } from "../lib/apiClient";
+import { isSupabaseConfigured, supabase } from "../../lib/supabase";
+import { DSC_LOGO_SRC } from "../../config/assets";
+import { userFriendlyErrorMessage } from "../../lib/apiClient";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -33,7 +33,7 @@ const fonts = {
   sans: { fontFamily: "'Inter', sans-serif" },
 };
 
-import { BrutalButton, BrutalCard, BrutalBadge } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge } from "../ui/brutal";
 
 // ─── New Login/Signup Page with Google Auth ───────────────────────────────────
 

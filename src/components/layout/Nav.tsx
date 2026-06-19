@@ -18,7 +18,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { UserBadge } from "../../app/AuthAndAdmin";
+import { UserBadge } from "../auth/AuthAndAdmin";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
 import { canOpenAdminPanel } from "../../app/auth/AdminRoute";
 import { DSC_LOGO_SRC } from "../../config/assets";

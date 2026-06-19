@@ -16,15 +16,12 @@ const fonts = {
 
 export function BlogEditorPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState(() => {
-    const saved = localStorage.getItem("dsc-blog-draft");
-    return saved ? JSON.parse(saved) : {
-      title: "",
-      summary: "",
-      tags: "",
-      coverImage: "",
-      content: "## Introduction\n\nWrite your post here...\n",
-    };
+  const [form, setForm] = useState({
+    title: "",
+    summary: "",
+    tags: "",
+    coverImage: "",
+    content: "## Introduction\n\nWrite your post here...\n",
   });
   const [preview, setPreview] = useState(true);
   const [status, setStatus] = useState("");
@@ -59,9 +56,7 @@ export function BlogEditorPage() {
   }, []);
 
   const updateField = (field: string, value: string) => {
-    const next = { ...form, [field]: value };
-    setForm(next);
-    localStorage.setItem("dsc-blog-draft", JSON.stringify(next));
+    setForm({ ...form, [field]: value });
   };
 
   const publishPostForm = async (e: React.FormEvent) => {
@@ -82,7 +77,6 @@ export function BlogEditorPage() {
         content: form.content,
         status: "submitted",
       });
-      localStorage.removeItem("dsc-blog-draft");
       setStatus(`Post submitted for admin review. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
       setStatus(userFriendlyErrorMessage(error, "Could not submit post. Please check the fields and try again."));
