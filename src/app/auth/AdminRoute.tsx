@@ -3,10 +3,8 @@ import { Shield } from "lucide-react";
 import { Navigate, useLocation } from "react-router-dom";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
 import { BrutalCard } from "../../components/ui/brutal";
+import { fonts } from "../../config/fonts";
 
-const fonts = {
-  display: { fontFamily: "'Anton', sans-serif" },
-};
 
 export const getRoleSet = (profile: any) => {
   const roles = new Set<string>();
@@ -38,7 +36,6 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
 
     async function checkAdmin() {
       if (!isSupabaseConfigured || !supabase) {
-        localStorage.setItem("dsc-auth-state", "logged-out");
         setStatus("login");
         return;
       }
@@ -46,7 +43,6 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
       const { data: userData } = await supabase.auth.getUser();
       if (!mounted) return;
       if (!userData.user) {
-        localStorage.setItem("dsc-auth-state", "logged-out");
         setStatus("login");
         return;
       }

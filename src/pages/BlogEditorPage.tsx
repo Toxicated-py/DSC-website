@@ -8,23 +8,16 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
 import { requireLoginForAction } from "../utils/authNavigation";
-const fonts = {
-  display: { fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-  serif: { fontFamily: "'Newsreader', serif" },
-};
+import { fonts } from "../config/fonts";
 
 export function BlogEditorPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState(() => {
-    const saved = localStorage.getItem("dsc-blog-draft");
-    return saved ? JSON.parse(saved) : {
-      title: "",
-      summary: "",
-      tags: "",
-      coverImage: "",
-      content: "## Introduction\n\nWrite your post here...\n",
-    };
+  const [form, setForm] = useState({
+    title: "",
+    summary: "",
+    tags: "",
+    coverImage: "",
+    content: "## Introduction\n\nWrite your post here...\n",
   });
   const [preview, setPreview] = useState(true);
   const [status, setStatus] = useState("");
@@ -59,15 +52,13 @@ export function BlogEditorPage() {
   }, []);
 
   const updateField = (field: string, value: string) => {
-    const next = { ...form, [field]: value };
-    setForm(next);
-    localStorage.setItem("dsc-blog-draft", JSON.stringify(next));
+    setForm({ ...form, [field]: value });
   };
 
   const publishPostForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (publishingPost) return;
-    if (!requireLoginForAction(navigate, "/blog/write")) return;
+    if (!(await requireLoginForAction(navigate, "/blog/write"))) return;
     if (!form.title.trim() || !form.summary.trim() || !form.content.trim()) {
       setStatus("Title, summary, and content are required before submitting.");
       return;
@@ -82,7 +73,6 @@ export function BlogEditorPage() {
         content: form.content,
         status: "submitted",
       });
-      localStorage.removeItem("dsc-blog-draft");
       setStatus(`Post submitted for admin review. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
       setStatus(userFriendlyErrorMessage(error, "Could not submit post. Please check the fields and try again."));
@@ -158,7 +148,7 @@ export function BlogEditorPage() {
 
                 {form.coverImage && (
                   <div className="border-2 border-[#171717] brutal-shadow overflow-hidden bg-[#2563EB]">
-                    <img src={form.coverImage} alt={form.title || "Blog cover"} className="w-full max-h-56 object-cover" />
+                    <img loading="lazy" src={form.coverImage} alt={form.title || "Blog cover"} className="w-full max-h-56 object-cover" />
                   </div>
                 )}
 
@@ -188,17 +178,6 @@ export function BlogEditorPage() {
           <div className="flex flex-col gap-3">
             <BrutalButton type="submit" color="bg-[#171717]" text="text-white" className="w-full" disabled={publishingPost}>
               {publishingPost ? "Submitting..." : "Submit for Review"}
-            </BrutalButton>
-            <BrutalButton
-              type="button"
-              color="bg-white"
-              className="w-full"
-              onClick={() => {
-                if (!requireLoginForAction(navigate, "/blog/write")) return;
-                setStatus("Draft saved in this browser.");
-              }}
-            >
-              Save Draft
             </BrutalButton>
           </div>
         </div>

@@ -48,7 +48,7 @@ export const CertificateRenderer = forwardRef<HTMLDivElement, CertificateRendere
           ref={ref}
           className={`certificate-renderer relative mx-auto aspect-[1.414/1] w-full max-w-6xl overflow-hidden bg-white text-[#073B91] ${className}`}
         >
-          <img
+          <img loading="lazy"
             src={templateData.background_image_url}
             alt="Certificate template"
             className="absolute inset-0 h-full w-full object-cover"
@@ -102,7 +102,7 @@ export const CertificateRenderer = forwardRef<HTMLDivElement, CertificateRendere
                 <div key={`${signature.name}-${index}`} className="text-center" style={{ color: detailColor }}>
                   <div className="mx-auto mb-[3%] flex h-12 items-end justify-center">
                     {signature.signature_image_url ? (
-                      <img src={signature.signature_image_url} alt={`${signature.name} signature`} className="max-h-12 max-w-[210px] object-contain" />
+                      <img loading="lazy" src={signature.signature_image_url} alt={`${signature.name} signature`} className="max-h-12 max-w-[210px] object-contain" />
                     ) : null}
                   </div>
                   <div className="mx-auto mb-[4%] h-[2px] w-full" style={{ backgroundColor: detailColor }} />
@@ -150,12 +150,12 @@ export const CertificateRenderer = forwardRef<HTMLDivElement, CertificateRendere
         )}
 
         <div className="relative z-10 h-full px-[10.2%] py-[6.8%] text-[#073B91]">
-          <img
+          <img loading="lazy"
             src={DSC_LOGO_SRC}
             alt="Data Science Club logo"
             className="absolute left-[10.4%] top-[12%] h-[18%] w-[14%] object-contain"
           />
-          <img
+          <img loading="lazy"
             src={SMS_TU_LOGO_SRC}
             alt="SMS TU logo"
             className="absolute right-[10.7%] top-[11.2%] h-[17.5%] w-[13.5%] object-contain"
@@ -201,7 +201,7 @@ export const CertificateRenderer = forwardRef<HTMLDivElement, CertificateRendere
               <div key={`${signature.name}-${index}`} className="text-center text-[#0066B3]">
                 <div className="mx-auto mb-[3%] flex h-12 items-end justify-center">
                   {signature.signature_image_url ? (
-                    <img src={signature.signature_image_url} alt={`${signature.name} signature`} className="max-h-12 max-w-[210px] object-contain" />
+                    <img loading="lazy" src={signature.signature_image_url} alt={`${signature.name} signature`} className="max-h-12 max-w-[210px] object-contain" />
                   ) : null}
                 </div>
                 <div className="mx-auto mb-[4%] h-[3px] w-full bg-[#0B65AE]" />
@@ -281,4 +281,3 @@ export function CertificatePrintStyles() {
     `}</style>
   );
 }
-

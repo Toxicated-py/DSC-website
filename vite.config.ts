@@ -38,12 +38,6 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return
-          if (id.includes('html2canvas')) {
-            return 'html2canvas'
-          }
-          if (id.includes('jspdf') || id.includes('dompurify')) {
-            return 'jspdf'
-          }
           if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
             return 'react-vendor'
           }
@@ -59,6 +53,11 @@ export default defineConfig({
         },
       },
     },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
   },
   server: {
     proxy: {

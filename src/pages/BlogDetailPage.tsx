@@ -8,11 +8,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
 import { requireLoginForAction } from "../utils/authNavigation";
-const fonts = {
-  display: { fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-  serif: { fontFamily: "'Newsreader', serif" },
-};
+import { fonts } from "../config/fonts";
 
 export function BlogDetailPage() {
   const navigate = useNavigate();
@@ -95,7 +91,7 @@ export function BlogDetailPage() {
 
           {post.cover_image_url && (
             <div className="mb-10 border-2 border-[#171717] brutal-shadow-lg overflow-hidden bg-[#2563EB]">
-              <img src={post.cover_image_url} alt={post.title} className="w-full max-h-[480px] object-cover" />
+              <img loading="lazy" src={post.cover_image_url} alt={post.title} className="w-full max-h-[480px] object-cover" />
             </div>
           )}
 

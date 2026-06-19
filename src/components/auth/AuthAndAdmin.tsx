@@ -1,17 +1,17 @@
 /**
  * Authentication and Admin Panel Components
- * 
+ *
  * USER ROLES & BADGES:
  * - "Member" (default) - Any logged-in user, shown with gray badge
  * - "Club Member" (verified) - Verified club member, shown with blue badge
  * - "Teacher" - Faculty member, shown with purple badge
  * - "Admin" - Administrator access, shown with pink badge, gets Admin Panel access
- * 
+ *
  * TESTING:
  * - To test different roles, edit the `currentUser` object in the Nav component (App.tsx line 87-92)
  * - Set `isLoggedIn` to false to see the logged-out state
  * - Set role to "Admin" to see the Admin Panel button in navigation
- * 
+ *
  * BACKEND INTEGRATION:
  * - Authentication is handled through the configured auth provider.
  * - Implement Google OAuth using a library like @react-oauth/google
@@ -23,19 +23,15 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check, Shield, User, UserCheck, GraduationCap, Settings, Search, Edit, Trash2, Crown, X, Eye, EyeOff } from "lucide-react";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { DSC_LOGO_SRC } from "../config/assets";
-import { userFriendlyErrorMessage } from "../lib/apiClient";
+import { isSupabaseConfigured, supabase } from "../../lib/supabase";
+import { DSC_LOGO_SRC } from "../../config/assets";
+import { userFriendlyErrorMessage } from "../../lib/apiClient";
 
-const fonts = {
-  display: { fontFamily: "'Anton', sans-serif" },
-  serif: { fontFamily: "'Playfair Display', serif" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-};
 
-import { BrutalButton, BrutalCard, BrutalBadge } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge } from "../ui/brutal";
+import { fonts } from "../../config/fonts";
 
-// ─── New Login/Signup Page with Google Auth ───────────────────────────────────
+// âââ New Login/Signup Page with Google Auth âââââââââââââââââââââââââââââââââââ
 
 export function NewLoginPage() {
   const location = useLocation();
@@ -69,7 +65,6 @@ export function NewLoginPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       if (data.session?.user) {
-        localStorage.setItem("dsc-auth-state", "logged-in");
         navigate(redirectTo, { replace: true });
       }
     });
@@ -101,7 +96,6 @@ export function NewLoginPage() {
       }
 
       if (!isSupabaseConfigured || !supabase) {
-        localStorage.setItem("dsc-auth-state", "logged-out");
         setError("Login is temporarily unavailable. Please try again later.");
         return;
       }
@@ -125,18 +119,14 @@ export function NewLoginPage() {
         : await supabase.auth.signInWithPassword({ email, password });
 
       if (response.error) {
-        localStorage.setItem("dsc-auth-state", "logged-out");
         setError(userFriendlyErrorMessage(response.error, "Could not sign in. Check your email and password."));
         return;
       }
 
       if (response.data.session) {
-        localStorage.setItem("dsc-auth-state", "logged-in");
         navigate(redirectTo);
         return;
       }
-
-      localStorage.setItem("dsc-auth-state", "logged-out");
       setNotice("Account created. Check your email and confirm it, then sign in.");
       if (isSignup) {
         setPassword("");
@@ -151,7 +141,6 @@ export function NewLoginPage() {
     setError("");
 
     if (!isSupabaseConfigured || !supabase) {
-      localStorage.setItem("dsc-auth-state", "logged-out");
       setError("Google sign in is temporarily unavailable.");
       return;
     }
@@ -178,12 +167,12 @@ export function NewLoginPage() {
       </button>
 
       <div className="w-full max-w-4xl bg-white border-4 border-[#171717] brutal-shadow-lg flex flex-col md:flex-row overflow-hidden mt-16">
-        
+
         {/* Left Panel */}
         <div className="md:w-1/2 p-8 md:p-12 border-b-4 md:border-b-0 md:border-r-4 border-[#171717] flex flex-col justify-center bg-[#FFE800]">
           <div className="mb-6 flex items-center gap-3">
             <div className="w-20 h-20 bg-white flex items-center justify-center p-2">
-              <img src={DSC_LOGO_SRC} alt="Data Science Club logo" className="w-full h-full object-contain" />
+              <img loading="lazy" src={DSC_LOGO_SRC} alt="Data Science Club logo" className="w-full h-full object-contain" />
             </div>
             <p className="text-xs font-bold uppercase tracking-widest leading-5">Data Science Club<br />SMS, TU</p>
           </div>
@@ -191,7 +180,7 @@ export function NewLoginPage() {
             {isSignup ? "Join Us" : "Welcome Back"}
           </h2>
           <p className="font-serif italic text-lg mb-8">
-            {isSignup 
+            {isSignup
               ? "Create your account to access exclusive events, submit projects, and join the community."
               : "Access the hub, register for exclusive events, and submit your projects."
             }
@@ -229,8 +218,8 @@ export function NewLoginPage() {
             </h3>
             <p className="text-xs text-slate-500">
               {isSignup ? "Already have an account? " : "Don't have an account? "}
-              <Link 
-                to={isSignup ? "/login" : "/register"} 
+              <Link
+                to={isSignup ? "/login" : "/register"}
                 className="text-[#2563EB] font-bold hover:underline"
               >
                 {isSignup ? "Sign In" : "Sign Up"}
@@ -242,8 +231,8 @@ export function NewLoginPage() {
             {isSignup && (
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest mb-2">Full Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="Ashish Adhikari"
@@ -254,8 +243,8 @@ export function NewLoginPage() {
             )}
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest mb-2">Email Address</label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
@@ -359,7 +348,7 @@ export function NewLoginPage() {
                 )}
               </div>
             )}
-            
+
             <BrutalButton
               type="submit"
               color="bg-[#171717]"
@@ -401,7 +390,7 @@ export function NewLoginPage() {
   );
 }
 
-// ─── Admin Panel Page ──────────────────────────────────────────────────────────
+// âââ Admin Panel Page ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export function AdminPanelPage() {
   const navigate = useNavigate();
@@ -429,7 +418,7 @@ export function AdminPanelPage() {
     return <BrutalBadge color="bg-slate-400" className="inline-flex items-center gap-1"><User size={10} /> MEMBER</BrutalBadge>;
   };
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -448,7 +437,7 @@ export function AdminPanelPage() {
           <p className="mt-4 font-mono text-sm text-slate-500">Manage users, roles, and permissions</p>
         </div>
         <div className="flex gap-3 flex-wrap">
-          <button 
+          <button
             onClick={() => navigate("/dashboard")}
             className="px-4 py-2 border-2 border-[#171717] bg-white hover:bg-[#F4EFEB] transition-all font-bold uppercase tracking-widest text-sm"
           >
@@ -567,7 +556,7 @@ export function AdminPanelPage() {
                             {user.designation}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-400">—</span>
+                          <span className="text-xs text-slate-400">â</span>
                         )}
                       </td>
                       <td className="p-4">
@@ -617,7 +606,7 @@ export function AdminPanelPage() {
   );
 }
 
-// ─── User Badge Component ──────────────────────────────────────────────────────
+// âââ User Badge Component ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export function UserBadge({ role, designation, verified }: { role?: string, designation?: string, verified?: boolean }) {
   if (!role) return null;

@@ -12,7 +12,6 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     async function checkAuth() {
       if (!isSupabaseConfigured || !supabase) {
-        localStorage.setItem("dsc-auth-state", "logged-out");
         setStatus("blocked");
         return;
       }
@@ -20,7 +19,6 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       const { data } = await supabase.auth.getUser();
       if (!mounted) return;
       setStatus(data.user ? "allowed" : "blocked");
-      localStorage.setItem("dsc-auth-state", data.user ? "logged-in" : "logged-out");
     }
 
     checkAuth();

@@ -8,11 +8,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
 import { requireLoginForAction } from "../utils/authNavigation";
-const fonts = {
-  display: { fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-  serif: { fontFamily: "'Newsreader', serif" },
-};
+import { fonts } from "../config/fonts";
 
 export function BlogPage() {
   const navigate = useNavigate();
@@ -200,7 +196,7 @@ export function BlogPage() {
               </p>
               <div className="flex items-center justify-between">
                 <div className="text-xs font-mono text-slate-400 group-hover:text-white/60">
-                  {post.author} · {post.date}
+                  {post.author} ï¿½ {post.date}
                 </div>
                 <ArrowRight size={16} className="text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div>

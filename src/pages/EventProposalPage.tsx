@@ -8,43 +8,34 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
 import { requireLoginForAction } from "../utils/authNavigation";
-const fonts = {
-  display: { fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-  serif: { fontFamily: "'Newsreader', serif" },
-};
+import { fonts } from "../config/fonts";
 
 export function EventProposalPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState(() => {
-    const saved = localStorage.getItem("dsc-event-proposal-draft");
-    return saved ? JSON.parse(saved) : {
-      title: "",
-      type: "WORKSHOP",
-      proposedDate: "",
-      proposedTime: "",
-      venue: "",
-      capacity: "40",
-      host: "",
-      coordinators: "",
-      summary: "",
-      prerequisites: "",
-      outcomes: "",
-    };
+  const [form, setForm] = useState({
+    title: "",
+    type: "WORKSHOP",
+    proposedDate: "",
+    proposedTime: "",
+    venue: "",
+    capacity: "40",
+    host: "",
+    coordinators: "",
+    summary: "",
+    prerequisites: "",
+    outcomes: "",
   });
   const [status, setStatus] = useState("");
   const [submittingProposal, setSubmittingProposal] = useState(false);
 
   const updateField = (field: string, value: string) => {
-    const next = { ...form, [field]: value };
-    setForm(next);
-    localStorage.setItem("dsc-event-proposal-draft", JSON.stringify(next));
+    setForm({ ...form, [field]: value });
   };
 
   const submitProposal = async (event: React.FormEvent) => {
     event.preventDefault();
     if (submittingProposal) return;
-    if (!requireLoginForAction(navigate, "/events/propose")) return;
+    if (!(await requireLoginForAction(navigate, "/events/propose"))) return;
     if (!form.title.trim() || !form.summary.trim() || !form.host.trim()) {
       setStatus("Title, host, and summary are required before submitting.");
       return;
@@ -74,7 +65,6 @@ export function EventProposalPage() {
         outcomes: form.outcomes,
         status: "pending",
       });
-      localStorage.removeItem("dsc-event-proposal-draft");
       setStatus(`Event proposal submitted. ${getPersistenceLabel(result.mode)}`);
     } catch (error) {
       setStatus(userFriendlyErrorMessage(error, "Could not submit proposal. Please check the fields and try again."));
@@ -133,10 +123,10 @@ export function EventProposalPage() {
               <h3 className="text-2xl uppercase leading-tight mt-2" style={fonts.display}>{form.title || "Event title"}</h3>
               <p className="text-sm text-slate-600 mt-2">{form.summary || "Your event summary preview will appear here."}</p>
               <div className="mt-4 text-xs font-mono text-slate-500">
-                {form.proposedDate || "Date TBD"} {form.proposedTime && `at ${form.proposedTime}`} · {form.venue || "Venue TBD"}
+                {form.proposedDate || "Date TBD"} {form.proposedTime && `at ${form.proposedTime}`} ï¿½ {form.venue || "Venue TBD"}
               </div>
             </div>
-            <p className="mt-4 text-xs font-mono text-slate-700">Draft autosaves locally after each edit.</p>
+            <p className="mt-4 text-xs font-mono text-slate-700">Submissions are saved to the online review queue.</p>
           </BrutalCard>
 
           {status && (
@@ -148,17 +138,6 @@ export function EventProposalPage() {
           <div className="flex flex-col gap-3">
             <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full" disabled={submittingProposal}>
               {submittingProposal ? "Submitting..." : "Submit Proposal"}
-            </BrutalButton>
-            <BrutalButton
-              type="button"
-              color="bg-white"
-              className="w-full"
-              onClick={() => {
-                if (!requireLoginForAction(navigate, "/events/propose")) return;
-                setStatus("Draft saved in this browser.");
-              }}
-            >
-              Save Draft
             </BrutalButton>
           </div>
         </div>

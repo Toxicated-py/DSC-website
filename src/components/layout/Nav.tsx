@@ -18,14 +18,12 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { UserBadge } from "../../app/AuthAndAdmin";
+import { UserBadge } from "../auth/AuthAndAdmin";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
 import { canOpenAdminPanel } from "../../app/auth/AdminRoute";
 import { DSC_LOGO_SRC } from "../../config/assets";
+import { fonts } from "../../config/fonts";
 
-const fonts = {
-  sans: { fontFamily: "'Inter', sans-serif" },
-};
 
 type NavDropdownItem = { label: string; path: string; icon: React.ReactNode };
 type NavItem =
@@ -50,21 +48,75 @@ function DropdownMenu({
   location: { pathname: string };
 }) {
   const isActive = activePaths.includes(location.pathname);
+  const isOpen = openDropdown === label;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const focusableSelector = "a[href], button:not([disabled])";
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const firstItem = menuRef.current?.querySelector<HTMLElement>(focusableSelector);
+    firstItem?.focus();
+  }, [isOpen]);
+
+  const closeAndReturnFocus = () => {
+    onLeave();
+    triggerRef.current?.focus();
+  };
+
+  const handleTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onEnter(label);
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeAndReturnFocus();
+    }
+  };
+
+  const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeAndReturnFocus();
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const focusable = Array.from(menuRef.current?.querySelectorAll<HTMLElement>(focusableSelector) || []);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
     <div className="relative" onMouseEnter={() => onEnter(label)} onMouseLeave={onLeave}>
       <button
+        ref={triggerRef}
+        aria-haspopup="true"
+        aria-expanded={isOpen}
+        onKeyDown={handleTriggerKeyDown}
         className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest transition-colors pb-1 ${
           isActive ? "text-[#171717] border-b-2 border-[#171717]" : "text-slate-500 hover:text-[#171717]"
         }`}
       >
         {label}
-        <ChevronDown size={12} className={`transition-transform ${openDropdown === label ? "rotate-180" : ""}`} />
+        <ChevronDown size={12} className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
-      {openDropdown === label && (
+      {isOpen && (
         <div
+          ref={menuRef}
           className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-48 bg-[#F4EFEB] border-2 border-[#171717] brutal-shadow z-50"
           onMouseEnter={() => onEnter(label)}
           onMouseLeave={onLeave}
+          onKeyDown={handleMenuKeyDown}
         >
           {items.map((sub, i) => (
             <Link
@@ -118,19 +170,16 @@ export function Nav() {
       Object.keys(localStorage)
         .filter((key) => key.startsWith("sb-") && key.includes("auth-token"))
         .forEach((key) => localStorage.removeItem(key));
-      localStorage.setItem("dsc-auth-state", "logged-out");
       setIsLoggedIn(false);
       setCurrentUser({ name: "Member", role: "student", roles: [], verified: false, designation: "" });
     };
     const syncSession = async (session: Awaited<ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>>["data"]["session"]) => {
       if (!mounted) return;
       if (!isSupabaseConfigured) {
-        localStorage.setItem("dsc-auth-state", "logged-out");
         setIsLoggedIn(false);
         return;
       }
       if (!session?.user) {
-        localStorage.setItem("dsc-auth-state", "logged-out");
         setIsLoggedIn(false);
         setCurrentUser({ name: "Member", role: "student", roles: [], verified: false, designation: "" });
         return;
@@ -141,7 +190,6 @@ export function Nav() {
         session.user.user_metadata?.name ||
         session.user.email ||
         "Member";
-      localStorage.setItem("dsc-auth-state", "logged-in");
       setIsLoggedIn(true);
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -223,7 +271,6 @@ export function Nav() {
 
   const handleLogout = async () => {
     await supabase?.auth.signOut();
-    localStorage.setItem("dsc-auth-state", "logged-out");
     setIsLoggedIn(false);
     setUserMenuOpen(false);
     setMobileOpen(false);
@@ -428,4 +475,3 @@ export function Nav() {
     </header>
   );
 }
-
