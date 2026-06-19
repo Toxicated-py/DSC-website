@@ -1847,9 +1847,22 @@ function ScannerPage() {
     };
   }, []);
 
+  const explainScannerUnavailable = () => {
+    if (!eventId || !/^[0-9a-f-]{36}$/i.test(eventId)) {
+      setScannerStatus("Open scanner from an event page.");
+      setCameraStatus("Choose Scanner from a specific event so the scanner knows which tickets to check.");
+      return;
+    }
+    setCameraStatus(scannerStatus || "Scanner is not ready yet.");
+  };
+
   const scanTicket = async (codeOverride?: string) => {
     const code = (codeOverride || ticketCode).trim();
-    if (!scannerReady || !eventId || !code || scanBusyRef.current) return;
+    if (!scannerReady || !eventId) {
+      explainScannerUnavailable();
+      return;
+    }
+    if (!code || scanBusyRef.current) return;
     scanBusyRef.current = true;
     setCheckingIn(true);
     setLastScan(null);
@@ -1868,7 +1881,10 @@ function ScannerPage() {
   };
 
   const startCameraScanner = async () => {
-    if (!scannerReady) return;
+    if (!scannerReady) {
+      explainScannerUnavailable();
+      return;
+    }
     if (cameraActive) {
       setCameraStatus("Scanner already running.");
       return;
@@ -1950,7 +1966,7 @@ function ScannerPage() {
 
       <p className="mb-4 max-w-sm text-center font-mono text-xs text-slate-400">{cameraStatus}</p>
       <div className="mb-4 flex flex-col sm:flex-row gap-3 w-full max-w-sm">
-        <BrutalButton onClick={cameraActive ? stopCameraScanner : startCameraScanner} disabled={!scannerReady} color="bg-[#2563EB]" text="text-white" className="flex-1">
+        <BrutalButton onClick={cameraActive ? stopCameraScanner : startCameraScanner} color="bg-[#2563EB]" text="text-white" className="flex-1">
           <Camera size={16} /> {cameraActive ? "Stop Camera" : "Start Camera"}
         </BrutalButton>
       </div>
@@ -1960,10 +1976,10 @@ function ScannerPage() {
           value={ticketCode}
           onChange={(event) => setTicketCode(event.target.value)}
           placeholder="Ticket code"
-          disabled={!scannerReady || checkingIn}
+          disabled={checkingIn}
           className="flex-1 border-2 border-[#FFE800] bg-black p-3 font-mono text-sm text-white focus:outline-none disabled:opacity-40"
         />
-        <BrutalButton onClick={() => scanTicket()} disabled={!scannerReady || checkingIn || !ticketCode.trim()} color="bg-[#FFE800]" className="flex-1">
+        <BrutalButton onClick={() => scanTicket()} disabled={checkingIn || !ticketCode.trim()} color="bg-[#FFE800]" className="flex-1">
           {checkingIn ? "Checking..." : "Check In"}
         </BrutalButton>
       </div>

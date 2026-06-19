@@ -1105,7 +1105,6 @@ async def update_me(
     allowed = {
         "full_name",
         "bio",
-        "designation",
         "batch_year",
         "major",
         "github_username",
@@ -1116,8 +1115,6 @@ async def update_me(
         "is_sms_student",
     }
     updates = {key: value for key, value in payload.data.items() if key in allowed}
-    if "designation" in updates and updates.get("designation") != profile.get("designation"):
-        updates["designation_status"] = "pending"
     sms_email = str(updates.get("student_email") or profile.get("student_email") or updates.get("email") or profile.get("email") or "").lower()
     if sms_email.endswith("@sms.tu.edu.np"):
         roles = profile_roles(profile)
