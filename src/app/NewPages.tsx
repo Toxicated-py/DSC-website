@@ -1065,7 +1065,7 @@ export function ContactPage() {
       <BrutalCard className="mb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl uppercase mb-2" style={fonts.display}>DSC Location</h2>
+            <h2 className="text-2xl uppercase mb-2" style={fonts.display}>Our Location</h2>
             <p className="text-sm text-slate-600">Open the club location directly in Google Maps.</p>
           </div>
           <a
@@ -1074,7 +1074,7 @@ export function ContactPage() {
             rel="noreferrer"
             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#FFE800] text-[#171717] border-2 border-[#171717] font-bold uppercase tracking-widest brutal-shadow brutal-shadow-hover"
           >
-            <MapPin size={16} /> Open DSC Location in Google Maps
+            <MapPin size={16} /> SMS, TU
           </a>
         </div>
       </BrutalCard>
