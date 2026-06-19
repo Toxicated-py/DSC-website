@@ -8,11 +8,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
 import { requireLoginForAction } from "../utils/authNavigation";
-const fonts = {
-  display: { fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-  serif: { fontFamily: "'Newsreader', serif" },
-};
+import { fonts } from "../config/fonts";
 
 export function BlogEditorPage() {
   const navigate = useNavigate();
@@ -62,7 +58,7 @@ export function BlogEditorPage() {
   const publishPostForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (publishingPost) return;
-    if (!requireLoginForAction(navigate, "/blog/write")) return;
+    if (!(await requireLoginForAction(navigate, "/blog/write"))) return;
     if (!form.title.trim() || !form.summary.trim() || !form.content.trim()) {
       setStatus("Title, summary, and content are required before submitting.");
       return;
@@ -152,7 +148,7 @@ export function BlogEditorPage() {
 
                 {form.coverImage && (
                   <div className="border-2 border-[#171717] brutal-shadow overflow-hidden bg-[#2563EB]">
-                    <img src={form.coverImage} alt={form.title || "Blog cover"} className="w-full max-h-56 object-cover" />
+                    <img loading="lazy" src={form.coverImage} alt={form.title || "Blog cover"} className="w-full max-h-56 object-cover" />
                   </div>
                 )}
 
@@ -182,17 +178,6 @@ export function BlogEditorPage() {
           <div className="flex flex-col gap-3">
             <BrutalButton type="submit" color="bg-[#171717]" text="text-white" className="w-full" disabled={publishingPost}>
               {publishingPost ? "Submitting..." : "Submit for Review"}
-            </BrutalButton>
-            <BrutalButton
-              type="button"
-              color="bg-white"
-              className="w-full"
-              onClick={() => {
-                if (!requireLoginForAction(navigate, "/blog/write")) return;
-                setStatus("Draft saved in this browser.");
-              }}
-            >
-              Save Draft
             </BrutalButton>
           </div>
         </div>

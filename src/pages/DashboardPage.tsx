@@ -8,11 +8,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
 import { requireLoginForAction } from "../utils/authNavigation";
-const fonts = {
-  display: { fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-  serif: { fontFamily: "'Newsreader', serif" },
-};
+import { fonts } from "../config/fonts";
 
 export function DashboardPage() {
   const navigate = useNavigate();

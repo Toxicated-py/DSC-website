@@ -8,11 +8,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
 import { requireLoginForAction } from "../utils/authNavigation";
-const fonts = {
-  display: { fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-  serif: { fontFamily: "'Newsreader', serif" },
-};
+import { fonts } from "../config/fonts";
 
 export function ProjectSubmissionPage() {
   const navigate = useNavigate();
@@ -34,7 +30,7 @@ export function ProjectSubmissionPage() {
   const submitProjectForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submittingProject) return;
-    if (!requireLoginForAction(navigate, "/projects/submit")) return;
+    if (!(await requireLoginForAction(navigate, "/projects/submit"))) return;
     if (!form.title.trim() || !form.summary.trim()) {
       setStatus("Add a title and short summary before submitting.");
       return;
@@ -102,17 +98,6 @@ export function ProjectSubmissionPage() {
           <div className="flex flex-col gap-3">
             <BrutalButton type="submit" color="bg-[#FB7185]" text="text-white" className="w-full" disabled={submittingProject}>
               {submittingProject ? "Submitting..." : "Submit for Review"}
-            </BrutalButton>
-            <BrutalButton
-              type="button"
-              color="bg-white"
-              className="w-full"
-              onClick={() => {
-                if (!requireLoginForAction(navigate, "/projects/submit")) return;
-                setStatus("Draft saved in this browser.");
-              }}
-            >
-              Save Draft
             </BrutalButton>
           </div>
         </div>

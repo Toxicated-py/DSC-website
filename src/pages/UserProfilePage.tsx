@@ -18,15 +18,11 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { submitGallery } from "../lib/contentApi";
 
-const fonts = {
-  display: { fontFamily: "'Anton', sans-serif" },
-  serif: { fontFamily: "'Playfair Display', serif" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-};
 
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui/brutal";
+import { fonts } from "../config/fonts";
 
-// ─── 5. GALLERY PAGE ───────────────────────────────────────────────────────────
+// âââ 5. GALLERY PAGE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export function UserProfilePage() {
   const navigate = useNavigate();
@@ -64,7 +60,6 @@ export function UserProfilePage() {
       if (!mounted) return;
 
       if (!userData.user) {
-        localStorage.setItem("dsc-auth-state", "logged-out");
         navigate("/login?redirect=/profile");
         return;
       }
@@ -560,4 +555,4 @@ export function UserProfilePage() {
   );
 }
 
-// ─── 7. ACHIEVEMENTS PAGE ──────────────────────────────────────────────────────
+// âââ 7. ACHIEVEMENTS PAGE ââââââââââââââââââââââââââââââââââââââââââââââââââââââ

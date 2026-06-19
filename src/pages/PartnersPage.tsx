@@ -18,15 +18,11 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { submitGallery } from "../lib/contentApi";
 
-const fonts = {
-  display: { fontFamily: "'Anton', sans-serif" },
-  serif: { fontFamily: "'Playfair Display', serif" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-};
 
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui/brutal";
+import { fonts } from "../config/fonts";
 
-// ─── 5. GALLERY PAGE ───────────────────────────────────────────────────────────
+// âââ 5. GALLERY PAGE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export function PartnersPage() {
   const [adminPartners, setAdminPartners] = useState<any[]>([]);

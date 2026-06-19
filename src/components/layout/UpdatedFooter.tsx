@@ -3,11 +3,8 @@ import { Link } from "react-router-dom";
 import { Facebook, Github, Globe, Instagram, Linkedin, Mail, Twitter } from "lucide-react";
 import { useSiteSettings } from "../../lib/siteSettings";
 import { DSC_LOGO_SRC } from "../../config/assets";
+import { fonts } from "../../config/fonts";
 
-const fonts = {
-  display: { fontFamily: "'Anton', sans-serif" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-};
 
 const DiscordIcon = ({ size = 18 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -51,7 +48,7 @@ export function UpdatedFooter() {
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4 w-max hover:opacity-80 transition-opacity">
               <div className="w-12 h-12 bg-white flex items-center justify-center p-1.5">
-                <img src={DSC_LOGO_SRC} alt="Data Science Club logo" className="w-full h-full object-contain" />
+                <img loading="lazy" src={DSC_LOGO_SRC} alt="Data Science Club logo" className="w-full h-full object-contain" />
               </div>
               <span className="font-bold text-lg uppercase tracking-widest text-[#171717]" style={fonts.display}>
                 {settings.siteName.replace(" - SMS TU", "")}
@@ -94,7 +91,7 @@ export function UpdatedFooter() {
 
           {/* Brand + Credit */}
           <div className="md:text-right text-[#171717]">
-            <h3 className="text-3xl" style={fonts.display}>DATA SARATHI</h3>
+            <h3 className="text-3xl" style={fonts.display}>{settings.siteName}</h3>
             <p className="text-xs text-slate-500 mt-4 font-mono">
               &copy; {new Date().getFullYear()} All rights reserved.
             </p>
@@ -121,4 +118,3 @@ export function UpdatedFooter() {
     </footer>
   );
 }
-

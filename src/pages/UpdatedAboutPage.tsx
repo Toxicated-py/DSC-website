@@ -1,6 +1,6 @@
 /**
  * Updated About Page
- * 
+ *
  * Features:
  * - Original story content
  * - FAQ Section (new)
@@ -14,12 +14,8 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Github, Linkedin, Mail } from "lucide-react";
 import { useSiteSettings } from "../lib/siteSettings";
 import { BrutalCard, BrutalBadge } from "../components/ui/brutal";
+import { fonts } from "../config/fonts";
 
-const fonts = {
-  display: { fontFamily: "'Anton', sans-serif" },
-  serif: { fontFamily: "'Playfair Display', serif" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-};
 
 export function UpdatedAboutPage() {
   const settings = useSiteSettings();
@@ -35,9 +31,9 @@ export function UpdatedAboutPage() {
       <Link to="/" className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-12 hover:text-[#2563EB]">
         <ArrowLeft size={16} /> Back
       </Link>
-      
+
       <h1 className="text-6xl md:text-8xl uppercase mb-8" style={fonts.display}>Our Story</h1>
-      
+
       <div className="prose prose-lg max-w-none text-[#171717]">
         <p className="text-2xl font-serif italic mb-8">
           Data Sarathi started as a small group of students at the School of Mathematical Sciences who wanted to do more than just pass exams.
@@ -74,7 +70,7 @@ export function UpdatedAboutPage() {
         <h2 className="text-4xl md:text-5xl uppercase mb-6" style={fonts.display}>Our Community</h2>
         <BrutalCard className="p-0 overflow-hidden">
           <div className="aspect-video bg-slate-200">
-            <img
+            <img loading="lazy"
               src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=600&fit=crop"
               alt="Data Science Club Team Photo"
               className="w-full h-full object-cover"
@@ -95,7 +91,7 @@ export function UpdatedAboutPage() {
         <p className="text-lg text-slate-600 mb-8" style={fonts.sans}>
           Stay updated with our latest events, projects, and community highlights.
         </p>
-        
+
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {socialLinks.map((social) => (
             <a

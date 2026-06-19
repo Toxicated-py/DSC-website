@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import logging
 from functools import lru_cache
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from pydantic import BaseModel
 
 
 ROOT = Path(__file__).resolve().parents[2]
+logger = logging.getLogger(__name__)
 
 
 def _load_env_file(path: Path) -> None:
@@ -61,6 +63,10 @@ class Settings(BaseModel):
     @property
     def is_supabase_configured(self) -> bool:
         return bool(self.supabase_url and self.supabase_key)
+
+    def model_post_init(self, __context: object) -> None:
+        if self.environment == "production" and not self.admin_rpc_secret:
+            logger.warning("ADMIN_RPC_SECRET is empty in production; admin RPC endpoints may be less protected.")
 
 
 @lru_cache

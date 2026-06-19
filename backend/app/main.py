@@ -6,7 +6,7 @@ from datetime import date, datetime, timezone
 from typing import Any
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .auth import get_current_profile, get_current_user, profile_roles, require_admin
@@ -28,6 +28,25 @@ from .schemas import (
     TicketScan,
 )
 from .supabase_rest import SupabaseRestClient, SupabaseRestError
+
+
+RATE_LIMIT_WINDOW_SECONDS = 10 * 60
+RATE_LIMIT_MAX_REQUESTS = 5
+rate_limit_hits: dict[str, list[float]] = {}
+
+
+def check_public_post_rate_limit(request: Request, bucket: str) -> None:
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    ip = forwarded_for.split(",", 1)[0].strip() if forwarded_for else ""
+    ip = ip or (request.client.host if request.client else "unknown")
+    key = f"{bucket}:{ip}"
+    now = time.time()
+    cutoff = now - RATE_LIMIT_WINDOW_SECONDS
+    hits = [timestamp for timestamp in rate_limit_hits.get(key, []) if timestamp > cutoff]
+    if len(hits) >= RATE_LIMIT_MAX_REQUESTS:
+        raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
+    hits.append(now)
+    rate_limit_hits[key] = hits
 
 
 def supabase_http_error(exc: SupabaseRestError) -> HTTPException:
@@ -1036,9 +1055,11 @@ async def get_home_summary(
 
 @app.post("/api/contact-messages", status_code=201)
 async def create_contact_message(
+    request: Request,
     payload: ContactMessageCreate,
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    check_public_post_rate_limit(request, "contact-messages")
     client = get_privileged_supabase(settings)
     try:
         await client.insert("contact_messages", payload.model_dump(), return_representation=False)
@@ -1169,10 +1190,12 @@ async def get_my_certificates(
 
 @app.post("/api/submissions/event-proposals", status_code=201)
 async def submit_event_proposal(
+    request: Request,
     payload: EventProposalCreate,
     profile: dict[str, Any] = Depends(get_current_profile),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
+    check_public_post_rate_limit(request, "event-proposals")
     client = get_privileged_supabase(settings, profile.get("_auth_token"))
     await ensure_not_duplicate(
         client,

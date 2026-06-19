@@ -7,11 +7,9 @@ import { getCertificatesByMember } from "../services/certificateService";
 import type { Certificate } from "../types/certificate";
 import { CertificatePrintStyles, CertificateRenderer, downloadCertificatePdf } from "../components/CertificateRenderer";
 
-const fonts = {
-  display: { fontFamily: "'Anton', sans-serif" },
-};
 
 import { BrutalButton, BrutalCard } from "../components/ui/brutal";
+import { fonts } from "../config/fonts";
 
 const Badge = ({ children, color = "bg-[#2563EB]" }: any) => (
   <span className={`px-2 py-1 ${color} border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest`}>

@@ -8,11 +8,7 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
 import { requireLoginForAction } from "../utils/authNavigation";
-const fonts = {
-  display: { fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-  serif: { fontFamily: "'Newsreader', serif" },
-};
+import { fonts } from "../config/fonts";
 
 export function EventProposalPage() {
   const navigate = useNavigate();
@@ -39,7 +35,7 @@ export function EventProposalPage() {
   const submitProposal = async (event: React.FormEvent) => {
     event.preventDefault();
     if (submittingProposal) return;
-    if (!requireLoginForAction(navigate, "/events/propose")) return;
+    if (!(await requireLoginForAction(navigate, "/events/propose"))) return;
     if (!form.title.trim() || !form.summary.trim() || !form.host.trim()) {
       setStatus("Title, host, and summary are required before submitting.");
       return;
@@ -127,7 +123,7 @@ export function EventProposalPage() {
               <h3 className="text-2xl uppercase leading-tight mt-2" style={fonts.display}>{form.title || "Event title"}</h3>
               <p className="text-sm text-slate-600 mt-2">{form.summary || "Your event summary preview will appear here."}</p>
               <div className="mt-4 text-xs font-mono text-slate-500">
-                {form.proposedDate || "Date TBD"} {form.proposedTime && `at ${form.proposedTime}`} · {form.venue || "Venue TBD"}
+                {form.proposedDate || "Date TBD"} {form.proposedTime && `at ${form.proposedTime}`} ï¿½ {form.venue || "Venue TBD"}
               </div>
             </div>
             <p className="mt-4 text-xs font-mono text-slate-700">Submissions are saved to the online review queue.</p>
@@ -142,17 +138,6 @@ export function EventProposalPage() {
           <div className="flex flex-col gap-3">
             <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full" disabled={submittingProposal}>
               {submittingProposal ? "Submitting..." : "Submit Proposal"}
-            </BrutalButton>
-            <BrutalButton
-              type="button"
-              color="bg-white"
-              className="w-full"
-              onClick={() => {
-                if (!requireLoginForAction(navigate, "/events/propose")) return;
-                setStatus("Draft saved in this browser.");
-              }}
-            >
-              Save Draft
             </BrutalButton>
           </div>
         </div>

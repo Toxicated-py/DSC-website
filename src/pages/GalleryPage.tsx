@@ -18,15 +18,11 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { submitGallery } from "../lib/contentApi";
 
-const fonts = {
-  display: { fontFamily: "'Anton', sans-serif" },
-  serif: { fontFamily: "'Playfair Display', serif" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-};
 
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui/brutal";
+import { fonts } from "../config/fonts";
 
-// ─── 5. GALLERY PAGE ───────────────────────────────────────────────────────────
+// âââ 5. GALLERY PAGE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export function GalleryPage() {
   const navigate = useNavigate();
@@ -193,7 +189,7 @@ export function GalleryPage() {
         {filteredPhotos.map((photo) => (
           <BrutalCard key={photo.id} className="p-0 overflow-hidden group cursor-pointer" onClick={() => setSelectedPhotoIndex(filteredPhotos.findIndex((item) => item.id === photo.id))}>
             <div className="aspect-video overflow-hidden relative">
-              <img
+              <img loading="lazy"
                 src={photo.url}
                 alt={photo.title}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -301,7 +297,7 @@ export function GalleryPage() {
           >
             <ChevronLeft size={24} />
           </button>
-          <img src={selectedPhoto.url} alt={selectedPhoto.title} className="max-h-[78vh] max-w-full object-contain border-2 border-white" />
+          <img loading="lazy" src={selectedPhoto.url} alt={selectedPhoto.title} className="max-h-[78vh] max-w-full object-contain border-2 border-white" />
           <button
             onClick={() => setSelectedPhotoIndex((current) => current === null ? current : Math.min(filteredPhotos.length - 1, current + 1))}
             className="absolute right-3 md:right-8 bg-white border-2 border-[#171717] p-3 disabled:opacity-30"
@@ -327,4 +323,4 @@ export function GalleryPage() {
   );
 }
 
-// ─── 6. USER PROFILE PAGE ──────────────────────────────────────────────────────
+// âââ 6. USER PROFILE PAGE ââââââââââââââââââââââââââââââââââââââââââââââââââââââ

@@ -9,11 +9,14 @@
   --popover: #ffffff;
   --popover-foreground: #171717;
   --primary: #2563EB;
+  --color-brand: #2563EB;
+  --color-accent-pink: #FB7185;
+  --color-brand-dark: #171717;
   --primary-foreground: #ffffff;
   --secondary: #FB7185;
   --secondary-foreground: #ffffff;
   --muted: #e5e5e5;
-  --muted-foreground: #737373;
+  --muted-foreground: #595959;
   --accent: #2563EB;
   --accent-foreground: #ffffff;
   --destructive: #f43f5e;
@@ -205,7 +208,4 @@
     min-height: 40px;
   }
 
-  table {
-    min-width: 680px;
-  }
 }

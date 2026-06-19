@@ -5,12 +5,8 @@ import { BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { apiGet } from "../lib/apiClient";
 import { defaultSiteSettings, loadSiteSettings } from "../lib/siteSettings";
 import { toast } from "sonner";
+import { fonts } from "../config/fonts";
 
-const fonts = {
-  display: { fontFamily: "'Anton', sans-serif" },
-  serif: { fontFamily: "'Playfair Display', serif" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-};
 
 export function HomePage() {
   const [homeSettings, setHomeSettings] = useState(defaultSiteSettings.home);
@@ -90,7 +86,7 @@ export function HomePage() {
             <div className="relative inline-block select-none max-w-max">
               <h1
                 className="mobile-readable-title sm:text-[9rem] md:text-[11rem] lg:text-[13rem] leading-[0.85] text-[#171717]"
-                style={{ ...fonts.display, textShadow: "8px 8px 0px #2563EB, 16px 16px 0px #FB7185" }}
+                style={{ ...fonts.display, textShadow: "8px 8px 0px var(--color-brand), 16px 16px 0px var(--color-accent-pink)" }}
               >
                 {heroTitleLines.length ? heroTitleLines.map((line, index) => (
                   <React.Fragment key={`${line}-${index}`}>

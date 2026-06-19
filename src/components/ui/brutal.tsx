@@ -54,7 +54,8 @@ export const BrutalBadge = ({
   text = "text-white",
   className = ""
 }: BrutalBadgeProps) => (
-  <span className={`px-2 py-1 ${color} ${text} border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest ${className}`}>
+  // Yellow badges use dark text; keep badge labels at 14px or larger when overriding this default.
+  <span className={`px-2 py-1 ${color} ${text} border-2 border-[#171717] text-sm font-bold uppercase tracking-widest ${className}`}>
     {children}
   </span>
 );

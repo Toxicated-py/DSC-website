@@ -1,6 +1,6 @@
 /**
  * Comprehensive Admin Panel
- * 
+ *
  * FEATURES:
  * - User Management (edit roles, designations, verify/delete users)
  * - Event Management (create, edit, delete events)
@@ -8,15 +8,15 @@
  * - Content Management (edit homepage, about page, team)
  * - Site Settings (social links, contact info, general settings)
  * - Analytics Dashboard (stats, charts, growth metrics)
- * 
+ *
  * This is a fully featured admin panel with CRUD operations for all site content.
  */
 
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { 
+import {
   Check, Shield, User, UserCheck, GraduationCap, Settings, Search, Edit, Trash2, Crown,
-  Calendar, MapPin, Users, Trophy, TrendingUp, Save, X, Plus, Eye, EyeOff, 
+  Calendar, MapPin, Users, Trophy, TrendingUp, Save, X, Plus, Eye, EyeOff,
   Mail, Phone, Globe, Github, Linkedin, Twitter, Instagram, Facebook,
   Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare, ListFilter
 } from "lucide-react";
@@ -48,6 +48,7 @@ import {
   uploadSignatureImage,
 } from "../services/certificateService";
 import { CertificateRenderer } from "../components/CertificateRenderer";
+import { fonts } from "../config/fonts";
 
 const getRoleSet = (profile: any) => {
   const roles = new Set<string>();
@@ -70,17 +71,12 @@ const isOrganizerProfile = (profile: any) => {
   return roles.has("organizer") || roles.has("event_manager");
 };
 
-const fonts = {
-  display: { fontFamily: "'Anton', sans-serif" },
-  serif: { fontFamily: "'Playfair Display', serif" },
-  sans: { fontFamily: "'Inter', sans-serif" },
-};
 
-// ─── Reusable Components ───────────────────────────────────────────────────────
+// âââ Reusable Components âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const BrutalButton = ({ children, color = "bg-[#FFE800]", text = "text-[#171717]", className = "", ...props }: any) => (
-  <button 
-    className={`px-6 py-3 ${color} ${text} border-2 border-[#171717] font-bold uppercase tracking-widest brutal-shadow brutal-shadow-hover transition-all ${className}`} 
+  <button
+    className={`px-6 py-3 ${color} ${text} border-2 border-[#171717] font-bold uppercase tracking-widest brutal-shadow brutal-shadow-hover transition-all ${className}`}
     {...props}
   >
     {children}
@@ -102,7 +98,7 @@ const BrutalBadge = ({ children, color = "bg-[#FB7185]", text="text-white", clas
 const BrutalInput = ({ label, ...props }: any) => (
   <div className="mb-4">
     {label && <label className="block text-xs font-bold uppercase tracking-widest mb-2">{label}</label>}
-    <input 
+    <input
       className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all"
       {...props}
     />
@@ -112,7 +108,7 @@ const BrutalInput = ({ label, ...props }: any) => (
 const BrutalTextarea = ({ label, ...props }: any) => (
   <div className="mb-4">
     {label && <label className="block text-xs font-bold uppercase tracking-widest mb-2">{label}</label>}
-    <textarea 
+    <textarea
       className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all resize-none"
       rows={4}
       {...props}
@@ -123,7 +119,7 @@ const BrutalTextarea = ({ label, ...props }: any) => (
 const BrutalSelect = ({ label, options, ...props }: any) => (
   <div className="mb-4">
     {label && <label className="block text-xs font-bold uppercase tracking-widest mb-2">{label}</label>}
-    <select 
+    <select
       className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all"
       {...props}
     >
@@ -134,7 +130,7 @@ const BrutalSelect = ({ label, options, ...props }: any) => (
   </div>
 );
 
-// ─── Main Admin Panel ──────────────────────────────────────────────────────────
+// âââ Main Admin Panel ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const isCertificateSchemaError = (message = "") =>
   ["verification_code", "recipient_name_snapshot", "event_title_snapshot", "template_style", "revoked_at", "signature_data"].some((field) =>
@@ -2040,7 +2036,7 @@ export function ComprehensiveAdminPanel() {
         </div>
       )}
 
-      {/* ─── OVERVIEW TAB ───────────────────────────────────────────────────── */}
+      {/* âââ OVERVIEW TAB âââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {activeTab === "overview" && isFullAdmin && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
@@ -2132,7 +2128,7 @@ export function ComprehensiveAdminPanel() {
         </>
       )}
 
-      {/* ─── USERS TAB ───────────────────────────────────────────────────────── */}
+      {/* âââ USERS TAB âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {activeTab === "users" && isFullAdmin && (
         <>
           {/* Search & Actions */}
@@ -2224,7 +2220,7 @@ export function ComprehensiveAdminPanel() {
                             </div>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400">—</span>
+                          <span className="text-xs text-slate-400">â</span>
                         )}
                       </td>
                       <td className="p-4">
@@ -2265,7 +2261,7 @@ export function ComprehensiveAdminPanel() {
         </>
       )}
 
-      {/* ─── EVENTS TAB ──────────────────────────────────────────────────────── */}
+      {/* âââ EVENTS TAB ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {activeTab === "events" && (
         <>
           <div className="mb-8 flex flex-col md:flex-row gap-4">
@@ -2457,7 +2453,7 @@ export function ComprehensiveAdminPanel() {
         </>
       )}
 
-      {/* ─── PROJECTS TAB ─────────────────────────────────────────────────────── */}
+      {/* âââ PROJECTS TAB âââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {activeTab === "proposals" && isFullAdmin && (
         <div className="grid gap-6">
           {eventProposals.length === 0 ? (
@@ -2536,7 +2532,7 @@ export function ComprehensiveAdminPanel() {
                       {project.featured && <Star size={16} className="text-[#FFE800] fill-[#FFE800]" />}
                     </div>
                     <p className="text-sm text-slate-600 mb-3">
-                      by <span className="font-bold">{project.author}</span> • {project.submittedDate}
+                      by <span className="font-bold">{project.author}</span> â¢ {project.submittedDate}
                     </p>
                     <div className="flex gap-2 flex-wrap">
                       {project.tags.map(tag => (
@@ -2645,7 +2641,7 @@ export function ComprehensiveAdminPanel() {
         </>
       )}
 
-      {/* ─── CONTENT TAB ───────────────────────────────────────────────────────── */}
+      {/* âââ CONTENT TAB âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {["blogs", "gallery", "partners", "resources"].includes(activeTab) && (isFullAdmin || (isOrganizerAdmin && ["blogs", "gallery"].includes(activeTab))) && (
         <div className="space-y-6">
           {activeTab === "blogs" && (
@@ -2751,7 +2747,7 @@ export function ComprehensiveAdminPanel() {
                 {pendingGallery.map((item) => (
                   <BrutalCard key={item.id} color="bg-white">
                     <div className="aspect-video bg-slate-100 border-2 border-[#171717] mb-4 overflow-hidden">
-                      <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                      <img loading="lazy" src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
                     </div>
                     <h3 className="font-bold uppercase">{item.title}</h3>
                     <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
@@ -2786,7 +2782,7 @@ export function ComprehensiveAdminPanel() {
                 {approvedGallery.map((item) => (
                   <BrutalCard key={item.id} color="bg-white">
                     <div className="aspect-video bg-slate-100 border-2 border-[#171717] mb-4 overflow-hidden">
-                      <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                      <img loading="lazy" src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
                     </div>
                     <h3 className="font-bold uppercase">{item.title}</h3>
                     <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
@@ -3075,7 +3071,7 @@ export function ComprehensiveAdminPanel() {
                                 className="w-full border-2 border-[#171717] bg-white p-2 font-mono text-xs"
                               />
                               {certificateForm.templateBackgroundUrl && (
-                                <img
+                                <img loading="lazy"
                                   src={certificateForm.templateBackgroundUrl}
                                   alt="Certificate template preview"
                                   className="mt-3 aspect-[1.414/1] w-full max-w-lg border-2 border-[#171717] bg-white object-cover"
@@ -3174,7 +3170,7 @@ export function ComprehensiveAdminPanel() {
                                   className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
                                 />
                                 {signature.signature_image_url && (
-                                  <img src={signature.signature_image_url} alt={`${signature.name} signature`} className="h-12 max-w-40 object-contain border-2 border-[#171717] bg-white p-1" />
+                                  <img loading="lazy" src={signature.signature_image_url} alt={`${signature.name} signature`} className="h-12 max-w-40 object-contain border-2 border-[#171717] bg-white p-1" />
                                 )}
                               </div>
                             </div>
@@ -3460,7 +3456,7 @@ export function ComprehensiveAdminPanel() {
         </div>
       )}
 
-      {/* ─── CONTACT INBOX TAB ─────────────────────────────────────────────────── */}
+      {/* âââ CONTACT INBOX TAB âââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {activeTab === "contacts" && isFullAdmin && (
         <div className="space-y-6">
           <div className="grid sm:grid-cols-3 gap-4">
@@ -3543,7 +3539,7 @@ export function ComprehensiveAdminPanel() {
         </div>
       )}
 
-      {/* ─── SETTINGS TAB ──────────────────────────────────────────────────────── */}
+      {/* âââ SETTINGS TAB ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {activeTab === "settings" && isFullAdmin && (
         <div className="space-y-6">
           {settingsStatus && (
@@ -3864,7 +3860,7 @@ export function ComprehensiveAdminPanel() {
         </div>
       )}
 
-      {/* ─── ANALYTICS TAB ──────────────────────────────────────────────────────── */}
+      {/* âââ ANALYTICS TAB ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {activeTab === "analytics" && isFullAdmin && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -4102,8 +4098,8 @@ export function ComprehensiveAdminPanel() {
         </div>
       )}
 
-      {/* ─── MODALS ──────────────────────────────────────────────────────────── */}
-      
+      {/* âââ MODALS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
+
       {certificateModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="max-w-6xl w-full max-h-[94vh] overflow-y-auto">
@@ -4148,7 +4144,7 @@ export function ComprehensiveAdminPanel() {
                 )}
                 {reviewPreview.preview.kind === "project" && (
                   <div className="border-2 border-[#171717] bg-white overflow-hidden brutal-shadow">
-                    {reviewPreview.preview.imageUrl && <img src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-56 object-cover border-b-2 border-[#171717]" />}
+                    {reviewPreview.preview.imageUrl && <img loading="lazy" src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-56 object-cover border-b-2 border-[#171717]" />}
                     <div className="p-6">
                       <BrutalBadge color="bg-[#FB7185]" className="mb-3">{reviewPreview.preview.category}</BrutalBadge>
                       <h3 className="text-4xl uppercase leading-tight mb-2" style={fonts.display}>{reviewPreview.preview.title}</h3>
@@ -4160,7 +4156,7 @@ export function ComprehensiveAdminPanel() {
                 )}
                 {reviewPreview.preview.kind === "blog" && (
                   <article className="border-2 border-[#171717] bg-white overflow-hidden brutal-shadow">
-                    {reviewPreview.preview.imageUrl && <img src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-56 object-cover border-b-2 border-[#171717]" />}
+                    {reviewPreview.preview.imageUrl && <img loading="lazy" src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-56 object-cover border-b-2 border-[#171717]" />}
                     <div className="p-6">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-[#7C3AED] mb-3">{(reviewPreview.preview.tags || []).join(" / ") || "Blog"}</p>
                       <h3 className="text-4xl uppercase leading-tight mb-3" style={fonts.display}>{reviewPreview.preview.title}</h3>
@@ -4172,7 +4168,7 @@ export function ComprehensiveAdminPanel() {
                 )}
                 {reviewPreview.preview.kind === "gallery" && (
                   <div className="border-2 border-[#171717] bg-white overflow-hidden brutal-shadow">
-                    <img src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-80 object-cover border-b-2 border-[#171717]" />
+                    <img loading="lazy" src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-80 object-cover border-b-2 border-[#171717]" />
                     <div className="p-5">
                       <div className="flex items-center justify-between mb-2">
                         <BrutalBadge color="bg-[#2563EB]">{reviewPreview.preview.event}</BrutalBadge>

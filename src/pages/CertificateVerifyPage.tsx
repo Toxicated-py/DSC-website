@@ -5,10 +5,8 @@ import { userFriendlyErrorMessage } from "../lib/apiClient";
 import { getPublicCertificateByVerificationCode } from "../services/certificateService";
 import type { PublicCertificate } from "../types/certificate";
 import { CertificatePrintStyles, CertificateRenderer, downloadCertificatePdf } from "../components/CertificateRenderer";
+import { fonts } from "../config/fonts";
 
-const fonts = {
-  display: { fontFamily: "'Anton', sans-serif" },
-};
 
 const Button = ({ children, color = "bg-[#FFE800]", text = "text-[#171717]", className = "", ...props }: any) => (
   <button
