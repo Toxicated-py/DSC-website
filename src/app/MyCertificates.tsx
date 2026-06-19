@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Award, Calendar, Download, Printer, X } from "lucide-react";
+import { ArrowLeft, Award, Calendar, Download, Printer, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { userFriendlyErrorMessage } from "../lib/apiClient";
@@ -66,7 +66,8 @@ export function MyCertificates() {
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto min-h-screen">
       <CertificatePrintStyles />
       <div className="mb-12">
-        <Link to="/dashboard" className="mb-6 inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm hover:text-[#2563EB]">
+        <Link to="/dashboard" className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+          <ArrowLeft size={16} />
           Back to Dashboard
         </Link>
         <Badge color="bg-[#FFE800]">

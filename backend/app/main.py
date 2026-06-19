@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import time
 from datetime import date, datetime, timezone
 from typing import Any
 from uuid import UUID
@@ -203,6 +205,9 @@ ADMIN_ONLY_RESOURCES = {
     "learning-materials",
     "contact-messages",
 }
+
+HOME_SUMMARY_CACHE_TTL_SECONDS = 60
+home_summary_cache: dict[str, Any] = {"expires_at": 0.0, "value": None}
 
 
 async def active_registration_count(client: SupabaseRestClient, event_id: str) -> int:
@@ -746,14 +751,14 @@ async def check_in_registration(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
-    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
+    service_client = get_privileged_supabase(settings)
     event = await select_by_id_or_slug(client, "events", event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
     event_id = event["id"]
-    if not await can_manage_event(user_client, profile, event):
+    if not await can_manage_event(service_client, profile, event):
         raise HTTPException(status_code=403, detail="You are not allowed to manage this event.")
-    rows = await user_client.update(
+    rows = await service_client.update(
         "event_registrations",
         {"status": "checked_in", "checked_in_at": datetime.now(timezone.utc).isoformat()},
         filters={"id": f"eq.{registration_id}", "event_id": f"eq.{event_id}"},
@@ -771,19 +776,19 @@ async def scan_event_ticket(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
-    user_client = SupabaseRestClient(settings, auth_token=profile.get("_auth_token"))
+    service_client = get_privileged_supabase(settings)
     event = await select_by_id_or_slug(client, "events", event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
     event_id = event["id"]
     if event.get("end_time") and str(event.get("end_time")) < datetime.now(timezone.utc).isoformat():
         raise HTTPException(status_code=400, detail="Scanner is closed because this event has ended.")
-    if not await can_manage_event(user_client, profile, event):
+    if not await can_manage_event(service_client, profile, event):
         raise HTTPException(status_code=403, detail="You are not allowed to scan for this event.")
     ticket_code = payload.ticket_code.strip()
     if not ticket_code:
         raise HTTPException(status_code=400, detail="Ticket code is required.")
-    registrations = await user_client.select(
+    registrations = await service_client.select(
         "event_registrations",
         columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
         filters={"event_id": f"eq.{event_id}", "ticket_code": f"eq.{ticket_code}"},
@@ -793,7 +798,7 @@ async def scan_event_ticket(
         raise HTTPException(status_code=404, detail="Ticket not found for this event.")
     registration = registrations[0]
     attendee = await select_one(
-        client,
+        service_client,
         "profiles",
         {"id": f"eq.{registration.get('user_id')}"},
         columns="id,full_name,email",
@@ -805,7 +810,7 @@ async def scan_event_ticket(
             "registration": registration,
             "profile": attendee,
         }
-    rows = await user_client.update(
+    rows = await service_client.update(
         "event_registrations",
         {"status": "checked_in", "checked_in_at": datetime.now(timezone.utc).isoformat()},
         filters={"id": f"eq.{registration['id']}"},
@@ -960,40 +965,73 @@ async def get_home_summary(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> dict[str, Any]:
-    events = await list_events(status="approved", settings=settings, client=client)
-    projects = await list_projects(status="published", client=client)
-    posts = await list_blog_posts(status="published", client=client)
-    partners = await list_partners(client=client)
+    now = time.monotonic()
+    if home_summary_cache["value"] is not None and now < float(home_summary_cache["expires_at"]):
+        return home_summary_cache["value"]
+
     service_client = get_privileged_supabase(settings)
     try:
-        members = await service_client.select(
-            "profiles",
-            columns="id",
-            filters={"membership_status": "in.(approved,published)"},
+        events, projects, members = await asyncio.gather(
+            client.select(
+                "events",
+                columns="id,title,slug,event_type,start_time,end_time,venue,capacity,status",
+                filters={"status": "eq.approved"},
+                order="start_time.asc",
+            ),
+            client.select(
+                "projects",
+                columns="id,title,slug,category,technologies,status,published_at",
+                filters={"status": "eq.published"},
+                order="published_at.desc",
+            ),
+            service_client.select(
+                "profiles",
+                columns="id",
+                filters={"membership_status": "in.(approved,published)"},
+            ),
         )
-    except SupabaseRestError:
-        members = []
-    settings_rows = await client.select("site_settings", filters={"key": "eq.site"}, limit=1)
-    settings_value = settings_rows[0].get("value") if settings_rows else {}
-    team_members = settings_value.get("teamMembers") if isinstance(settings_value, dict) else []
-    member_count = len(members or []) or (len(team_members) if isinstance(team_members, list) else 0)
+    except SupabaseRestError as exc:
+        raise supabase_http_error(exc) from exc
+    member_count = len(members or [])
     today = date.today().isoformat()
     upcoming_events = [
         event for event in events
         if not event.get("start_time") or str(event.get("start_time")) >= today
     ][:8]
-    return {
+    event_ids = [event["id"] for event in upcoming_events if event.get("id")]
+    count_by_id: dict[str, int] = {}
+    if event_ids:
+        try:
+            registrations = await service_client.select(
+                "event_registrations",
+                columns="event_id",
+                filters={
+                    "event_id": f"in.({','.join(event_ids)})",
+                    "status": "in.(registered,checked_in)",
+                },
+            )
+            for row in registrations or []:
+                row_event_id = row.get("event_id")
+                if row_event_id:
+                    count_by_id[row_event_id] = count_by_id.get(row_event_id, 0) + 1
+        except SupabaseRestError:
+            count_by_id = {}
+    upcoming_events = [
+        {**event, "registeredCount": count_by_id.get(event.get("id"), 0), "registered_count": count_by_id.get(event.get("id"), 0)}
+        for event in upcoming_events
+    ]
+    summary = {
         "counts": {
             "events": len(events),
             "projects": len(projects),
-            "blog_posts": len(posts),
-            "partners": len(partners),
             "members": member_count,
         },
         "next_event": upcoming_events[0] if upcoming_events else (events[0] if events else None),
         "upcoming_events": upcoming_events,
         "featured_project": projects[0] if projects else None,
     }
+    home_summary_cache.update({"expires_at": now + HOME_SUMMARY_CACHE_TTL_SECONDS, "value": summary})
+    return summary
 
 
 @app.post("/api/contact-messages", status_code=201)
@@ -1371,10 +1409,11 @@ async def admin_event_staff(
     settings: Settings = Depends(get_settings),
 ) -> list[dict[str, Any]]:
     client = get_privileged_supabase(settings, profile.get("_auth_token"))
+    service_client = get_privileged_supabase(settings)
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
-    if not await can_manage_event(client, profile, event):
+    if not await can_manage_event(service_client, profile, event):
         raise HTTPException(status_code=403, detail="You can only manage staff for your own events.")
     return await client.select(
         "event_staff",
@@ -1392,10 +1431,11 @@ async def admin_replace_event_staff(
     settings: Settings = Depends(get_settings),
 ) -> list[dict[str, Any]]:
     client = get_privileged_supabase(settings, profile.get("_auth_token"))
+    service_client = get_privileged_supabase(settings)
     event = await select_one(client, "events", {"id": f"eq.{event_id}"})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
-    if not await can_manage_event(client, profile, event):
+    if not await can_manage_event(service_client, profile, event):
         raise HTTPException(status_code=403, detail="You can only manage staff for your own events.")
     await client.delete("event_staff", filters={"event_id": f"eq.{event_id}", "staff_role": "eq.coordinator"})
     rows = [

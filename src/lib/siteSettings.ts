@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "./apiClient";
 import { siteConfig } from "../config/site";
+import { DSC_LOGO_SRC, SMS_TU_LOGO_SRC } from "../config/assets";
 
 export interface SiteSettings {
   siteName: string;
@@ -161,7 +162,7 @@ export const defaultSiteSettings: SiteSettings = {
       name: "Ashish Adhikari",
       position: "President",
       meta: "Data Science Club",
-      image: "/assets/dsc-logo.png",
+      image: DSC_LOGO_SRC,
       bio: "Leading the club community, events, and data-driven initiatives.",
       email: "",
       linkedin: "",
@@ -173,7 +174,7 @@ export const defaultSiteSettings: SiteSettings = {
       name: "Faculty Advisor",
       position: "Advisor",
       meta: "SMS, TU",
-      image: "/assets/sms-tu-logo.png",
+      image: SMS_TU_LOGO_SRC,
       bio: "Guiding the club with academic support and institutional coordination.",
       email: "",
       linkedin: "",

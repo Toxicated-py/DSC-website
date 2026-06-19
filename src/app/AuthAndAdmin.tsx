@@ -24,6 +24,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check, Shield, User, UserCheck, GraduationCap, Settings, Search, Edit, Trash2, Crown, X, Eye, EyeOff } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { DSC_LOGO_SRC } from "../config/assets";
 import { userFriendlyErrorMessage } from "../lib/apiClient";
 
 const fonts = {
@@ -182,7 +183,7 @@ export function NewLoginPage() {
         <div className="md:w-1/2 p-8 md:p-12 border-b-4 md:border-b-0 md:border-r-4 border-[#171717] flex flex-col justify-center bg-[#FFE800]">
           <div className="mb-6 flex items-center gap-3">
             <div className="w-20 h-20 bg-white flex items-center justify-center p-2">
-              <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-contain" />
+              <img src={DSC_LOGO_SRC} alt="Data Science Club logo" className="w-full h-full object-contain" />
             </div>
             <p className="text-xs font-bold uppercase tracking-widest leading-5">Data Science Club<br />SMS, TU</p>
           </div>
