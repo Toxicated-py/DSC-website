@@ -8,6 +8,16 @@ import httpx
 from .config import Settings
 
 
+from __future__ import annotations
+
+from typing import Any
+from urllib.parse import urlencode
+
+import httpx
+
+from .config import Settings
+
+
 class SupabaseRestError(RuntimeError):
     def __init__(self, message: str, status_code: int = 500) -> None:
         super().__init__(message)
@@ -15,7 +25,7 @@ class SupabaseRestError(RuntimeError):
 
 
 class SupabaseRestClient:
-    def __init__(self, settings: Settings, *, auth_token: str | None = None, use_service_role: bool = False) -> None:
+    def __init__(self, settings: Settings, http_client: httpx.AsyncClient, *, auth_token: str | None = None, use_service_role: bool = False) -> None:
         if not settings.is_supabase_configured:
             raise SupabaseRestError("Supabase is not configured for the Python API.", 503)
         if use_service_role and not settings.supabase_service_role_key:
@@ -30,6 +40,7 @@ class SupabaseRestClient:
             "authorization": f"Bearer {bearer_token}",
             "content-type": "application/json",
         }
+        self.http_client = http_client
 
     async def select(
         self,
@@ -99,8 +110,7 @@ class SupabaseRestClient:
     async def list_auth_users(self, *, page: int = 1, per_page: int = 100) -> list[dict[str, Any]]:
         url = f"{self.base_url}/auth/v1/admin/users"
         try:
-            async with httpx.AsyncClient(timeout=20) as client:
-                response = await client.get(url, headers=self.headers, params={"page": page, "per_page": per_page})
+            response = await self.http_client.get(url, headers=self.headers, params={"page": page, "per_page": per_page})
         except httpx.RequestError as exc:
             raise SupabaseRestError("Supabase Auth is not reachable.", 503) from exc
 
@@ -122,8 +132,7 @@ class SupabaseRestClient:
         url = f"{self.base_url}/rest/v1/{table}{query}"
 
         try:
-            async with httpx.AsyncClient(timeout=20) as client:
-                response = await client.request(method, url, headers=headers or self.headers, json=json)
+            response = await self.http_client.request(method, url, headers=headers or self.headers, json=json)
         except httpx.RequestError as exc:
             raise SupabaseRestError("Supabase is not reachable. Check the configured hosted Supabase URL.", 503) from exc
 

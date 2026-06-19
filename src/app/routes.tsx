@@ -94,7 +94,7 @@ export function AppRoutes({ pages }: { pages: AppRoutePages }) {
 
       <Route path="/login" element={<PageTitle title="Login"><NewLoginPage /></PageTitle>} />
       <Route path="/register" element={<PageTitle title="Register"><NewLoginPage /></PageTitle>} />
-      <Route path="/scanner" element={<PageTitle title="Scanner"><ScannerPage /></PageTitle>} />
+      <Route path="/scanner" element={<PageTitle title="Scanner"><AdminRoute><ScannerPage /></AdminRoute></PageTitle>} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
