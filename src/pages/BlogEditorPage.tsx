@@ -1,0 +1,1 @@
+export { BlogEditorPage } from "./legacyPages";

@@ -47,7 +47,7 @@ import {
   uploadCertificateTemplateImage,
   uploadSignatureImage,
 } from "../services/certificateService";
-import { CertificateRenderer } from "./components/CertificateRenderer";
+import { CertificateRenderer } from "../components/CertificateRenderer";
 
 const getRoleSet = (profile: any) => {
   const roles = new Set<string>();
@@ -172,8 +172,6 @@ export function ComprehensiveAdminPanel() {
   const [isCertificateAdmin, setIsCertificateAdmin] = useState(false);
   const [certificateStatus, setCertificateStatus] = useState("");
   const [profileOptions, setProfileOptions] = useState<any[]>([]);
-  const [designationOptions, setDesignationOptions] = useState<any[]>([]);
-  const [newDesignationLabel, setNewDesignationLabel] = useState("");
   const [issuedCertificates, setIssuedCertificates] = useState<any[]>([]);
   const [certificateForm, setCertificateForm] = useState({
     recipientId: "",
@@ -388,7 +386,6 @@ export function ComprehensiveAdminPanel() {
         projectRowsRaw,
         proposalRows,
         eventRowsRaw,
-        designationRows,
         blogRowsRaw,
         galleryRows,
         partnerRows,
@@ -403,7 +400,6 @@ export function ComprehensiveAdminPanel() {
         safeList(adminListResource<any>("projects"), "projects"),
         safeList(adminListResource<any>("event-proposals"), "event proposals"),
         safeList(adminListResource<any>("events"), "events"),
-        safeList(adminListResource<any>("designation-options"), "designation options"),
         safeList(adminListResource<any>("blog-posts"), "blogs"),
         safeList(adminListResource<any>("gallery"), "gallery"),
         safeList(adminListResource<any>("partners"), "partners"),
@@ -436,7 +432,6 @@ export function ComprehensiveAdminPanel() {
       }));
       setUsers(mappedProfiles);
       setProfileOptions(profiles || []);
-      setDesignationOptions(designationRows || []);
       setIssuedCertificates(certificateRows);
       setProjects((projectRows || []).map((project) => {
         const author = profileById.get(project.author_id);
@@ -830,7 +825,7 @@ export function ComprehensiveAdminPanel() {
       role,
       roles,
       designation: String(form.get("designation") || "").trim() || null,
-      designation_status: String(form.get("designation_status") || "pending"),
+      designation_status: String(form.get("designation") || "").trim() ? "approved" : null,
       membership_status: membershipStatus === "verified" ? "approved" : membershipStatus,
     };
 
@@ -887,41 +882,6 @@ export function ComprehensiveAdminPanel() {
           : "member";
 
     await updateProfile(user.id, { roles: nextRoles, role: nextPrimaryRole });
-  };
-
-  const addDesignationOption = async () => {
-    const label = newDesignationLabel.trim();
-    if (!label) return;
-    setAdminStatus("");
-
-    const nextSortOrder = designationOptions.length
-      ? Math.max(...designationOptions.map((option) => Number(option.sort_order) || 0)) + 10
-      : 10;
-    let data: any;
-    try {
-      data = await adminCreateResource("designation-options", { label, sort_order: nextSortOrder });
-    } catch (error: any) {
-      setAdminStatus(error.message || "Could not add designation option.");
-      return;
-    }
-
-    setDesignationOptions([...designationOptions, data].sort((a, b) => (a.sort_order - b.sort_order) || a.label.localeCompare(b.label)));
-    setNewDesignationLabel("");
-    setAdminStatus("Designation option added.");
-  };
-
-  const removeDesignationOption = async (id: string) => {
-    setAdminStatus("");
-
-    try {
-      await adminDeleteResource("designation-options", id);
-    } catch (error: any) {
-      setAdminStatus(error.message || "Could not remove designation option.");
-      return;
-    }
-
-    setDesignationOptions(designationOptions.filter((option) => option.id !== id));
-    setAdminStatus("Designation option removed.");
   };
 
   const handleUserAction = async (user: any, action: string) => {
@@ -2220,57 +2180,6 @@ export function ComprehensiveAdminPanel() {
               <div className="text-xs font-bold uppercase tracking-widest opacity-80">Pending</div>
             </BrutalCard>
           </div>
-
-          <BrutalCard color="bg-white" className="mb-10">
-            <div className="flex flex-col lg:flex-row lg:items-end gap-4 justify-between">
-              <div>
-                <h2 className="text-2xl md:text-3xl uppercase mb-2" style={fonts.display}>Designation Options</h2>
-                <p className="text-sm text-slate-600">
-                  These are the roles users can request from their profile page. Approval is still handled per user.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 lg:min-w-[420px]">
-                <input
-                  type="text"
-                  value={newDesignationLabel}
-                  onChange={(event) => setNewDesignationLabel(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      void addDesignationOption();
-                    }
-                  }}
-                  placeholder="Add designation, e.g. Research Lead"
-                  className="flex-1 border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => void addDesignationOption()}
-                  className="px-5 py-3 bg-[#FFE800] text-[#171717] border-2 border-[#171717] font-bold uppercase tracking-widest text-xs brutal-shadow brutal-shadow-hover"
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {designationOptions.map((option) => (
-                <span key={option.id} className="inline-flex items-center gap-2 border-2 border-[#171717] bg-[#F4EFEB] px-3 py-2 text-xs font-bold uppercase tracking-widest">
-                  {option.label}
-                  <button
-                    type="button"
-                    onClick={() => void removeDesignationOption(option.id)}
-                    className="text-[#FB7185] hover:text-[#171717]"
-                    title={`Remove ${option.label}`}
-                  >
-                    <X size={14} strokeWidth={3} />
-                  </button>
-                </span>
-              ))}
-              {designationOptions.length === 0 && (
-                <p className="text-sm text-slate-500 font-mono">No designation options yet.</p>
-              )}
-            </div>
-          </BrutalCard>
 
           {/* Users Table */}
           <BrutalCard color="bg-white" className="p-0 overflow-hidden">
@@ -4320,16 +4229,6 @@ export function ComprehensiveAdminPanel() {
               />
               <BrutalInput name="roles" label="Roles (comma separated)" defaultValue={(editingItem?.roles || [editingItem?.role || "member"]).join(", ")} />
               <BrutalInput name="designation" label="Designation (admin assigned)" defaultValue={editingItem?.designation || ""} />
-              <BrutalSelect
-                name="designation_status"
-                label="Designation Status"
-                defaultValue={editingItem?.designationStatus || "pending"}
-                options={[
-                  { value: "pending", label: "Pending" },
-                  { value: "approved", label: "Approved" },
-                  { value: "rejected", label: "Rejected" },
-                ]}
-              />
               <BrutalSelect
                 name="membership_status"
                 label="Status"

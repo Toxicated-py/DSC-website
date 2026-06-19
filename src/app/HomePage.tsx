@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Users, ArrowRight, Database, MapPin } from "lucide-react";
-import { BrutalButton, BrutalBadge } from "./components/ui/brutal";
+import { BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { apiGet } from "../lib/apiClient";
 import { defaultSiteSettings, loadSiteSettings } from "../lib/siteSettings";
 import { toast } from "sonner";

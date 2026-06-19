@@ -43,7 +43,7 @@ const certificateTemplates: Record<string, { accent: string; surface: string; te
   event: { accent: "bg-[#2563EB]", surface: "bg-[#F4EFEB]", text: "text-[#171717]", label: "Event" },
 };
 
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "./components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui/brutal";
 
 const certificateSelect =
   "id,recipient_id,title,certificate_type,issuer_name,status,issued_at,verification_code,recipient_name_snapshot,event_title_snapshot,template_style,signature_data,revoked_at,certificate_url,thumbnail_url,description,events:event_id(title,start_time)";
@@ -1065,7 +1065,7 @@ export function ContactPage() {
       <BrutalCard className="mb-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl uppercase mb-2" style={fonts.display}>DSC Location</h2>
+            <h2 className="text-2xl uppercase mb-2" style={fonts.display}>Our Location</h2>
             <p className="text-sm text-slate-600">Open the club location directly in Google Maps.</p>
           </div>
           <a
@@ -1074,7 +1074,7 @@ export function ContactPage() {
             rel="noreferrer"
             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#FFE800] text-[#171717] border-2 border-[#171717] font-bold uppercase tracking-widest brutal-shadow brutal-shadow-hover"
           >
-            <MapPin size={16} /> Open DSC Location in Google Maps
+            <MapPin size={16} /> SMS, TU
           </a>
         </div>
       </BrutalCard>

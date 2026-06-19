@@ -7,7 +7,7 @@ const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
 };
 
-import { BrutalCard, BrutalBadge } from "./components/ui/brutal";
+import { BrutalCard, BrutalBadge } from "../components/ui/brutal";
 
 const profileUrl = (value: string | undefined, platform: "github" | "linkedin") => {
   if (!value) return "";

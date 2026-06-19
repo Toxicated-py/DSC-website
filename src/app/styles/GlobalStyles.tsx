@@ -1,4 +1,4 @@
-import { BrutalCard } from "../components/ui/brutal";
+import { BrutalCard } from "../../components/ui/brutal";
 
 export const GlobalStyles = () => (
   <style>{`

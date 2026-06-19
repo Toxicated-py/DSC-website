@@ -24,7 +24,7 @@ const fonts = {
   sans: { fontFamily: "'Inter', sans-serif" },
 };
 
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "./components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui/brutal";
 
 // ─── 5. GALLERY PAGE ───────────────────────────────────────────────────────────
 
@@ -585,11 +585,6 @@ export function UserProfilePage() {
                         <BrutalBadge color="bg-[#7C3AED]">{profile.designation}</BrutalBadge>
                       )}
                     </div>
-                    {profile.designation && profile.designationStatus !== "approved" && (
-                      <p className="text-xs font-bold text-[#FB7185] mt-3">
-                        Designation pending admin approval: {profile.designation}
-                      </p>
-                    )}
                   </>
                 )}
               </div>
@@ -626,7 +621,7 @@ export function UserProfilePage() {
                   </div>
                   <div>
                     <span className="font-bold">Designation:</span>{" "}
-                    {profile.designationStatus === "approved" ? profile.designation || "Not set" : "Pending approval"}
+                    {profile.designationStatus === "approved" ? profile.designation || "Not set" : "Not set"}
                   </div>
                 </div>
               </>

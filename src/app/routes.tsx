@@ -3,7 +3,8 @@ import { Route, Routes } from "react-router-dom";
 import { NewLoginPage } from "./AuthAndAdmin";
 import { AdminRoute } from "./auth/AdminRoute";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
-import { Layout } from "./layout/Layout";
+import { Layout } from "../components/layout/Layout";
+import type { AppRoutePages } from "../types/routes";
 
 function NotFoundPage() {
   return (
@@ -16,35 +17,6 @@ function NotFoundPage() {
     </div>
   );
 }
-
-type RouteComponent = React.ComponentType;
-
-export type AppRoutePages = {
-  HomePage: RouteComponent;
-  UpdatedAboutPage: RouteComponent;
-  EventsPage: RouteComponent;
-  EventProposalPage: RouteComponent;
-  EventDetailPage: RouteComponent;
-  ProjectsPage: RouteComponent;
-  ProjectSubmissionPage: RouteComponent;
-  ProjectDetailPage: RouteComponent;
-  BlogPage: RouteComponent;
-  BlogDetailPage: RouteComponent;
-  BlogEditorPage: RouteComponent;
-  DashboardPage: RouteComponent;
-  ComprehensiveAdminPanel: RouteComponent;
-  MyCertificates: RouteComponent;
-  CertificateVerifyPage: RouteComponent;
-  TeamPage: RouteComponent;
-  ContactPage: RouteComponent;
-  ResourcesPage: RouteComponent;
-  GalleryPage: RouteComponent;
-  UserProfilePage: RouteComponent;
-  AchievementsPage: RouteComponent;
-  PartnersPage: RouteComponent;
-  TicketPage: RouteComponent;
-  ScannerPage: RouteComponent;
-};
 
 export function AppRoutes({ pages }: { pages: AppRoutePages }) {
   const {

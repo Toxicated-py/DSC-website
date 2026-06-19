@@ -4,7 +4,7 @@ import { Award, Download, Eye, Printer, Search, Shield, X } from "lucide-react";
 import { userFriendlyErrorMessage } from "../lib/apiClient";
 import { getPublicCertificateByVerificationCode } from "../services/certificateService";
 import type { PublicCertificate } from "../types/certificate";
-import { CertificatePrintStyles, CertificateRenderer, downloadCertificatePdf } from "./components/CertificateRenderer";
+import { CertificatePrintStyles, CertificateRenderer, downloadCertificatePdf } from "../components/CertificateRenderer";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },

@@ -1,7 +1,7 @@
 import React, { forwardRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import type { Certificate, PublicCertificate } from "../../types/certificate";
-import { DSC_LOGO_SRC, SMS_TU_LOGO_SRC } from "../../config/assets";
+import type { Certificate, PublicCertificate } from "../types/certificate";
+import { DSC_LOGO_SRC, SMS_TU_LOGO_SRC } from "../config/assets";
 
 type RenderableCertificate = Certificate | PublicCertificate;
 
@@ -281,3 +281,4 @@ export function CertificatePrintStyles() {
     `}</style>
   );
 }
+

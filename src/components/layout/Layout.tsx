@@ -1,7 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import { UpdatedFooter } from "../UpdatedFooter";
-import { GlobalStyles } from "../styles/GlobalStyles";
+import { UpdatedFooter } from "./UpdatedFooter";
+import { GlobalStyles } from "../../app/styles/GlobalStyles";
 import { Nav } from "./Nav";
 
 function ScrollToTop() {
@@ -25,3 +25,4 @@ export function Layout() {
     </div>
   );
 }
+
