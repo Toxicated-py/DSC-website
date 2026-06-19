@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Facebook, Github, Globe, Instagram, Linkedin, Mail, Twitter } from "lucide-react";
 import { useSiteSettings } from "../lib/siteSettings";
+import { DSC_LOGO_SRC } from "../config/assets";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -50,7 +51,7 @@ export function UpdatedFooter() {
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4 w-max hover:opacity-80 transition-opacity">
               <div className="w-12 h-12 bg-white flex items-center justify-center p-1.5">
-                <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className="w-full h-full object-contain" />
+                <img src={DSC_LOGO_SRC} alt="Data Science Club logo" className="w-full h-full object-contain" />
               </div>
               <span className="font-bold text-lg uppercase tracking-widest text-[#171717]" style={fonts.display}>
                 {settings.siteName.replace(" - SMS TU", "")}

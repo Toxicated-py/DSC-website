@@ -2,14 +2,14 @@
 
 Official website for the Data Science Club at the School of Mathematical Sciences, Tribhuvan University.
 
-The site supports club announcements, events, projects, blog posts, certificates, gallery pages, member areas, admin tools, and contact submissions. It uses a Vite/React frontend, a FastAPI backend, and Supabase for database, auth, and local development workflows.
+The site supports club announcements, events, projects, blog posts, certificates, gallery pages, member areas, admin tools, and contact submissions. It uses a Vite/React frontend, a FastAPI backend, and the hosted Supabase project for database and auth.
 
 ## Tech Stack
 
 - Frontend: React, Vite, TypeScript-style TSX, Tailwind utility classes
 - Backend: FastAPI under `backend/`
-- Database/Auth: Supabase
-- Local tooling: Supabase CLI and Docker Desktop
+- Database/Auth: hosted Supabase
+- Database tooling: Supabase CLI for linking, migrations, pull, and push
 
 ## Frontend Setup
 
@@ -55,64 +55,21 @@ Useful endpoints:
 - `POST /api/contact-messages`
 - `GET /api/certificates/verify/{code}`
 
-## Local Supabase Development
+## Supabase Workflow
 
-Docker Desktop must be running before starting Supabase locally.
+This project is configured for the hosted Mumbai Supabase project. Local/offline Supabase Docker workflows are not part of the supported launch setup.
 
-Start local Supabase:
+Copy `.env.example` values into your own `.env.local` and `.env.api`, then set the hosted Supabase URL and keys. Never commit real `.env` files.
 
-```bash
-npm run supabase:start
-```
-
-Copy `.env.local.supabase.example` to `.env.local`, then get the local anon/publishable key:
+Useful hosted-project commands:
 
 ```bash
-npm run supabase:status
+npm run supabase:link
+npm run supabase:pull
+npm run supabase:push
 ```
 
-Paste the printed local key into `VITE_SUPABASE_PUBLISHABLE_KEY` in `.env.local`.
-
-Apply all migrations to the local database:
-
-```bash
-npm run supabase:reset
-```
-
-Local Supabase Studio opens at `http://127.0.0.1:54323`.
-
-## Supabase Sync Workflow
-
-Migrations are the source of truth for database structure. Local Supabase is for development and testing; the hosted Supabase project is for production.
-
-The hosted Supabase region migration from Seoul `ap-northeast-2` to Mumbai `ap-south-1` is tracked in [docs/SUPABASE_REGION_MIGRATION.md](docs/SUPABASE_REGION_MIGRATION.md). Do not commit secrets or private exported data while completing the remaining data, auth, storage, and hosting cutover steps.
-
-Rebuild local Supabase from committed migrations:
-
-```bash
-npm run sync:local-reset
-```
-
-Bring hosted schema changes into local after dashboard edits:
-
-```bash
-npm run sync:pull-schema
-```
-
-Push tested local migrations to hosted Supabase:
-
-```bash
-npm run sync:push-schema
-```
-
-Optional public-table data copy for development:
-
-```bash
-npm run sync:dump-public-data
-npm run sync:restore-public-data
-```
-
-The dump is written under `supabase/.temp`, which is ignored by git. Do not use real private user data for local testing.
+Migrations under `supabase/migrations` remain the source of truth for database structure. The hosted Supabase region migration from Seoul `ap-northeast-2` to Mumbai `ap-south-1` is tracked in [docs/SUPABASE_REGION_MIGRATION.md](docs/SUPABASE_REGION_MIGRATION.md).
 
 ## Production Deployment
 

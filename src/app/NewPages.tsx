@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { useSiteSettings } from "../lib/siteSettings";
 import { apiGet, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
+import { DSC_LOGO_SRC, SMS_TU_LOGO_SRC } from "../config/assets";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -115,12 +116,12 @@ const CertificateCanvas = ({ certificate, compact = false }: { certificate: any;
       <div className="absolute right-64 -bottom-28 h-[95%] w-16 rotate-45 bg-white/80" />
       <div className="relative z-10 flex h-full flex-col px-[8%] py-[6%]">
         <div className="flex items-start justify-between">
-          <img src="/assets/dsc-logo.png" alt="Data Science Club logo" className={`${compact ? "h-12 w-20" : "h-28 w-36"} object-contain`} />
+          <img src={DSC_LOGO_SRC} alt="Data Science Club logo" className={`${compact ? "h-12 w-20" : "h-28 w-36"} object-contain`} />
           <div className="text-center">
             <h1 className={`${compact ? "text-3xl" : "text-7xl"} font-black uppercase tracking-[0.12em] text-[#073B91]`} style={fonts.sans}>Certificate</h1>
             <p className={`${compact ? "text-base" : "text-4xl"} mt-2 italic uppercase text-[#0B65AE]`} style={fonts.sans}>of {certificateType}</p>
           </div>
-          <img src="/assets/sms-tu-logo.png" alt="SMS TU logo" className={`${compact ? "h-14 w-14" : "h-28 w-28"} object-contain`} />
+          <img src={SMS_TU_LOGO_SRC} alt="SMS TU logo" className={`${compact ? "h-14 w-14" : "h-28 w-28"} object-contain`} />
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center text-center">

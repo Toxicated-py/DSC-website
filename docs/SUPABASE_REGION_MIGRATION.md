@@ -28,14 +28,9 @@ npm run supabase:link
 ### Project refs and scripts
 
 - `package.json`
-  - `supabase:start`, `supabase:stop`, `supabase:status`, `supabase:reset`
   - `supabase:link` links to the Mumbai project ref: `tpfyvmezktigmtyzixez`
   - `supabase:pull`, `supabase:push`
-  - `sync:*` scripts call `scripts/supabase-sync.ps1`
-- `scripts/supabase-sync.ps1`
-  - Uses the Mumbai project ref in `pull-schema`, `push-schema`, and `dump-public-data`
-  - Dumps public schema data to `supabase/.temp/remote-public-data.sql`
-  - Has confirmation prompts for pushing schema and copying public data
+  - Local/offline Supabase Docker scripts have been removed from the launch workflow.
 
 ### Environment examples
 
@@ -179,7 +174,6 @@ npx supabase link --project-ref tpfyvmezktigmtyzixez
 The repo now points non-secret Supabase CLI references at the Mumbai project:
 
 - `package.json`
-- `scripts/supabase-sync.ps1`
 - `.env.remote.supabase.example`
 
 ### 4. Apply schema migrations
@@ -363,7 +357,6 @@ Keep `SUPABASE_SERVICE_ROLE_KEY` and `ADMIN_RPC_SECRET` server-only.
 Non-secret repo references now point at the Mumbai project:
 
 - `package.json` `supabase:link`
-- `scripts/supabase-sync.ps1`
 - `.env.remote.supabase.example`
 
 ### 13. Build and test

@@ -1,6 +1,7 @@
 import React from "react";
 import { ExternalLink, Github, Mail, Users } from "lucide-react";
 import { useSiteSettings } from "../lib/siteSettings";
+import { DSC_LOGO_SRC } from "../config/assets";
 
 const fonts = {
   display: { fontFamily: "'Anton', sans-serif" },
@@ -41,7 +42,7 @@ export function TeamPage() {
     return (
       <BrutalCard key={member.id} color={color} className="flex h-full min-h-[420px] flex-col">
         <div className="mb-4 aspect-[4/3] overflow-hidden border-2 border-[#171717] bg-slate-200">
-          <img src={member.image || "/assets/dsc-logo.png"} alt={member.name} className="h-full w-full object-cover" />
+          <img src={member.image || DSC_LOGO_SRC} alt={member.name} className="h-full w-full object-cover" />
         </div>
         <BrutalBadge color={inverted ? "bg-white" : "bg-[#2563EB]"} text={inverted ? "text-[#171717]" : "text-white"} className="mb-3 w-max">
           {member.position}

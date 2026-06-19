@@ -1,6 +1,7 @@
 import React, { forwardRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import type { Certificate, PublicCertificate } from "../../types/certificate";
+import { DSC_LOGO_SRC, SMS_TU_LOGO_SRC } from "../../config/assets";
 
 type RenderableCertificate = Certificate | PublicCertificate;
 
@@ -150,12 +151,12 @@ export const CertificateRenderer = forwardRef<HTMLDivElement, CertificateRendere
 
         <div className="relative z-10 h-full px-[10.2%] py-[6.8%] text-[#073B91]">
           <img
-            src="/assets/dsc-logo.png"
+            src={DSC_LOGO_SRC}
             alt="Data Science Club logo"
             className="absolute left-[10.4%] top-[12%] h-[18%] w-[14%] object-contain"
           />
           <img
-            src="/assets/sms-tu-logo.png"
+            src={SMS_TU_LOGO_SRC}
             alt="SMS TU logo"
             className="absolute right-[10.7%] top-[11.2%] h-[17.5%] w-[13.5%] object-contain"
           />

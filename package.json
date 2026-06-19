@@ -8,19 +8,9 @@
     "dev": "vite",
     "api:install": "python -m pip install -r backend/requirements.txt",
     "api:dev": "python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8001",
-    "supabase:start": "npx supabase start",
-    "supabase:stop": "npx supabase stop",
-    "supabase:status": "npx supabase status",
-    "supabase:reset": "npx supabase db reset",
     "supabase:link": "npx supabase link --project-ref tpfyvmezktigmtyzixez",
     "supabase:pull": "npx supabase db pull",
-    "supabase:push": "npx supabase db push",
-    "sync:status": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode status",
-    "sync:local-reset": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode local-reset",
-    "sync:pull-schema": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode pull-schema",
-    "sync:push-schema": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode push-schema",
-    "sync:dump-public-data": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode dump-public-data",
-    "sync:restore-public-data": "powershell -ExecutionPolicy Bypass -File scripts/supabase-sync.ps1 -Mode restore-public-data"
+    "supabase:push": "npx supabase db push"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
