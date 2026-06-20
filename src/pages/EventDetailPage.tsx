@@ -16,7 +16,9 @@ const formatEventDate = (date: Date) =>
 const remainingLabel = (date: Date) => {
   const diff = date.getTime() - Date.now();
   if (diff <= 0) return "ended";
-  const hours = Math.ceil(diff / 36e5);
+  const minutes = Math.ceil(diff / 6e4);
+  if (minutes < 60) return `${minutes} min remaining`;
+  const hours = Math.ceil(minutes / 60);
   return hours < 24 ? `${hours} hrs remaining` : `${Math.ceil(hours / 24)} days remaining`;
 };
 
