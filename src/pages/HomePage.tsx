@@ -9,7 +9,7 @@ import { fonts } from "../config/fonts";
 const workCards = [
   {
     title: "Workshops",
-    body: "We run sessions where you actually touch the data. Python, ML, SQL, visualization - hands-on, beginner-friendly, and taught by fellow students.",
+    body: "We run sessions where you actually touch the data. Python, ML, SQL, visualization - hands-on, beginner-friendly, and taught by experts.",
     color: "bg-[#2563EB] text-white",
     icon: <BookOpen size={28} />,
   },
@@ -104,8 +104,8 @@ export function HomePage() {
   return (
     <>
       <section className="relative overflow-hidden border-y-2 border-[#171717] bg-[#F4EFEB]">
-        <div className="absolute left-0 top-0 h-[420px] w-[520px] max-w-[80vw] bg-[#E0DEF4]/70 pointer-events-none" style={{ clipPath: "polygon(0 0, 90% 0, 100% 72%, 0 55%)" }} />
-        <div className="absolute left-0 top-0 h-[360px] w-[460px] max-w-[75vw] bg-white/55 pointer-events-none" style={{ clipPath: "polygon(0 0, 82% 0, 76% 100%, 0 78%)" }} />
+        <div className="pointer-events-none absolute left-0 top-0 h-[520px] w-[820px] max-w-[92vw] bg-[#E0DEF4]/80" style={{ clipPath: "polygon(0 0, 88% 0, 100% 76%, 0 58%)" }} />
+        <div className="pointer-events-none absolute left-0 top-0 h-[470px] w-[700px] max-w-[86vw] bg-white/60" style={{ clipPath: "polygon(0 0, 82% 0, 74% 100%, 0 80%)" }} />
 
         <div className="relative mx-auto max-w-[1650px] px-5 py-10 sm:px-8 md:px-12 lg:px-20 lg:py-14">
           <div className="mb-8 flex items-center gap-4">
