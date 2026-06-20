@@ -254,30 +254,30 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#F4EFEB] py-16 md:py-20">
-        <div className="mx-auto grid max-w-[1450px] gap-10 px-5 sm:px-8 md:px-12 lg:grid-cols-[0.9fr_1.1fr] lg:px-16">
+      <section className="bg-[#F4EFEB] py-12 md:py-16">
+        <div className="mx-auto grid max-w-[1320px] gap-8 px-5 sm:px-8 md:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:px-12">
           <div>
             <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Who we are</BrutalBadge>
-            <h2 className="mt-5 max-w-[560px] text-5xl leading-[0.92] text-[#171717] sm:text-6xl lg:text-7xl" style={fonts.display}>
+            <h2 className="mt-4 max-w-[470px] text-4xl leading-[0.92] text-[#171717] sm:text-5xl lg:text-6xl" style={fonts.display}>
               WE ARE THE STUDENTS WHO STAYED CURIOUS.
             </h2>
-            <p className="mt-6 max-w-2xl text-xl leading-relaxed text-slate-600" style={fonts.serif}>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg" style={fonts.serif}>
               The BDS program at SMS gives you the foundation. Data Sarathi exists for everything else - the projects you want to build, the peers you want to learn with, and the portfolio that proves you can do the work. Anyone at SMS TU is welcome here.
             </p>
-            <Link to="/about" className="mt-10 inline-block">
+            <Link to="/about" className="mt-7 inline-block">
               <BrutalButton color="bg-[#FFE800]">Read Our Story</BrutalButton>
             </Link>
           </div>
 
-          <div className="space-y-6 lg:pt-12">
+          <div className="space-y-4 lg:pt-8">
             {identityCards.map((card) => (
-              <div key={card.title} className="flex gap-5 border-2 border-[#171717] bg-white p-6 brutal-shadow">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center border-2 border-[#171717] bg-[#FFE800]">
+              <div key={card.title} className="flex gap-4 border-2 border-[#171717] bg-white p-5 brutal-shadow">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center border-2 border-[#171717] bg-[#FFE800]">
                   {card.icon}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold uppercase tracking-widest">{card.title}</h3>
-                  <p className="mt-2 text-lg leading-relaxed text-slate-600">{card.body}</p>
+                  <h3 className="text-base font-bold uppercase tracking-widest">{card.title}</h3>
+                  <p className="mt-2 text-base leading-relaxed text-slate-600">{card.body}</p>
                 </div>
               </div>
             ))}
