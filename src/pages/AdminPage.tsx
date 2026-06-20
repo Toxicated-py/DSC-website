@@ -50,6 +50,23 @@ import {
 import { CertificateRenderer } from "../components/CertificateRenderer";
 import { fonts } from "../config/fonts";
 import { AdminAccessDenied, AdminShellHeader, AdminTabs } from "./admin/AdminShell";
+import {
+  OverviewTab,
+  UsersTab,
+  EventsTab,
+  ProposalsTab,
+  ProjectsTab,
+  BlogsTab,
+  GalleryTab,
+  PartnersTab,
+  ResourcesTab,
+  CertificatesTab,
+  ContentTab,
+  ContactsTab,
+  SettingsTab,
+  AnalyticsTab,
+  LogsTab
+} from "./admin/tabs";
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, BrutalSelect, BrutalTextarea } from "./admin/AdminPrimitives";
 import {
   assignableRoleOptions,
@@ -1856,6 +1873,316 @@ export function ComprehensiveAdminPanel() {
     );
   };
 
+
+  const adminTabContext = {
+    SettingsSection,
+    activeBlogs,
+    activeCredentialCount,
+    activeEventCount,
+    activeEvents,
+    activeMemberCount,
+    activePartners,
+    activeProjects,
+    activeTab,
+    addCertificateSignature,
+    addContactItem,
+    addFAQ,
+    addLearningMaterial,
+    addSocialLink,
+    addTeamMember,
+    adminProfile,
+    adminStatus,
+    alreadyIssuedCertificateAttendees,
+    answer,
+    applyCertificateEvent,
+    approvedGallery,
+    archivedBlogs,
+    archivedEvents,
+    archivedPartners,
+    assignableRoleOptions,
+    attendanceSummary,
+    attendees,
+    attendeesForEvent,
+    auditLogs,
+    author,
+    blogForm,
+    blogPosts,
+    blogRows,
+    buildCertificateTemplateData,
+    canAccessAdmin,
+    canManage,
+    capacity,
+    certificateEventAttendees,
+    certificateEventRegistrations,
+    certificateForm,
+    certificateMemberOptions,
+    certificateModal,
+    certificatePreviewName,
+    certificatePreviewRecipient,
+    certificatePreviewRecord,
+    certificateRows,
+    certificateStatus,
+    certificateTemplateOptions,
+    checkedIn,
+    checkedInCount,
+    contactMessages,
+    contentStatusStats,
+    coordinatorEmails,
+    copyCertificateLink,
+    createEventFromProposal,
+    createdEvent,
+    currentRoles,
+    data,
+    date,
+    deleteCertificate,
+    deleteContactMessage,
+    deleteLearningMaterial,
+    deletePartner,
+    deleteUserProfile,
+    destructiveAuditCount,
+    editCertificate,
+    editingBlogId,
+    editingCertificateId,
+    editingItem,
+    editingPartnerId,
+    editingProjectId,
+    eligibleCertificateAttendees,
+    eventCertificateType,
+    eventForm,
+    eventProposals,
+    eventRegistrations,
+    eventRows,
+    eventTime,
+    eventUtilization,
+    events,
+    failedDetails,
+    filteredAuditLogs,
+    filteredEvents,
+    filteredProjects,
+    filteredUsers,
+    findProfileByEmail,
+    firstAddress,
+    firstEmail,
+    firstPhone,
+    form,
+    gallerySubmissions,
+    getRoleBadge,
+    handleArchiveEvent,
+    handleIssueCertificate,
+    handleUserAction,
+    isAdmin,
+    isCertificateAdmin,
+    isCheckedIn,
+    isFullAdmin,
+    isIssued,
+    isOpen,
+    isOrganizer,
+    isOrganizerAdmin,
+    isSelectedRecipientAlreadyIssued,
+    isSelectedRecipientCheckedIn,
+    issueEventCertificates,
+    issuedCertificates,
+    issuedRecipientIdsForEvent,
+    issuingBulkCertificates,
+    label,
+    learningMaterials,
+    linkTeamMemberToProfile,
+    logSearchQuery,
+    managerTabs,
+    mapped,
+    mappedProfiles,
+    maxGrowth,
+    memberGrowth,
+    membershipStatus,
+    message,
+    monthLabels,
+    myProfile,
+    name,
+    navigate,
+    newContactItem,
+    newFAQ,
+    newSocialLink,
+    newTeamMember,
+    next,
+    nextPrimaryRole,
+    nextRoles,
+    nextSocialLinks,
+    nextTab,
+    normalizeCertificateForRenderer,
+    normalized,
+    normalizedEmail,
+    normalizedSettings,
+    now,
+    ok,
+    openAdminTab,
+    openBlogModal,
+    openEventModal,
+    openPartnerModal,
+    openProjectModal,
+    openReviewPreview,
+    openSettingsSections,
+    partnerForm,
+    partnerSubmissions,
+    patch,
+    payload,
+    pendingBlogs,
+    pendingEventProposals,
+    pendingGallery,
+    pendingProjects,
+    pendingReviewCount,
+    platform,
+    popularEvents,
+    position,
+    postsThisMonth,
+    profile,
+    profileById,
+    profileFields,
+    profileOptions,
+    profileToTeamFields,
+    profiles,
+    projectForm,
+    projectRows,
+    projects,
+    projectsThisMonth,
+    publicUrl,
+    query,
+    question,
+    recentAuditLogs,
+    refreshCertificateRegistry,
+    refreshed,
+    registrationsCount,
+    rejectedEventProposals,
+    rejectedGallery,
+    rejectedProjects,
+    removeCertificateSignature,
+    removeContactItem,
+    removeFAQ,
+    removeSocialLink,
+    removeTeamMember,
+    resetBlogForm,
+    resetCertificateForm,
+    resetEventForm,
+    resetPartnerForm,
+    resetProjectForm,
+    resource,
+    resourceForm,
+    reviewPreview,
+    revokedCredentialCount,
+    role,
+    roles,
+    rows,
+    safeList,
+    saveBlogPost,
+    saveEvent,
+    savePartner,
+    saveProject,
+    saveSiteSettings,
+    saveUser,
+    savingBlog,
+    savingEvent,
+    savingProject,
+    savingSettings,
+    savingUser,
+    searchQuery,
+    selectedCertificateEvent,
+    selectedEvent,
+    selectedRegistration,
+    selectedTab,
+    setAdminProfile,
+    setAdminStatus,
+    setAuditLogs,
+    setBlogForm,
+    setBlogPosts,
+    setCertificateForm,
+    setCertificateModal,
+    setCertificateRevoked,
+    setCertificateStatus,
+    setContactMessages,
+    setEditingBlogId,
+    setEditingCertificateId,
+    setEditingItem,
+    setEditingPartnerId,
+    setEditingProjectId,
+    setEventForm,
+    setEventProposals,
+    setEventRegistrations,
+    setEvents,
+    setGallerySubmissions,
+    setIsCertificateAdmin,
+    setIssuedCertificates,
+    setIssuingBulkCertificates,
+    setLearningMaterials,
+    setLogSearchQuery,
+    setNewContactItem,
+    setNewFAQ,
+    setNewSocialLink,
+    setNewTeamMember,
+    setOpenSettingsSections,
+    setPartnerForm,
+    setPartnerSubmissions,
+    setProfileOptions,
+    setProjectForm,
+    setProjects,
+    setResourceForm,
+    setReviewPreview,
+    setSavingBlog,
+    setSavingEvent,
+    setSavingProject,
+    setSavingSettings,
+    setSavingUser,
+    setSearchQuery,
+    setSelectedTab,
+    setSettingsStatus,
+    setShowBlogModal,
+    setShowEventModal,
+    setShowPartnerModal,
+    setShowProjectModal,
+    setShowUserModal,
+    setSiteSettings,
+    setUsers,
+    settingsStatus,
+    showBlogModal,
+    showEventModal,
+    showPartnerModal,
+    showProjectModal,
+    showUserModal,
+    signatureData,
+    siteSettings,
+    slug,
+    statusLabel,
+    summary,
+    tabs,
+    tags,
+    technologies,
+    templateData,
+    thisMonth,
+    todayAuditCount,
+    toggleEventRegistration,
+    toggleUserRole,
+    uncheckedCertificateAttendees,
+    upcomingEventCount,
+    updateBlogStatus,
+    updateCertificateSignature,
+    updateContactItem,
+    updateContactMessageStatus,
+    updateEventStatus,
+    updateFAQ,
+    updateHomeFeature,
+    updateHomeSettings,
+    updateProfile,
+    updateProjectStatus,
+    updateProposalStatus,
+    updateSocialLink,
+    updateSubmissionStatus,
+    updateTeamMember,
+    uploadCertificateSignature,
+    uploadCertificateTemplate,
+    url,
+    users,
+    value,
+    visibleTabs,
+  };
+
   if (adminProfile && !canAccessAdmin) {
     return <AdminAccessDenied navigate={navigate} />;
   }
@@ -1872,2066 +2199,46 @@ export function ComprehensiveAdminPanel() {
       )}
 
       {/* âââ OVERVIEW TAB âââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
-      {activeTab === "overview" && isFullAdmin && (
-        <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
-            <BrutalCard color="bg-[#2563EB]" className="text-white">
-              <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>{users.length}</div>
-              <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest opacity-80">Total Users</div>
-            </BrutalCard>
-            <BrutalCard color="bg-[#7C3AED]" className="text-white">
-              <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>{events.length}</div>
-              <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest opacity-80">Events</div>
-            </BrutalCard>
-            <BrutalCard color="bg-[#FB7185]" className="text-white">
-              <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>{projects.length}</div>
-              <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest opacity-80">Projects</div>
-            </BrutalCard>
-            <BrutalCard color="bg-[#FFE800]">
-              <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>
-                {projects.filter(p => p.status === "submitted" || p.status === "pending").length + eventProposals.filter(p => p.status === "pending").length}
-              </div>
-              <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-600">Pending Reviews</div>
-            </BrutalCard>
-          </div>
-
-          {/* Quick Actions */}
-          <BrutalCard className="mb-8">
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Quick Actions</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {isFullAdmin && (
-                <button
-                  onClick={() => void openEventModal()}
-                  className="p-4 border-2 border-[#171717] bg-[#2563EB] text-white hover:bg-[#1D4ED8] transition-all brutal-shadow brutal-shadow-hover"
-                >
-                  <Plus size={20} className="mb-2" />
-                  <div className="text-xs font-bold uppercase tracking-widest">Create Event</div>
-                </button>
-              )}
-              {isFullAdmin && (
-                <button
-                  onClick={() => openAdminTab("users")}
-                  className="p-4 border-2 border-[#171717] bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-all brutal-shadow brutal-shadow-hover"
-                >
-                  <Users size={20} className="mb-2" />
-                  <div className="text-xs font-bold uppercase tracking-widest">Manage Users</div>
-                </button>
-              )}
-              <button
-                onClick={() => openAdminTab("projects")}
-                className="p-4 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all brutal-shadow brutal-shadow-hover"
-              >
-                <Trophy size={20} className="mb-2" />
-                <div className="text-xs font-bold uppercase tracking-widest">Review Projects</div>
-              </button>
-            </div>
-          </BrutalCard>
-
-          {/* Recent Activity */}
-          <BrutalCard>
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Recent Activity</h2>
-            <div className="space-y-4">
-              <div className="flex items-start gap-4 pb-4 border-b border-slate-200">
-                <div className="w-10 h-10 bg-[#2563EB] border-2 border-[#171717] flex items-center justify-center text-white">
-                  <User size={16} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold">Latest member</p>
-                  <p className="text-xs text-slate-500 font-mono">{users[0]?.name || "No members yet"}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4 pb-4 border-b border-slate-200">
-                <div className="w-10 h-10 bg-[#FB7185] border-2 border-[#171717] flex items-center justify-center text-white">
-                  <Trophy size={16} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold">Latest project submission</p>
-                  <p className="text-xs text-slate-500 font-mono">{projects[0]?.title || "No projects submitted yet"}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-[#7C3AED] border-2 border-[#171717] flex items-center justify-center text-white">
-                  <Calendar size={16} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold">Latest event proposal</p>
-                  <p className="text-xs text-slate-500 font-mono">{eventProposals[0]?.title || "No event proposals yet"}</p>
-                </div>
-              </div>
-            </div>
-          </BrutalCard>
-        </>
-      )}
+      <OverviewTab ctx={adminTabContext} />
 
       {/* âââ USERS TAB âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
-      {activeTab === "users" && isFullAdmin && (
-        <>
-          {/* Search & Actions */}
-          <div className="mb-8 flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search users by name or email..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full border-2 border-[#171717] p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all brutal-shadow"
-              />
-            </div>
-            <button
-              onClick={() => { setEditingItem(null); setShowUserModal(true); }}
-              className="px-6 py-3 bg-[#2563EB] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-sm brutal-shadow brutal-shadow-hover flex items-center gap-2 justify-center"
-            >
-              <Plus size={16} /> Add User
-            </button>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
-            <BrutalCard color="bg-white">
-              <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>{users.length}</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Total Users</div>
-            </BrutalCard>
-            <BrutalCard color="bg-[#2563EB]" className="text-white">
-              <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>
-                {users.filter(u => u.role === "member" && u.verified).length}
-              </div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Members</div>
-            </BrutalCard>
-            <BrutalCard color="bg-[#7C3AED]" className="text-white">
-              <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>
-                {users.filter(u => u.role === "organizer").length}
-              </div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Organizers</div>
-            </BrutalCard>
-            <BrutalCard color="bg-slate-400" className="text-white">
-              <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>
-                {users.filter(u => !u.verified).length}
-              </div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Pending</div>
-            </BrutalCard>
-          </div>
-
-          {/* Users Table */}
-          <BrutalCard color="bg-white" className="p-0 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-[#171717]">
-                    <th className="text-left p-4 text-xs font-bold uppercase tracking-widest text-slate-500">User</th>
-                    <th className="text-left p-4 text-xs font-bold uppercase tracking-widest text-slate-500">Email</th>
-                    <th className="text-left p-4 text-xs font-bold uppercase tracking-widest text-slate-500">Role</th>
-                    <th className="text-left p-4 text-xs font-bold uppercase tracking-widest text-slate-500">Designation</th>
-                    <th className="text-left p-4 text-xs font-bold uppercase tracking-widest text-slate-500">Status</th>
-                    <th className="text-right p-4 text-xs font-bold uppercase tracking-widest text-slate-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((user) => (
-                    <tr key={user.id} className="border-b border-slate-200 hover:bg-[#F4EFEB] transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-[#2563EB] border-2 border-[#171717] flex items-center justify-center text-white font-bold text-sm">
-                            {user.name.charAt(0)}
-                          </div>
-                          <span className="font-bold text-sm">{user.name}</span>
-                        </div>
-                      </td>
-                      <td className="p-4 font-mono text-xs md:text-sm text-slate-600">{user.email}</td>
-                      <td className="p-4">{getRoleBadge(user.role, user.verified)}</td>
-                      <td className="p-4">
-                        {user.designation ? (
-                          <div className="space-y-2">
-                            <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
-                              {user.designation}
-                            </span>
-                            <div>
-                              <BrutalBadge
-                                color={user.designationStatus === "approved" ? "bg-green-500" : user.designationStatus === "rejected" ? "bg-[#FB7185]" : "bg-[#FFE800]"}
-                                text={user.designationStatus === "pending" ? "text-[#171717]" : "text-white"}
-                              >
-                                {user.designationStatus || "pending"}
-                              </BrutalBadge>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">â</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        {user.verified ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600">
-                            <Check size={12} strokeWidth={3} /> Verified
-                          </span>
-                        ) : (
-                          <span className="text-xs font-bold text-slate-400">Pending</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => { setEditingItem(user); setShowUserModal(true); }}
-                            className="p-2 hover:bg-[#2563EB] hover:text-white border-2 border-[#171717] bg-white transition-all"
-                            title="Edit user"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void deleteUserProfile(user)}
-                            className="p-2 hover:bg-[#FB7185] hover:text-white border-2 border-[#171717] bg-white transition-all"
-                            title="Delete profile"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </BrutalCard>
-        </>
-      )}
+      <UsersTab ctx={adminTabContext} />
 
       {/* âââ EVENTS TAB ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
-      {activeTab === "events" && (
-        <>
-          <div className="mb-8 flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search events..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full border-2 border-[#171717] p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all brutal-shadow"
-              />
-            </div>
-            {isFullAdmin && (
-              <button
-                onClick={() => void openEventModal()}
-                className="px-6 py-3 bg-[#7C3AED] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-sm brutal-shadow brutal-shadow-hover flex items-center gap-2 justify-center"
-              >
-                <Plus size={16} /> Create Event
-              </button>
-            )}
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeEvents.map((event) => (
-              <BrutalCard key={event.id} color="bg-white">
-                <div className="flex items-start justify-between mb-4">
-                  <BrutalBadge color={event.status === "Upcoming" ? "bg-[#2563EB]" : "bg-slate-400"}>
-                    {event.status}
-                  </BrutalBadge>
-                  {event.featured && <Star size={16} className="text-[#FFE800] fill-[#FFE800]" />}
-                </div>
-                <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>{event.title}</h3>
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-xs text-slate-600">
-                    <Calendar size={14} />
-                    <span>{event.date}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-600">
-                    <MapPin size={14} />
-                    <span>{event.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-600">
-                    <Users size={14} />
-                    <span>{event.attendees} attendees</span>
-                  </div>
-                </div>
-                <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]" className="mb-4">
-                  {event.category}
-                </BrutalBadge>
-                <div className="flex gap-2 pt-4 border-t-2 border-slate-200">
-                  <button
-                    onClick={() => void openEventModal(event)}
-                    className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => toggleEventRegistration(event)}
-                    className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
-                  >
-                    {event.registration_open ? "Close Reg" : "Open Reg"}
-                  </button>
-                  {isFullAdmin && (
-                    <button
-                      onClick={() => handleArchiveEvent(event.id)}
-                      className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs"
-                    >
-                      Archive
-                    </button>
-                  )}
-                </div>
-              </BrutalCard>
-            ))}
-          </div>
-
-          {isFullAdmin && <div className="mt-10">
-            <div className="flex items-center justify-between gap-4 mb-5">
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Event Proposals</h2>
-              <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{pendingEventProposals.length}</BrutalBadge>
-            </div>
-            <div className="grid gap-6">
-              {pendingEventProposals.length === 0 ? (
-                <BrutalCard color="bg-white" className="text-center">
-                  <MessageSquare size={36} className="mx-auto mb-3 text-[#2563EB]" />
-                  <h3 className="text-2xl uppercase mb-2" style={fonts.display}>No Pending Proposals</h3>
-                  <p className="text-sm text-slate-600">New event ideas will appear here for review.</p>
-                </BrutalCard>
-              ) : (
-                pendingEventProposals.map((proposal) => (
-                  <BrutalCard key={proposal.id} color="bg-white">
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 flex-wrap mb-2">
-                          <h3 className="text-xl font-bold uppercase" style={fonts.display}>{proposal.title}</h3>
-                          <BrutalBadge color="bg-[#2563EB]">{proposal.event_type}</BrutalBadge>
-                          <BrutalBadge color={proposal.status === "approved" ? "bg-green-500" : proposal.status === "rejected" ? "bg-[#FB7185]" : "bg-[#FFE800]"} text={proposal.status === "pending" ? "text-[#171717]" : "text-white"}>
-                            {proposal.status}
-                          </BrutalBadge>
-                        </div>
-                        <p className="text-sm text-slate-600 mb-3">
-                          by <span className="font-bold">{proposal.proposer}</span> - {proposal.submittedDate}
-                        </p>
-                        <p className="text-sm text-slate-700 mb-3">{proposal.summary}</p>
-                        <div className="flex gap-4 flex-wrap text-xs font-mono text-slate-500">
-                          <span>Date: {proposal.proposed_date || "TBA"}</span>
-                          <span>Venue: {proposal.venue || "TBA"}</span>
-                          <span>Capacity: {proposal.capacity || "TBA"}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <button
-                          onClick={() => openReviewPreview("Event Proposal", [
-                            { label: "Title", value: proposal.title },
-                            { label: "Type", value: proposal.event_type },
-                            { label: "Proposer", value: proposal.proposer },
-                            { label: "Submitted", value: proposal.submittedDate },
-                            { label: "Date", value: proposal.proposed_date },
-                            { label: "Venue", value: proposal.venue },
-                            { label: "Capacity", value: proposal.capacity },
-                            { label: "Coordinators", value: proposal.coordinator_emails },
-                            { label: "Summary", value: proposal.summary },
-                          ], undefined, {
-                            kind: "event",
-                            title: proposal.title,
-                            category: proposal.event_type,
-                            summary: proposal.summary,
-                            date: proposal.proposed_date || "Date TBD",
-                            location: proposal.venue || "Venue TBD",
-                            capacity: proposal.capacity || "Capacity TBD",
-                          })}
-                          className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => createEventFromProposal(proposal)}
-                          className="px-3 py-2 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs"
-                        >
-                          Approve + Create
-                        </button>
-                        <button
-                          onClick={() => updateProposalStatus(proposal.id, "rejected")}
-                          className="px-3 py-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  </BrutalCard>
-                ))
-              )}
-            </div>
-            <div className="mt-8">
-              <h3 className="text-xl uppercase mb-4" style={fonts.display}>Rejected Proposals</h3>
-              <div className="grid gap-3">
-                {rejectedEventProposals.map((proposal) => (
-                  <div key={proposal.id} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div>
-                      <p className="font-bold uppercase">{proposal.title}</p>
-                      <p className="text-xs font-mono text-slate-500">{proposal.proposer} - {proposal.submittedDate}</p>
-                    </div>
-                    <BrutalBadge color="bg-[#FB7185]">Rejected</BrutalBadge>
-                  </div>
-                ))}
-                {rejectedEventProposals.length === 0 && (
-                  <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No rejected proposals.</p></BrutalCard>
-                )}
-              </div>
-            </div>
-            {archivedEvents.length > 0 && (
-              <div className="mt-8">
-                <h3 className="text-xl uppercase mb-4" style={fonts.display}>Archived Events</h3>
-                <div className="grid gap-3">
-                  {archivedEvents.map((event) => (
-                    <div key={event.id} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div>
-                        <p className="font-bold uppercase">{event.title}</p>
-                        <p className="text-xs font-mono text-slate-500">{event.date} - {event.location}</p>
-                      </div>
-                    <button onClick={() => void openEventModal(event)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                    <button onClick={() => updateEventStatus(event.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 font-bold uppercase text-xs">Unarchive</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>}
-        </>
-      )}
+      <EventsTab ctx={adminTabContext} />
 
       {/* âââ PROJECTS TAB âââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
-      {activeTab === "proposals" && isFullAdmin && (
-        <div className="grid gap-6">
-          {eventProposals.length === 0 ? (
-            <BrutalCard color="bg-white" className="text-center">
-              <MessageSquare size={36} className="mx-auto mb-3 text-[#2563EB]" />
-              <h2 className="text-2xl uppercase mb-2" style={fonts.display}>No Event Proposals</h2>
-              <p className="text-sm text-slate-600">Submitted event ideas will appear here for review.</p>
-            </BrutalCard>
-          ) : (
-            eventProposals.map((proposal) => (
-              <BrutalCard key={proposal.id} color="bg-white">
-                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 flex-wrap mb-2">
-                      <h3 className="text-xl font-bold uppercase" style={fonts.display}>{proposal.title}</h3>
-                      <BrutalBadge color="bg-[#2563EB]">{proposal.event_type}</BrutalBadge>
-                      <BrutalBadge color={proposal.status === "approved" ? "bg-green-500" : proposal.status === "rejected" ? "bg-[#FB7185]" : "bg-[#FFE800]"} text={proposal.status === "pending" ? "text-[#171717]" : "text-white"}>
-                        {proposal.status}
-                      </BrutalBadge>
-                    </div>
-                    <p className="text-sm text-slate-600 mb-3">
-                      by <span className="font-bold">{proposal.proposer}</span> - {proposal.submittedDate}
-                    </p>
-                    <p className="text-sm text-slate-700 mb-3">{proposal.summary}</p>
-                    <div className="flex gap-4 flex-wrap text-xs font-mono text-slate-500">
-                      <span>Date: {proposal.proposed_date || "TBA"}</span>
-                      <span>Venue: {proposal.venue || "TBA"}</span>
-                      <span>Capacity: {proposal.capacity || "TBA"}</span>
-                      <span>Coordinators: {proposal.coordinator_emails?.length ? proposal.coordinator_emails.join(", ") : "none"}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => createEventFromProposal(proposal)}
-                      className="px-3 py-2 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs"
-                    >
-                      Approve + Create
-                    </button>
-                    <button
-                      onClick={() => updateProposalStatus(proposal.id, "rejected")}
-                      className="px-3 py-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              </BrutalCard>
-            ))
-          )}
-        </div>
-      )}
+      <ProposalsTab ctx={adminTabContext} />
 
-      {activeTab === "projects" && (isFullAdmin || isOrganizerAdmin) && (
-        <>
-          <div className="mb-8 flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search projects..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full border-2 border-[#171717] p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all brutal-shadow"
-              />
-            </div>
-          </div>
-
-          <h2 className="text-2xl uppercase mb-4" style={fonts.display}>Pending Projects</h2>
-          <div className="grid gap-6 mb-10">
-            {pendingProjects.map((project) => (
-              <BrutalCard key={project.id} color="bg-white">
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h3 className="text-xl font-bold uppercase" style={fonts.display}>{project.title}</h3>
-                      {project.featured && <Star size={16} className="text-[#FFE800] fill-[#FFE800]" />}
-                    </div>
-                    <p className="text-sm text-slate-600 mb-3">
-                      by <span className="font-bold">{project.author}</span> â¢ {project.submittedDate}
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      {project.tags.map(tag => (
-                        <BrutalBadge key={tag} color="bg-[#2563EB]" className="text-[9px]">{tag}</BrutalBadge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2 md:items-end">
-                    <BrutalBadge color={project.status === "published" || project.status === "approved" ? "bg-green-500" : "bg-[#FFE800]"} text={project.status === "published" || project.status === "approved" ? "text-white" : "text-[#171717]"}>
-                      {project.status}
-                    </BrutalBadge>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => openReviewPreview("Project Submission", [
-                          { label: "Title", value: project.title },
-                          { label: "Author", value: project.author },
-                          { label: "Submitted", value: project.submittedDate },
-                          { label: "Category", value: project.category },
-                          { label: "Team", value: project.team },
-                          { label: "Technologies", value: project.tags },
-                          { label: "Summary", value: project.summary },
-                          { label: "Content", value: project.content },
-                          { label: "Status", value: project.status },
-                        ], project.thumbnail_url, {
-                          kind: "project",
-                          title: project.title,
-                          category: project.category,
-                          summary: project.summary,
-                          author: project.author,
-                          tags: project.tags,
-                          imageUrl: project.thumbnail_url,
-                        })}
-                        className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => openProjectModal(project)}
-                        className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
-                      >
-                        Edit
-                      </button>
-                      {isFullAdmin && project.status !== "published" && (
-                        <button
-                          onClick={() => updateProjectStatus(project.id, "published")}
-                          className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs"
-                        >
-                          Publish
-                        </button>
-                      )}
-                      {isFullAdmin && (
-                        <button
-                          onClick={() => updateProjectStatus(project.id, "rejected")}
-                          className="px-3 py-1 border-2 border-[#171717] bg-[#FFE800] hover:bg-[#FCD34D] transition-all font-bold uppercase text-xs"
-                        >
-                          Reject
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </BrutalCard>
-            ))}
-            {pendingProjects.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No pending projects.</p></BrutalCard>}
-          </div>
-
-          <h2 className="text-2xl uppercase mb-4" style={fonts.display}>Published Projects</h2>
-          <div className="grid gap-6 mb-10">
-            {activeProjects.map((project) => (
-              <BrutalCard key={project.id} color="bg-white">
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>{project.title}</h3>
-                    <p className="text-sm text-slate-600 mb-3">by <span className="font-bold">{project.author}</span> - {project.submittedDate}</p>
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <BrutalBadge color="bg-green-500">{project.status}</BrutalBadge>
-                    <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
-                    {isFullAdmin && <button onClick={() => updateProjectStatus(project.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs">Archive</button>}
-                  </div>
-                </div>
-              </BrutalCard>
-            ))}
-            {activeProjects.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No published projects.</p></BrutalCard>}
-          </div>
-
-          <h2 className="text-2xl uppercase mb-4" style={fonts.display}>Rejected / Archived Projects</h2>
-          <div className="grid gap-6">
-            {rejectedProjects.map((project) => (
-              <BrutalCard key={project.id} color="bg-white">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-bold uppercase mb-1" style={fonts.display}>{project.title}</h3>
-                    <p className="text-sm text-slate-600">by <span className="font-bold">{project.author}</span></p>
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <BrutalBadge color="bg-[#FB7185]">{project.status}</BrutalBadge>
-                    <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
-                    {isFullAdmin && <button onClick={() => updateProjectStatus(project.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs">Unarchive</button>}
-                  </div>
-                </div>
-              </BrutalCard>
-            ))}
-            {rejectedProjects.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No rejected or archived projects.</p></BrutalCard>}
-          </div>
-        </>
-      )}
+      <ProjectsTab ctx={adminTabContext} />
 
       {/* âââ CONTENT TAB âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {["blogs", "gallery", "partners", "resources"].includes(activeTab) && (isFullAdmin || (isOrganizerAdmin && ["blogs", "gallery"].includes(activeTab))) && (
         <div className="space-y-6">
-          {activeTab === "blogs" && (
-            <>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Blog Posts</h2>
-                <button onClick={() => openBlogModal()} className="px-5 py-3 bg-[#171717] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-xs brutal-shadow brutal-shadow-hover">
-                  Create Blog
-                </button>
-              </div>
-              <div className="grid gap-4">
-                {pendingBlogs.map((post) => (
-                  <BrutalCard key={post.id} color="bg-white">
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-bold uppercase text-lg">{post.title}</h3>
-                        <p className="text-xs font-mono text-slate-500">By {post.author} - {post.publishedDate || "date pending"}</p>
-                        <p className="text-sm text-slate-600 mt-2">{post.summary}</p>
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <BrutalBadge color={post.status === "published" ? "bg-green-500" : "bg-[#FFE800]"} text={post.status === "published" ? "text-white" : "text-[#171717]"}>
-                          {post.status}
-                        </BrutalBadge>
-                        <button
-                          onClick={() => openReviewPreview("Blog Post", [
-                            { label: "Title", value: post.title },
-                            { label: "Author", value: post.author },
-                            { label: "Published Date", value: post.publishedDate },
-                            { label: "Tags", value: post.tags },
-                            { label: "Summary", value: post.summary },
-                            { label: "Content", value: post.content },
-                            { label: "Status", value: post.status },
-                          ], post.cover_image_url, {
-                            kind: "blog",
-                            title: post.title,
-                            summary: post.summary,
-                            author: post.author,
-                            tags: post.tags,
-                            imageUrl: post.cover_image_url,
-                            content: post.content,
-                          })}
-                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs"
-                        >
-                          View
-                        </button>
-                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        {isFullAdmin && post.status !== "published" && (
-                          <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Publish</button>
-                        )}
-                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>}
-                      </div>
-                    </div>
-                  </BrutalCard>
-                ))}
-                {pendingBlogs.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No pending blog posts.</p></BrutalCard>}
-              </div>
-              <h2 className="text-2xl md:text-3xl uppercase mt-10" style={fonts.display}>Published Blog Posts</h2>
-              <div className="grid gap-4">
-                {activeBlogs.map((post) => (
-                  <BrutalCard key={post.id} color="bg-white">
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-bold uppercase text-lg">{post.title}</h3>
-                        <p className="text-xs font-mono text-slate-500">By {post.author} - {post.publishedDate || "date pending"}</p>
-                        <p className="text-sm text-slate-600 mt-2">{post.summary}</p>
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <BrutalBadge color="bg-green-500">{post.status}</BrutalBadge>
-                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>}
-                      </div>
-                    </div>
-                  </BrutalCard>
-                ))}
-                {activeBlogs.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No published blog posts.</p></BrutalCard>}
-              </div>
-              <h2 className="text-2xl md:text-3xl uppercase mt-10" style={fonts.display}>Archived / Rejected Blog Posts</h2>
-              <div className="grid gap-4">
-                {archivedBlogs.map((post) => (
-                  <BrutalCard key={post.id} color="bg-white">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div>
-                        <h3 className="font-bold uppercase text-lg">{post.title}</h3>
-                        <p className="text-xs font-mono text-slate-500">By {post.author}</p>
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <BrutalBadge color="bg-[#FB7185]">{post.status}</BrutalBadge>
-                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>}
-                      </div>
-                    </div>
-                  </BrutalCard>
-                ))}
-                {archivedBlogs.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No archived or rejected blog posts.</p></BrutalCard>}
-              </div>
-            </>
-          )}
+          <BlogsTab ctx={adminTabContext} />
 
-          {activeTab === "gallery" && (
-            <>
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Gallery Submissions</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {pendingGallery.map((item) => (
-                  <BrutalCard key={item.id} color="bg-white">
-                    <div className="aspect-video bg-slate-100 border-2 border-[#171717] mb-4 overflow-hidden">
-                      <img loading="lazy" src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
-                    </div>
-                    <h3 className="font-bold uppercase">{item.title}</h3>
-                    <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => openReviewPreview("Gallery Submission", [
-                          { label: "Title", value: item.title },
-                          { label: "Event", value: item.event_name },
-                          { label: "Status", value: item.status },
-                          { label: "Submitted", value: item.created_at ? new Date(item.created_at).toLocaleString() : "" },
-                          { label: "Image URL", value: item.image_url },
-                        ], item.image_url, {
-                          kind: "gallery",
-                          title: item.title,
-                          event: item.event_name || "Community",
-                          imageUrl: item.image_url,
-                          date: item.created_at ? new Date(item.created_at).toLocaleDateString() : "",
-                        })}
-                        className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs"
-                      >
-                        View
-                      </button>
-                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Approve</button>
-                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Reject</button>
-                    </div>
-                  </BrutalCard>
-                ))}
-                {pendingGallery.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No pending gallery submissions.</p></BrutalCard>}
-              </div>
-              <h2 className="text-2xl md:text-3xl uppercase mt-10" style={fonts.display}>Approved Gallery</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {approvedGallery.map((item) => (
-                  <BrutalCard key={item.id} color="bg-white">
-                    <div className="aspect-video bg-slate-100 border-2 border-[#171717] mb-4 overflow-hidden">
-                      <img loading="lazy" src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
-                    </div>
-                    <h3 className="font-bold uppercase">{item.title}</h3>
-                    <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
-                    <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Move to Rejected</button>
-                  </BrutalCard>
-                ))}
-                {approvedGallery.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No approved gallery items.</p></BrutalCard>}
-              </div>
-              <h2 className="text-2xl md:text-3xl uppercase mt-10" style={fonts.display}>Rejected Gallery</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {rejectedGallery.map((item) => (
-                  <BrutalCard key={item.id} color="bg-white">
-                    <h3 className="font-bold uppercase">{item.title}</h3>
-                    <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
-                    <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
-                  </BrutalCard>
-                ))}
-                {rejectedGallery.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No rejected gallery submissions.</p></BrutalCard>}
-              </div>
-            </>
-          )}
+          <GalleryTab ctx={adminTabContext} />
 
-          {activeTab === "partners" && (
-            <>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Partners</h2>
-                <button onClick={() => openPartnerModal()} className="px-5 py-3 bg-[#2563EB] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-xs brutal-shadow brutal-shadow-hover">
-                  Add Partner
-                </button>
-              </div>
-              <div className="grid gap-4">
-                {activePartners.map((partner) => (
-                  <BrutalCard key={partner.id} color="bg-white">
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-bold uppercase text-lg">{partner.name}</h3>
-                        <p className="text-xs font-mono text-slate-500">{partner.category || "Partner"} - {partner.status}</p>
-                        <p className="text-sm text-slate-600 mt-2">{partner.description}</p>
-                        {partner.website_url && <a href={partner.website_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-[#2563EB]">Open website</a>}
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => openPartnerModal(partner)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>
-                        <button onClick={() => deletePartner(partner.id)} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Delete</button>
-                      </div>
-                    </div>
-                  </BrutalCard>
-                ))}
-                {activePartners.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No partners added yet.</p></BrutalCard>}
-              </div>
-              <h2 className="text-2xl md:text-3xl uppercase mt-10" style={fonts.display}>Archived Partners</h2>
-              <div className="grid gap-4">
-                {archivedPartners.map((partner) => (
-                  <BrutalCard key={partner.id} color="bg-white">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div>
-                        <h3 className="font-bold uppercase text-lg">{partner.name}</h3>
-                        <p className="text-xs font-mono text-slate-500">{partner.category || "Partner"} - {partner.status}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => openPartnerModal(partner)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
-                        <button onClick={() => deletePartner(partner.id)} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Delete</button>
-                      </div>
-                    </div>
-                  </BrutalCard>
-                ))}
-                {archivedPartners.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No archived partners.</p></BrutalCard>}
-              </div>
-            </>
-          )}
+          <PartnersTab ctx={adminTabContext} />
 
-          {activeTab === "resources" && (
-            <div className="grid lg:grid-cols-[420px_1fr] gap-6">
-              <BrutalCard color="bg-white">
-                <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Add Learning Material</h2>
-                <form onSubmit={addLearningMaterial}>
-                  <BrutalInput label="Title" value={resourceForm.title} onChange={(event: any) => setResourceForm({ ...resourceForm, title: event.target.value })} required />
-                  <BrutalInput label="Category" value={resourceForm.category} onChange={(event: any) => setResourceForm({ ...resourceForm, category: event.target.value })} required />
-                  <BrutalInput label="Resource URL" value={resourceForm.resourceUrl} onChange={(event: any) => setResourceForm({ ...resourceForm, resourceUrl: event.target.value })} required />
-                  <BrutalTextarea label="Description" value={resourceForm.description} onChange={(event: any) => setResourceForm({ ...resourceForm, description: event.target.value })} />
-                  <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full">Publish Material</BrutalButton>
-                </form>
-              </BrutalCard>
-              <div className="space-y-3">
-                {learningMaterials.map((material) => (
-                  <BrutalCard key={material.id} color="bg-white">
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
-                      <div>
-                        <h3 className="font-bold uppercase">{material.title}</h3>
-                        <p className="text-xs font-mono text-slate-500">{material.category} - {material.status}</p>
-                        <p className="text-sm text-slate-600 mt-2">{material.description}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <a href={material.resource_url} target="_blank" rel="noopener noreferrer" className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Open</a>
-                        <button onClick={() => deleteLearningMaterial(material.id)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Delete</button>
-                      </div>
-                    </div>
-                  </BrutalCard>
-                ))}
-                {learningMaterials.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No learning materials yet.</p></BrutalCard>}
-              </div>
-            </div>
-          )}
+          <ResourcesTab ctx={adminTabContext} />
         </div>
       )}
 
-      {activeTab === "certificates" && isFullAdmin && (
-        <div className="space-y-6">
-          <BrutalCard color="bg-white">
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>
-              {editingCertificateId ? "Edit Certificate" : "Certificate Studio"}
-            </h2>
-            {!isCertificateAdmin ? (
-              <div className="border-2 border-[#171717] bg-[#FFE800] p-4">
-                <p className="text-sm font-bold">
-                  Only admins can issue certificates.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleIssueCertificate}>
-                <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Step 1</p>
-                  <h3 className="font-bold uppercase tracking-widest text-sm">Select the event</h3>
-                  <p className="mt-1 text-xs font-mono text-slate-500">
-                    Certificates are issued from an event attendance list. Check-in must happen first, then the certificate can be sent.
-                  </p>
-                </div>
-                <BrutalSelect
-                  label="Certificate Event"
-                  value={certificateForm.eventId}
-                  onChange={(event: any) => applyCertificateEvent(event.target.value)}
-                  disabled={Boolean(editingCertificateId)}
-                  options={[
-                    { value: "", label: "Select event" },
-                    ...events.map((event) => ({
-                      value: event.id,
-                      label: event.title,
-                    })),
-                  ]}
-                />
-                {selectedCertificateEvent && (
-                  <div className="mb-5 grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <div className="border-2 border-[#171717] bg-white p-3">
-                      <p className="text-xl font-bold">{certificateEventRegistrations.length}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Registered</p>
-                    </div>
-                    <div className="border-2 border-[#171717] bg-[#DBEAFE] p-3">
-                      <p className="text-xl font-bold">{certificateEventAttendees.length}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Checked In</p>
-                    </div>
-                    <div className="border-2 border-[#171717] bg-[#DCFCE7] p-3">
-                      <p className="text-xl font-bold">{eligibleCertificateAttendees.length}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Ready</p>
-                    </div>
-                    <div className="border-2 border-[#171717] bg-[#FFE800] p-3">
-                      <p className="text-xl font-bold">{alreadyIssuedCertificateAttendees.length}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Issued</p>
-                    </div>
-                  </div>
-                )}
-                <div className="mb-6 border-4 border-[#171717] bg-[#171717] text-white brutal-shadow-lg">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b-4 border-[#171717] bg-[#2563EB] p-4">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Certificate Draft Editor</p>
-                      <h3 className="text-2xl uppercase leading-none" style={fonts.display}>Design the certificate before issuing</h3>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{certificateForm.templateStyle}</BrutalBadge>
-                      <BrutalBadge color="bg-white" text="text-[#171717]">Live Preview</BrutalBadge>
-                    </div>
-                  </div>
+      <CertificatesTab ctx={adminTabContext} />
 
-                  <div className="grid 2xl:grid-cols-[520px_1fr] gap-0 bg-white text-[#171717]">
-                    <div className="border-b-4 2xl:border-b-0 2xl:border-r-4 border-[#171717] p-4 md:p-5 space-y-5">
-                      <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                        <div className="mb-4 flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Content</p>
-                            <h4 className="font-bold uppercase tracking-widest text-sm">Text printed on certificate</h4>
-                          </div>
-                          <FileText size={18} className="text-[#2563EB]" />
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3">
-                          <BrutalInput
-                            label="Printed Recipient Name"
-                            value={certificateForm.recipientNameSnapshot}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, recipientNameSnapshot: event.target.value })}
-                            placeholder="Name shown on certificate"
-                            required
-                          />
-                          <BrutalInput
-                            label="Printed Event Name"
-                            value={certificateForm.eventTitleSnapshot}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, eventTitleSnapshot: event.target.value })}
-                            placeholder="Event shown on certificate"
-                            required
-                          />
-                        </div>
-                        <BrutalInput
-                          label="Certificate Title"
-                          value={certificateForm.title}
-                          onChange={(event: any) => setCertificateForm({ ...certificateForm, title: event.target.value })}
-                          placeholder="Certificate of Participation"
-                          required
-                        />
-                        <BrutalTextarea
-                          label="Certificate Description"
-                          value={certificateForm.description}
-                          onChange={(event: any) => setCertificateForm({ ...certificateForm, description: event.target.value })}
-                          placeholder="For actively participating in this program..."
-                          rows={5}
-                        />
-                      </div>
-
-                      <div className="border-2 border-[#171717] bg-white p-4">
-                        <div className="mb-4 flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Design</p>
-                            <h4 className="font-bold uppercase tracking-widest text-sm">Template and metadata</h4>
-                          </div>
-                          <Settings size={18} className="text-[#7C3AED]" />
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3">
-                          <BrutalSelect
-                            label="Type"
-                            value={certificateForm.certificateType}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateType: event.target.value })}
-                            options={[
-                              { value: "Workshop", label: "Workshop" },
-                              { value: "Competition", label: "Competition" },
-                              { value: "Course", label: "Course" },
-                              { value: "Participation", label: "Participation" },
-                            ]}
-                          />
-                          <BrutalSelect
-                            label="Template"
-                            value={certificateForm.templateStyle}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, templateStyle: event.target.value })}
-                            options={certificateTemplateOptions.map((template) => ({
-                              value: template.value,
-                              label: template.label,
-                            }))}
-                          />
-                          <BrutalInput
-                            label="Issuer"
-                            value={certificateForm.issuerName}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, issuerName: event.target.value })}
-                            required
-                          />
-                          <BrutalInput
-                            label="Issued Date"
-                            type="date"
-                            value={certificateForm.issuedAt}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, issuedAt: event.target.value })}
-                          />
-                        </div>
-                        <BrutalInput
-                          label="Optional External PDF Link"
-                          value={certificateForm.certificateUrl}
-                          onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateUrl: event.target.value })}
-                          placeholder="https://..."
-                        />
-                        {certificateForm.templateStyle === "custom-image" && (
-                          <div className="mt-4 border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                            <div className="mb-3">
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Blank Template Overlay</p>
-                              <p className="mt-1 text-xs font-mono text-slate-600">
-                                Add a blank certificate image URL. The website writes the recipient name and details on top.
-                              </p>
-                            </div>
-                            <BrutalInput
-                              label="Blank Template Image URL"
-                              value={certificateForm.templateBackgroundUrl}
-                              onChange={(event: any) => setCertificateForm({ ...certificateForm, templateBackgroundUrl: event.target.value })}
-                              placeholder="https://.../blank-certificate.png"
-                            />
-                            <div className="mb-4">
-                              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                                Upload Blank Template
-                              </label>
-                              <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp"
-                                onChange={(event) => uploadCertificateTemplate(event.target.files?.[0])}
-                                className="w-full border-2 border-[#171717] bg-white p-2 font-mono text-xs"
-                              />
-                              {certificateForm.templateBackgroundUrl && (
-                                <img loading="lazy"
-                                  src={certificateForm.templateBackgroundUrl}
-                                  alt="Certificate template preview"
-                                  className="mt-3 aspect-[1.414/1] w-full max-w-lg border-2 border-[#171717] bg-white object-cover"
-                                />
-                              )}
-                            </div>
-                            <div className="grid md:grid-cols-3 gap-3">
-                              <BrutalInput
-                                label="Name X %"
-                                type="number"
-                                value={certificateForm.templateNameX}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameX: Number(event.target.value) })}
-                              />
-                              <BrutalInput
-                                label="Name Y %"
-                                type="number"
-                                value={certificateForm.templateNameY}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameY: Number(event.target.value) })}
-                              />
-                              <BrutalInput
-                                label="Name Size"
-                                type="number"
-                                value={certificateForm.templateNameSize}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameSize: Number(event.target.value) })}
-                              />
-                              <BrutalInput
-                                label="Detail Y %"
-                                type="number"
-                                value={certificateForm.templateDetailY}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateDetailY: Number(event.target.value) })}
-                              />
-                              <BrutalInput
-                                label="Name Color"
-                                type="color"
-                                value={certificateForm.templateNameColor}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameColor: event.target.value })}
-                              />
-                              <BrutalInput
-                                label="Detail Color"
-                                type="color"
-                                value={certificateForm.templateDetailColor}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateDetailColor: event.target.value })}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                        <div className="mb-4 flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Signatures</p>
-                            <h4 className="font-bold uppercase tracking-widest text-sm">Add up to 3 signers</h4>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={addCertificateSignature}
-                            className="px-3 py-2 border-2 border-[#171717] bg-[#FFE800] font-bold uppercase tracking-widest text-[10px]"
-                          >
-                            Add Signer
-                          </button>
-                        </div>
-                        <div className="space-y-3">
-                          {certificateForm.signatures.map((signature, index) => (
-                            <div key={index} className="border-2 border-[#171717] bg-white p-3">
-                              <div className="mb-2 flex items-center justify-between gap-3">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Signer {index + 1}</p>
-                                <button
-                                  type="button"
-                                  onClick={() => removeCertificateSignature(index)}
-                                  className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase tracking-widest text-[10px]"
-                                  disabled={certificateForm.signatures.length === 1}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                              <div className="grid md:grid-cols-2 gap-2">
-                                <input
-                                  className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
-                                  value={signature.name}
-                                  onChange={(event) => updateCertificateSignature(index, "name", event.target.value)}
-                                  placeholder="Signer name"
-                                />
-                                <input
-                                  className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
-                                  value={signature.title}
-                                  onChange={(event) => updateCertificateSignature(index, "title", event.target.value)}
-                                  placeholder="Role / title"
-                                />
-                              </div>
-                              <div className="mt-3 grid md:grid-cols-[1fr_auto] gap-3 items-center">
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={(event) => uploadCertificateSignature(index, event.target.files?.[0])}
-                                  className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
-                                />
-                                {signature.signature_image_url && (
-                                  <img loading="lazy" src={signature.signature_image_url} alt={`${signature.name} signature`} className="h-12 max-w-40 object-contain border-2 border-[#171717] bg-white p-1" />
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-[#F4EFEB] p-4 md:p-6">
-                      <div className="sticky top-28">
-                        <div className="mb-4 flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Final draft</p>
-                            <h4 className="font-bold uppercase tracking-widest text-sm">Preview before issue</h4>
-                          </div>
-                          <BrutalBadge color="bg-[#2563EB]">{certificateForm.certificateType}</BrutalBadge>
-                        </div>
-                        <div className="overflow-x-auto border-2 border-[#171717] bg-white p-3 brutal-shadow">
-                          <div className="min-w-[760px]">
-                            <CertificateRenderer certificate={certificatePreviewRecord} />
-                          </div>
-                        </div>
-                        {certificateForm.eventId && (
-                          <p className="mt-4 text-xs font-mono text-slate-500">
-                            Bulk issue will send this same draft to {eligibleCertificateAttendees.length} checked-in attendee{eligibleCertificateAttendees.length === 1 ? "" : "s"} who {eligibleCertificateAttendees.length === 1 ? "does" : "do"} not already have one.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {selectedCertificateEvent && (
-                  <div className="mb-5 border-2 border-[#171717] bg-white p-4">
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Issuing Queue</p>
-                        <h3 className="font-bold uppercase tracking-widest text-sm">{selectedCertificateEvent.title}</h3>
-                      </div>
-                      <BrutalBadge color="bg-[#DCFCE7]">{eligibleCertificateAttendees.length} ready</BrutalBadge>
-                    </div>
-                    {certificateEventRegistrations.length === 0 ? (
-                      <p className="text-xs font-mono text-slate-500">No registrations found for this event yet.</p>
-                    ) : (
-                      <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
-                        {certificateEventRegistrations.map((registration) => {
-                          const profile = Array.isArray(registration.profiles) ? registration.profiles[0] : registration.profiles;
-                          const isCheckedIn = registration.status === "checked_in" || registration.checked_in_at;
-                          const isIssued = registration.user_id && issuedRecipientIdsForEvent.has(registration.user_id);
-                          const statusColor = isIssued ? "bg-[#FFE800]" : isCheckedIn ? "bg-[#DCFCE7]" : "bg-slate-200";
-                          const statusText = isIssued ? "Issued" : isCheckedIn ? "Ready" : "Not checked in";
-                          return (
-                            <div key={registration.id || registration.user_id} className="flex items-center justify-between gap-3 border-2 border-[#171717] p-2">
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold uppercase truncate">{profile?.full_name || profile?.email || "Member"}</p>
-                                <p className="text-[10px] font-mono text-slate-500 truncate">{profile?.email || registration.user_id}</p>
-                              </div>
-                              <BrutalBadge color={statusColor} text="text-[#171717]">{statusText}</BrutalBadge>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {uncheckedCertificateAttendees.length > 0 && (
-                      <p className="mt-3 text-[10px] font-mono text-slate-500">
-                        {uncheckedCertificateAttendees.length} registered attendee{uncheckedCertificateAttendees.length === 1 ? "" : "s"} still need check-in before certificate issuing.
-                      </p>
-                    )}
-                  </div>
-                )}
-                {certificateStatus && (
-                  <p className="mb-4 text-xs font-bold text-[#2563EB]">{certificateStatus}</p>
-                )}
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <BrutalButton
-                    type="submit"
-                    color="bg-[#2563EB]"
-                    text="text-white"
-                    className="w-full text-xs"
-                    disabled={
-                      !certificateForm.eventId ||
-                      (!editingCertificateId && (!certificateForm.recipientId || !isSelectedRecipientCheckedIn || isSelectedRecipientAlreadyIssued))
-                    }
-                >
-                    <Award size={16} className="inline mr-2" /> {editingCertificateId ? "Save Certificate" : "Issue Single"}
-                  </BrutalButton>
-                  <BrutalButton
-                    type="button"
-                    color="bg-[#FFE800]"
-                    className="w-full text-xs"
-                    onClick={issueEventCertificates}
-                    disabled={Boolean(editingCertificateId) || issuingBulkCertificates || !certificateForm.eventId || eligibleCertificateAttendees.length === 0}
-                  >
-                    <Users size={16} className="inline mr-2" /> {issuingBulkCertificates ? "Issuing..." : "Issue Checked-In"}
-                  </BrutalButton>
-                </div>
-                {editingCertificateId && (
-                  <button
-                    type="button"
-                    onClick={resetCertificateForm}
-                    className="mt-3 w-full px-4 py-3 border-2 border-[#171717] bg-white font-bold uppercase tracking-widest text-xs"
-                  >
-                    Cancel Edit
-                  </button>
-                )}
-              </form>
-            )}
-          </BrutalCard>
-
-          <BrutalCard color="bg-white">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
-              <div>
-                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Credential Registry</h2>
-                <p className="text-xs font-mono text-slate-500 mt-1">
-                  {activeCredentialCount} active - {revokedCredentialCount} revoked
-                </p>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <BrutalBadge color="bg-[#2563EB]">{issuedCertificates.length} total</BrutalBadge>
-                <BrutalBadge color="bg-green-500">{activeCredentialCount} active</BrutalBadge>
-              </div>
-            </div>
-            {certificateStatus && (
-              <div className="mb-4 border-2 border-[#171717] bg-[#FFE800] p-3 text-xs font-bold uppercase tracking-widest">
-                {certificateStatus}
-              </div>
-            )}
-            {issuedCertificates.length === 0 ? (
-              <div className="border-2 border-dashed border-[#171717] p-8 text-center">
-                <Award size={32} className="mx-auto mb-3 text-[#2563EB]" />
-                <p className="font-bold uppercase tracking-widest text-sm">No certificates issued yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {issuedCertificates.map((certificate) => {
-                  const recipient = Array.isArray(certificate.profiles) ? certificate.profiles[0] : certificate.profiles;
-                  const isRevoked = Boolean(certificate.status === "revoked" || certificate.status === "archived");
-                  const verifyUrl = certificate.verification_code ? `${window.location.origin}/verify/${certificate.verification_code}` : "";
-                  return (
-                    <div key={certificate.id} className={`border-2 border-[#171717] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 ${isRevoked ? "bg-slate-100 opacity-80" : "bg-white"}`}>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="font-bold uppercase">{certificate.certificate_title || certificate.title}</h3>
-                          <BrutalBadge color={isRevoked ? "bg-slate-500" : "bg-green-500"}>
-                            {isRevoked ? "Revoked" : "Verified"}
-                          </BrutalBadge>
-                        </div>
-                        <p className="text-xs font-mono text-slate-500">
-                          Recipient: {certificate.recipient_name_snapshot || recipient?.full_name || recipient?.email || "Member"} - issued {certificate.issued_date || certificate.issued_at || "date pending"}
-                        </p>
-                        <p className="text-xs font-mono text-slate-500">
-                          Issuer: {certificate.issuer_name || "Data Science Club"} - Created: {certificate.created_at ? new Date(certificate.created_at).toLocaleString() : "unknown"}
-                        </p>
-                        {certificate.events && (
-                          <p className="text-xs font-mono text-slate-500">
-                            Event: {certificate.event_title_snapshot || (Array.isArray(certificate.events) ? certificate.events[0]?.title : certificate.events.title)}
-                          </p>
-                        )}
-                        <p className="text-xs font-mono text-slate-500">
-                          Verify code: {certificate.verification_code || "Pending migration"}
-                        </p>
-                        {verifyUrl && <p className="text-xs font-mono text-slate-500 break-all">Verify URL: {verifyUrl}</p>}
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <BrutalBadge color="bg-[#7C3AED]">{certificate.certificate_type}</BrutalBadge>
-                        <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{certificate.template || certificate.template_style || "legacy"}</BrutalBadge>
-                        <button
-                          type="button"
-                          onClick={() => setCertificateModal(certificate)}
-                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
-                        >
-                          View
-                        </button>
-                        {certificate.verification_code && (
-                          <button
-                            type="button"
-                            onClick={() => copyCertificateLink(certificate)}
-                            className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
-                          >
-                            Copy Link
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => editCertificate(certificate)}
-                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCertificateRevoked(certificate, !isRevoked)}
-                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#7C3AED] hover:text-white transition-all font-bold uppercase text-xs"
-                        >
-                          {isRevoked ? "Restore" : "Revoke"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteCertificate(certificate.id)}
-                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs"
-                          disabled={!isRevoked}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </BrutalCard>
-        </div>
-      )}
-
-      {activeTab === "content" && isFullAdmin && (
-        <div className="space-y-6">
-          <BrutalCard>
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Homepage Content</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <BrutalInput label="Brand Title" value={siteSettings.home.brandTitle} onChange={(e: any) => updateHomeSettings({ brandTitle: e.target.value })} />
-              <BrutalInput label="Hero Tagline" value={siteSettings.home.heroTagline} onChange={(e: any) => updateHomeSettings({ heroTagline: e.target.value })} />
-            </div>
-            <BrutalTextarea label="Hero Description" value={siteSettings.home.heroDescription} onChange={(e: any) => updateHomeSettings({ heroDescription: e.target.value })} />
-            <div className="grid md:grid-cols-3 gap-4">
-              <BrutalInput label="Membership Label" value={siteSettings.home.membershipLabel} onChange={(e: any) => updateHomeSettings({ membershipLabel: e.target.value })} />
-              <BrutalInput label="Membership Title" value={siteSettings.home.membershipTitle} onChange={(e: any) => updateHomeSettings({ membershipTitle: e.target.value })} />
-              <BrutalInput label="Membership Description" value={siteSettings.home.membershipDescription} onChange={(e: any) => updateHomeSettings({ membershipDescription: e.target.value })} />
-            </div>
-            <BrutalTextarea label="Community Intro" value={siteSettings.home.communityIntro} onChange={(e: any) => updateHomeSettings({ communityIntro: e.target.value })} />
-            <div className="grid md:grid-cols-3 gap-4">
-              <BrutalTextarea label="Member Stat Text" value={siteSettings.home.memberStatDescription} onChange={(e: any) => updateHomeSettings({ memberStatDescription: e.target.value })} />
-              <BrutalTextarea label="Event Stat Text" value={siteSettings.home.eventStatDescription} onChange={(e: any) => updateHomeSettings({ eventStatDescription: e.target.value })} />
-              <BrutalTextarea label="Project Stat Text" value={siteSettings.home.projectStatDescription} onChange={(e: any) => updateHomeSettings({ projectStatDescription: e.target.value })} />
-            </div>
-            <div className="space-y-4">
-              <h3 className="text-xl uppercase" style={fonts.display}>Homepage Feature Cards</h3>
-              {siteSettings.home.featureItems.map((item) => (
-                <div key={item.id} className="grid md:grid-cols-[180px_1fr_1fr] gap-4 border-2 border-[#171717] p-4">
-                  <select
-                    value={item.icon}
-                    onChange={(e) => updateHomeFeature(item.id, { icon: e.target.value as any })}
-                    className="w-full px-3 py-3 border-2 border-[#171717] bg-white font-mono text-sm brutal-shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFE800]"
-                  >
-                    <option value="users">Users</option>
-                    <option value="database">Database</option>
-                    <option value="map">Map</option>
-                  </select>
-                  <BrutalInput label="Title" value={item.title} onChange={(e: any) => updateHomeFeature(item.id, { title: e.target.value })} />
-                  <BrutalTextarea label="Description" value={item.description} onChange={(e: any) => updateHomeFeature(item.id, { description: e.target.value })} />
-                </div>
-              ))}
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <BrutalInput label="CTA Title" value={siteSettings.home.ctaTitle} onChange={(e: any) => updateHomeSettings({ ctaTitle: e.target.value })} />
-              <BrutalInput label="CTA Button Label" value={siteSettings.home.ctaButtonLabel} onChange={(e: any) => updateHomeSettings({ ctaButtonLabel: e.target.value })} />
-            </div>
-            <BrutalTextarea label="CTA Description" value={siteSettings.home.ctaDescription} onChange={(e: any) => updateHomeSettings({ ctaDescription: e.target.value })} />
-            <BrutalTextarea label="CTA Closed Message" value={siteSettings.home.ctaClosedMessage} onChange={(e: any) => updateHomeSettings({ ctaClosedMessage: e.target.value })} />
-            {settingsStatus && (
-              <p className={`mb-4 text-sm font-bold ${settingsStatus.toLowerCase().includes("saved") ? "text-green-700" : "text-red-700"}`}>{settingsStatus}</p>
-            )}
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
-              <Save size={16} className="inline mr-2" /> Save Changes
-            </BrutalButton>
-          </BrutalCard>
-
-          <BrutalCard>
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>About Page Content</h2>
-            <BrutalTextarea label="Mission Statement" defaultValue="We empower students through data science education..." />
-            <BrutalTextarea label="Vision Statement" defaultValue="To be the leading student data science community..." />
-            <BrutalButton color="bg-[#2563EB]" text="text-white">
-              <Save size={16} className="inline mr-2" /> Save Changes
-            </BrutalButton>
-          </BrutalCard>
-
-          <BrutalCard>
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Team Management</h2>
-            <p className="text-sm text-slate-600 mb-4">Manage team members displayed on the About page</p>
-            <BrutalButton color="bg-[#7C3AED]" text="text-white">
-              <Plus size={16} className="inline mr-2" /> Add Team Member
-            </BrutalButton>
-          </BrutalCard>
-        </div>
-      )}
+      <ContentTab ctx={adminTabContext} />
 
       {/* âââ CONTACT INBOX TAB âââââââââââââââââââââââââââââââââââââââââââââââââââ */}
-      {activeTab === "contacts" && isFullAdmin && (
-        <div className="space-y-6">
-          <div className="grid sm:grid-cols-3 gap-4">
-            <BrutalCard color="bg-[#2563EB]" className="text-white">
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{contactMessages.length}</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Total Messages</div>
-            </BrutalCard>
-            <BrutalCard color="bg-[#FFE800]">
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{contactMessages.filter((message) => message.status === "new").length}</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">New</div>
-            </BrutalCard>
-            <BrutalCard color="bg-white">
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{contactMessages.filter((message) => message.status === "read").length}</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">Read</div>
-            </BrutalCard>
-          </div>
-
-          <BrutalCard>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Contact Inbox</h2>
-                <p className="text-sm text-slate-600">Messages sent from the public contact page appear here.</p>
-              </div>
-              <BrutalBadge color="bg-[#FB7185]">
-                {contactMessages.filter((message) => message.status === "new").length} Unread
-              </BrutalBadge>
-            </div>
-
-            {contactMessages.length === 0 ? (
-              <div className="border-2 border-dashed border-[#171717] p-10 text-center">
-                <Mail size={36} className="mx-auto mb-3 text-[#2563EB]" />
-                <p className="font-bold uppercase tracking-widest">No contact messages yet</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {contactMessages.map((message) => (
-                  <div key={message.id} className={`border-2 border-[#171717] p-4 ${message.status === "new" ? "bg-[#FFF7A8]" : "bg-white"}`}>
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <BrutalBadge color={message.status === "new" ? "bg-[#FFE800]" : message.status === "archived" ? "bg-slate-300" : "bg-[#22C55E]"}>
-                            {message.status}
-                          </BrutalBadge>
-                          <span className="text-xs font-mono text-slate-500">
-                            {message.created_at ? new Date(message.created_at).toLocaleString() : "Unknown time"}
-                          </span>
-                        </div>
-                        <h3 className="text-xl uppercase mb-1" style={fonts.display}>{message.subject}</h3>
-                        <p className="text-sm font-mono text-slate-600 mb-3">
-                          {message.name} - <a href={`mailto:${message.email}`} className="underline">{message.email}</a>
-                        </p>
-                        <p className="text-sm whitespace-pre-wrap break-words">{message.message}</p>
-                      </div>
-                      <div className="flex flex-wrap lg:flex-col gap-2 shrink-0">
-                        <button
-                          onClick={() => updateContactMessageStatus(message.id, message.status === "new" ? "read" : "new")}
-                          className="px-3 py-2 border-2 border-[#171717] bg-white text-xs font-bold uppercase tracking-widest hover:bg-[#F4EFEB]"
-                        >
-                          {message.status === "new" ? "Mark Read" : "Mark New"}
-                        </button>
-                        <button
-                          onClick={() => updateContactMessageStatus(message.id, "archived")}
-                          className="px-3 py-2 border-2 border-[#171717] bg-[#FFE800] text-xs font-bold uppercase tracking-widest hover:bg-yellow-300"
-                        >
-                          Archive
-                        </button>
-                        <button
-                          onClick={() => deleteContactMessage(message.id)}
-                          className="px-3 py-2 border-2 border-[#171717] bg-[#FB7185] text-white text-xs font-bold uppercase tracking-widest hover:bg-[#F43F5E]"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </BrutalCard>
-        </div>
-      )}
+      <ContactsTab ctx={adminTabContext} />
 
       {/* âââ SETTINGS TAB ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
-      {activeTab === "settings" && isFullAdmin && (
-        <div className="space-y-6">
-          {settingsStatus && (
-            <div className="border-2 border-[#171717] bg-[#FFE800] p-3 font-bold text-sm uppercase tracking-widest brutal-shadow">
-              {settingsStatus}
-            </div>
-          )}
-          <SettingsSection id="site" title="Site Settings" description="Main website name and tagline.">
-            <BrutalInput label="Site Name" value={siteSettings.siteName} onChange={(e: any) => setSiteSettings({...siteSettings, siteName: e.target.value})} />
-            <BrutalInput label="Tagline" value={siteSettings.tagline} onChange={(e: any) => setSiteSettings({...siteSettings, tagline: e.target.value})} />
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
-              <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Settings"}
-            </BrutalButton>
-          </SettingsSection>
-
-          <SettingsSection id="contact" title="Contact Information" description="Contact cards, address, and office hours shown on Contact page.">
-            <BrutalTextarea
-              label="Office Hours"
-              value={siteSettings.officeHours}
-              onChange={(e: any) => setSiteSettings({ ...siteSettings, officeHours: e.target.value })}
-            />
-            <div className="space-y-4">
-              {siteSettings.contactItems.map((item) => (
-                <div key={item.id} className="grid lg:grid-cols-[160px_220px_1fr_auto] gap-3 items-end border-2 border-[#171717] bg-[#F4EFEB] p-3">
-                  <BrutalSelect
-                    label="Type"
-                    value={item.type}
-                    onChange={(e: any) => updateContactItem(item.id, { type: e.target.value })}
-                    options={[
-                      { value: "email", label: "Email" },
-                      { value: "phone", label: "Phone" },
-                      { value: "address", label: "Address" },
-                      { value: "other", label: "Other" },
-                    ]}
-                  />
-                  <BrutalInput
-                    label="Label"
-                    value={item.label}
-                    onChange={(e: any) => updateContactItem(item.id, { label: e.target.value })}
-                  />
-                  {item.type === "address" ? (
-                    <BrutalTextarea
-                      label="Value"
-                      value={item.value}
-                      onChange={(e: any) => updateContactItem(item.id, { value: e.target.value })}
-                    />
-                  ) : (
-                    <BrutalInput
-                      label="Value"
-                      value={item.value}
-                      onChange={(e: any) => updateContactItem(item.id, { value: e.target.value })}
-                    />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => removeContactItem(item.id)}
-                    className="h-[52px] px-4 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-
-              <div className="grid lg:grid-cols-[160px_220px_1fr_auto] gap-3 items-end border-2 border-dashed border-[#171717] bg-white p-3">
-                <BrutalSelect
-                  label="New Type"
-                  value={newContactItem.type}
-                  onChange={(e: any) => setNewContactItem({ ...newContactItem, type: e.target.value })}
-                  options={[
-                    { value: "email", label: "Email" },
-                    { value: "phone", label: "Phone" },
-                    { value: "address", label: "Address" },
-                    { value: "other", label: "Other" },
-                  ]}
-                />
-                <BrutalInput
-                  label="New Label"
-                  placeholder="Office, WhatsApp, Location"
-                  value={newContactItem.label}
-                  onChange={(e: any) => setNewContactItem({ ...newContactItem, label: e.target.value })}
-                />
-                <BrutalInput
-                  label="New Value"
-                  placeholder="clubid@sms.tu.edu.np"
-                  value={newContactItem.value}
-                  onChange={(e: any) => setNewContactItem({ ...newContactItem, value: e.target.value })}
-                />
-                <button
-                  type="button"
-                  onClick={addContactItem}
-                  className="h-[52px] px-4 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
-                >
-                  Add Contact
-                </button>
-              </div>
-            </div>
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
-              <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Contact Info"}
-            </BrutalButton>
-          </SettingsSection>
-
-          <SettingsSection id="social" title="Social Media Links" description="Add, remove, or edit footer and contact social links.">
-            <div className="space-y-4">
-              {Object.entries(siteSettings.socialLinks).map(([platform, url]) => (
-                <div key={platform} className="grid lg:grid-cols-[220px_1fr_auto] gap-3 items-end border-2 border-[#171717] bg-[#F4EFEB] p-3">
-                  <BrutalInput
-                    label="Platform"
-                    value={platform}
-                    disabled
-                  />
-                  <BrutalInput
-                    label="URL"
-                    value={url}
-                    onChange={(e: any) => updateSocialLink(platform, e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeSocialLink(platform)}
-                    className="h-[52px] px-4 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-
-              <div className="grid lg:grid-cols-[220px_1fr_auto] gap-3 items-end border-2 border-dashed border-[#171717] bg-white p-3">
-                <BrutalInput
-                  label="New Platform"
-                  placeholder="YouTube, TikTok, Website"
-                  value={newSocialLink.platform}
-                  onChange={(e: any) => setNewSocialLink({ ...newSocialLink, platform: e.target.value })}
-                />
-                <BrutalInput
-                  label="New URL"
-                  placeholder="https://..."
-                  value={newSocialLink.url}
-                  onChange={(e: any) => setNewSocialLink({ ...newSocialLink, url: e.target.value })}
-                />
-                <button
-                  type="button"
-                  onClick={addSocialLink}
-                  className="h-[52px] px-4 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
-                >
-                  Add Link
-                </button>
-              </div>
-            </div>
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
-              <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Social Links"}
-            </BrutalButton>
-          </SettingsSection>
-
-          <SettingsSection id="team" title="Team Members" description="Profile-linked executives/members and manual advisors shown on Team page.">
-            <div className="space-y-4">
-              {siteSettings.teamMembers.map((member) => (
-                <div key={member.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">
-                  <div className="mb-3 grid md:grid-cols-[180px_1fr_auto] gap-3 items-end">
-                    <BrutalSelect
-                      label="Source"
-                      value={member.source || "manual"}
-                      onChange={(e: any) => updateTeamMember(member.id, { source: e.target.value })}
-                      options={[
-                        { value: "profile", label: "Profile Linked" },
-                        { value: "manual", label: "Manual Entry" },
-                      ]}
-                    />
-                    <BrutalInput
-                      label="Profile Email"
-                      value={member.profileEmail || ""}
-                      onChange={(e: any) => updateTeamMember(member.id, { profileEmail: e.target.value })}
-                      placeholder="member@sms.tu.edu.np"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => linkTeamMemberToProfile(member.id, member.profileEmail)}
-                      className="h-[52px] px-4 border-2 border-[#171717] bg-[#FFE800] text-[#171717] hover:bg-yellow-300 font-bold uppercase tracking-widest text-xs brutal-shadow"
-                    >
-                      Link Profile
-                    </button>
-                  </div>
-                  <div className="grid md:grid-cols-3 gap-3">
-                    <BrutalInput
-                      label="Group"
-                      value={member.group}
-                      onChange={(e: any) => updateTeamMember(member.id, { group: e.target.value })}
-                      placeholder="executive, faculty, volunteer..."
-                    />
-                    <BrutalInput label="Name" value={member.name} onChange={(e: any) => updateTeamMember(member.id, { name: e.target.value })} />
-                    <BrutalInput label="Position" value={member.position} onChange={(e: any) => updateTeamMember(member.id, { position: e.target.value })} />
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-3">
-                    <BrutalInput label="Meta" value={member.meta} onChange={(e: any) => updateTeamMember(member.id, { meta: e.target.value })} placeholder="Year, department, or role detail" />
-                    <BrutalInput label="Image URL" value={member.image} onChange={(e: any) => updateTeamMember(member.id, { image: e.target.value })} />
-                  </div>
-                  <BrutalTextarea label="Bio" value={member.bio} onChange={(e: any) => updateTeamMember(member.id, { bio: e.target.value })} />
-                  <div className="grid md:grid-cols-3 gap-3">
-                    <BrutalInput label="Email" value={member.email} onChange={(e: any) => updateTeamMember(member.id, { email: e.target.value })} />
-                    <BrutalInput label="LinkedIn" value={member.linkedin} onChange={(e: any) => updateTeamMember(member.id, { linkedin: e.target.value })} />
-                    <BrutalInput label="GitHub" value={member.github} onChange={(e: any) => updateTeamMember(member.id, { github: e.target.value })} />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeTeamMember(member.id)}
-                    className="px-4 py-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
-                  >
-                    Remove Member
-                  </button>
-                </div>
-              ))}
-
-              <div className="border-2 border-dashed border-[#171717] bg-white p-3">
-                <div className="grid md:grid-cols-[180px_1fr] gap-3">
-                  <BrutalSelect
-                    label="New Source"
-                    value={newTeamMember.source || "profile"}
-                    onChange={(e: any) => setNewTeamMember({ ...newTeamMember, source: e.target.value })}
-                    options={[
-                      { value: "profile", label: "Profile Linked" },
-                      { value: "manual", label: "Manual Entry" },
-                    ]}
-                  />
-                  <BrutalInput
-                    label="New Profile Email"
-                    value={newTeamMember.profileEmail || ""}
-                    onChange={(e: any) => {
-                      const profile = findProfileByEmail(e.target.value);
-                      setNewTeamMember({
-                        ...newTeamMember,
-                        profileEmail: e.target.value,
-                        ...(profile ? profileToTeamFields(profile) : {}),
-                      });
-                    }}
-                    placeholder="Use for executives/members with website profiles"
-                  />
-                </div>
-                <div className="grid md:grid-cols-3 gap-3">
-                  <BrutalInput
-                    label="New Group"
-                    value={newTeamMember.group}
-                    onChange={(e: any) => setNewTeamMember({ ...newTeamMember, group: e.target.value })}
-                    placeholder="executive, faculty, volunteer..."
-                  />
-                  <BrutalInput label="New Name" value={newTeamMember.name} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, name: e.target.value })} />
-                  <BrutalInput label="New Position" value={newTeamMember.position} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, position: e.target.value })} />
-                </div>
-                <div className="grid md:grid-cols-2 gap-3">
-                  <BrutalInput label="New Meta" value={newTeamMember.meta} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, meta: e.target.value })} />
-                  <BrutalInput label="New Image URL" value={newTeamMember.image} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, image: e.target.value })} />
-                </div>
-                <BrutalTextarea label="New Bio" value={newTeamMember.bio} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, bio: e.target.value })} />
-                <div className="grid md:grid-cols-3 gap-3">
-                  <BrutalInput label="New Email" value={newTeamMember.email} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, email: e.target.value })} />
-                  <BrutalInput label="New LinkedIn" value={newTeamMember.linkedin} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, linkedin: e.target.value })} />
-                  <BrutalInput label="New GitHub" value={newTeamMember.github} onChange={(e: any) => setNewTeamMember({ ...newTeamMember, github: e.target.value })} />
-                </div>
-                <button
-                  type="button"
-                  onClick={addTeamMember}
-                  className="px-4 py-2 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
-                >
-                  Add Team Member
-                </button>
-              </div>
-            </div>
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
-              <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Team"}
-            </BrutalButton>
-          </SettingsSection>
-
-          <SettingsSection id="faqs" title="Frequently Asked Questions" description="Questions and answers shown on the Contact page.">
-            <div className="space-y-4">
-              {siteSettings.faqs.map((faq) => (
-                <div key={faq.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">
-                  <BrutalInput
-                    label="Question"
-                    value={faq.question}
-                    onChange={(e: any) => updateFAQ(faq.id, { question: e.target.value })}
-                  />
-                  <BrutalTextarea
-                    label="Answer"
-                    value={faq.answer}
-                    onChange={(e: any) => updateFAQ(faq.id, { answer: e.target.value })}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeFAQ(faq.id)}
-                    className="px-4 py-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
-                  >
-                    Remove FAQ
-                  </button>
-                </div>
-              ))}
-
-              <div className="border-2 border-dashed border-[#171717] bg-white p-3">
-                <BrutalInput
-                  label="New Question"
-                  value={newFAQ.question}
-                  onChange={(e: any) => setNewFAQ({ ...newFAQ, question: e.target.value })}
-                />
-                <BrutalTextarea
-                  label="New Answer"
-                  value={newFAQ.answer}
-                  onChange={(e: any) => setNewFAQ({ ...newFAQ, answer: e.target.value })}
-                />
-                <button
-                  type="button"
-                  onClick={addFAQ}
-                  className="px-4 py-2 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
-                >
-                  Add FAQ
-                </button>
-              </div>
-            </div>
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
-              <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save FAQs"}
-            </BrutalButton>
-          </SettingsSection>
-        </div>
-      )}
+      <SettingsTab ctx={adminTabContext} />
 
       {/* âââ ANALYTICS TAB ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
-      {activeTab === "analytics" && isFullAdmin && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <BrutalCard color="bg-[#2563EB]" className="text-white">
-              <div className="flex items-center justify-between mb-2">
-                <Activity size={24} />
-                <TrendingUp size={16} />
-              </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{activeMemberCount}</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Active Members</div>
-              <p className="mt-2 text-xs font-mono opacity-80">{users.length} total profiles</p>
-            </BrutalCard>
-            <BrutalCard color="bg-[#7C3AED]" className="text-white">
-              <div className="flex items-center justify-between mb-2">
-                <Calendar size={24} />
-                <TrendingUp size={16} />
-              </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{activeEventCount}</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Active Events</div>
-              <p className="mt-2 text-xs font-mono opacity-80">{upcomingEventCount} upcoming</p>
-            </BrutalCard>
-            <BrutalCard color="bg-[#22C55E]" className="text-white">
-              <div className="flex items-center justify-between mb-2">
-                <UserCheck size={24} />
-                <Activity size={16} />
-              </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{attendanceSummary}</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Check-ins</div>
-              <p className="mt-2 text-xs font-mono opacity-80">All-time registered attendees</p>
-            </BrutalCard>
-            <BrutalCard color="bg-[#FB7185]" className="text-white">
-              <div className="flex items-center justify-between mb-2">
-                <Clock size={24} />
-                <MessageSquare size={16} />
-              </div>
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{pendingReviewCount}</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Pending Review</div>
-              <p className="mt-2 text-xs font-mono opacity-80">{contactMessages.filter((message) => message.status === "new").length} new contacts</p>
-            </BrutalCard>
-          </div>
+      <AnalyticsTab ctx={adminTabContext} />
 
-          <div className="grid lg:grid-cols-2 gap-6 mb-6">
-            <BrutalCard>
-              <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Member Growth</h2>
-              <div className="space-y-4">
-                {memberGrowth.map((month) => (
-                  <div key={month.key} className="grid grid-cols-[64px_1fr_48px] items-center gap-3">
-                    <span className="text-xs font-bold uppercase tracking-widest">{month.label}</span>
-                    <div className="h-8 border-2 border-[#171717] bg-[#F4EFEB]">
-                      <div className="h-full bg-[#2563EB]" style={{ width: `${Math.max(6, (month.count / maxGrowth) * 100)}%` }} />
-                    </div>
-                    <span className="text-right text-sm font-bold font-mono">{month.count}</span>
-                  </div>
-                ))}
-              </div>
-            </BrutalCard>
-
-            <BrutalCard>
-              <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>This Month</h2>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                  <Trophy size={20} className="mb-3 text-[#2563EB]" />
-                  <p className="text-3xl uppercase" style={fonts.display}>{projectsThisMonth}</p>
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-600">Projects submitted/published</p>
-                </div>
-                <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                  <FileText size={20} className="mb-3 text-[#7C3AED]" />
-                  <p className="text-3xl uppercase" style={fonts.display}>{postsThisMonth}</p>
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-600">Blog posts published</p>
-                </div>
-                <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                  <Award size={20} className="mb-3 text-[#2563EB]" />
-                  <p className="text-3xl uppercase" style={fonts.display}>{issuedCertificates.length}</p>
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-600">Certificates issued</p>
-                </div>
-                <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                  <Mail size={20} className="mb-3 text-[#FB7185]" />
-                  <p className="text-3xl uppercase" style={fonts.display}>{contactMessages.length}</p>
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-600">Contact messages</p>
-                </div>
-              </div>
-            </BrutalCard>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-6 mb-6">
-            <BrutalCard>
-              <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Event Capacity</h2>
-              <div className="space-y-4">
-                {eventUtilization.map((event) => (
-                  <div key={event.id} className="border-2 border-[#171717] bg-white p-4">
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div>
-                        <p className="font-bold text-sm uppercase">{event.title}</p>
-                        <p className="text-xs font-mono text-slate-500">{event.attendees}/{event.capacity || "unlimited"} registered - {event.checkedIn} checked in</p>
-                      </div>
-                      <BrutalBadge color={event.fillRate >= 90 ? "bg-[#FB7185]" : "bg-[#FFE800]"}>{event.fillRate}%</BrutalBadge>
-                    </div>
-                    <div className="h-4 border-2 border-[#171717] bg-[#F4EFEB]">
-                      <div className="h-full bg-[#2563EB]" style={{ width: `${event.fillRate}%` }} />
-                    </div>
-                  </div>
-                ))}
-                {eventUtilization.length === 0 && <p className="text-sm font-mono text-slate-500">Events will appear here after they are created.</p>}
-              </div>
-            </BrutalCard>
-
-            <BrutalCard>
-              <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Content Health</h2>
-              <div className="space-y-3">
-                {contentStatusStats.map((item) => (
-                  <div key={item.label} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 border-2 border-[#171717] bg-white p-3 text-xs font-bold uppercase tracking-widest">
-                    <span>{item.label}</span>
-                    <span className="text-[#22C55E]">{item.active} active</span>
-                    <span className="text-[#FB7185]">{item.pending} pending</span>
-                    <span className="text-slate-500">{item.archived} archived</span>
-                  </div>
-                ))}
-              </div>
-            </BrutalCard>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-6">
-            <BrutalCard>
-              <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Popular Events</h2>
-              <div className="space-y-4">
-                {popularEvents.map(event => (
-                  <div key={event.id} className="flex items-center justify-between p-4 border-2 border-slate-200">
-                    <div>
-                      <p className="font-bold text-sm">{event.title}</p>
-                      <p className="text-xs text-slate-500">{event.category}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold" style={fonts.display}>{event.attendees}</p>
-                      <p className="text-xs text-slate-500">attendees</p>
-                    </div>
-                  </div>
-                ))}
-                {popularEvents.length === 0 && <p className="text-sm font-mono text-slate-500">Approved events will appear here after registrations start.</p>}
-              </div>
-            </BrutalCard>
-
-            <BrutalCard>
-              <div className="flex items-center justify-between gap-3 mb-6">
-                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Recent Logs</h2>
-                <button onClick={() => openAdminTab("logs")} className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#FFE800] font-bold uppercase tracking-widest text-xs">View All</button>
-              </div>
-              <div className="space-y-3">
-                {recentAuditLogs.map((log) => (
-                  <div key={log.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">
-                    <p className="text-xs font-bold uppercase tracking-widest">{log.action?.replaceAll("_", " ")} - {log.resource}</p>
-                    <p className="text-sm mt-1">{log.summary || log.resource_id}</p>
-                    <p className="text-[11px] font-mono text-slate-500 mt-2">{log.actor_email || "System"} - {log.created_at ? new Date(log.created_at).toLocaleString() : ""}</p>
-                  </div>
-                ))}
-                {recentAuditLogs.length === 0 && <p className="text-sm font-mono text-slate-500">No logs yet. Run the audit log migration, then admin actions will appear here.</p>}
-              </div>
-            </BrutalCard>
-          </div>
-        </>
-      )}
-
-      {activeTab === "logs" && isFullAdmin && (
-        <div className="space-y-6">
-          <div className="grid sm:grid-cols-3 gap-4">
-            <BrutalCard color="bg-[#2563EB]" className="text-white">
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{auditLogs.length}</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Total Logs</div>
-            </BrutalCard>
-            <BrutalCard color="bg-[#FFE800]">
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{todayAuditCount}</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">Today</div>
-            </BrutalCard>
-            <BrutalCard color="bg-[#FB7185]" className="text-white">
-              <div className="text-4xl font-bold mb-1" style={fonts.display}>{destructiveAuditCount}</div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Delete / Revoke</div>
-            </BrutalCard>
-          </div>
-
-          <BrutalCard>
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Activity Logs</h2>
-                <p className="text-sm text-slate-600">Search admin actions, resources, actors, and record ids.</p>
-              </div>
-              <div className="relative w-full lg:w-96">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input value={logSearchQuery} onChange={(event) => setLogSearchQuery(event.target.value)} placeholder="Search logs..." className="w-full pl-10 pr-4 py-3 border-2 border-[#171717] bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB] font-mono text-sm" />
-              </div>
-            </div>
-
-            {filteredAuditLogs.length === 0 ? (
-              <div className="border-2 border-dashed border-[#171717] p-10 text-center">
-                <ListFilter size={36} className="mx-auto mb-3 text-[#2563EB]" />
-                <p className="font-bold uppercase tracking-widest">No logs found</p>
-                <p className="mt-2 text-sm text-slate-600">If this stays empty, apply the audit log migration to Supabase.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-2 border-[#171717] text-sm">
-                  <thead className="bg-[#171717] text-white">
-                    <tr>
-                      <th className="p-3 text-left uppercase tracking-widest text-xs">Time</th>
-                      <th className="p-3 text-left uppercase tracking-widest text-xs">Actor</th>
-                      <th className="p-3 text-left uppercase tracking-widest text-xs">Action</th>
-                      <th className="p-3 text-left uppercase tracking-widest text-xs">Resource</th>
-                      <th className="p-3 text-left uppercase tracking-widest text-xs">Summary</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAuditLogs.map((log) => (
-                      <tr key={log.id} className="border-t-2 border-[#171717] bg-white align-top">
-                        <td className="p-3 font-mono text-xs whitespace-nowrap">{log.created_at ? new Date(log.created_at).toLocaleString() : "-"}</td>
-                        <td className="p-3 font-mono text-xs">{log.actor_email || "System"}</td>
-                        <td className="p-3"><BrutalBadge color={["delete", "revoke"].includes(log.action) ? "bg-[#FB7185]" : "bg-[#FFE800]"}>{String(log.action || "").replaceAll("_", " ")}</BrutalBadge></td>
-                        <td className="p-3">
-                          <p className="font-bold uppercase">{log.resource}</p>
-                          {log.resource_id && <p className="text-[11px] font-mono text-slate-500 break-all">{log.resource_id}</p>}
-                        </td>
-                        <td className="p-3">
-                          <p>{log.summary || "-"}</p>
-                          {log.metadata && Object.keys(log.metadata).length > 0 && (
-                            <details className="mt-2 text-xs font-mono text-slate-500">
-                              <summary className="cursor-pointer font-bold uppercase">Details</summary>
-                              <pre className="mt-2 whitespace-pre-wrap break-words">{JSON.stringify(log.metadata, null, 2)}</pre>
-                            </details>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </BrutalCard>
-        </div>
-      )}
+      <LogsTab ctx={adminTabContext} />
 
       {/* âââ MODALS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
 

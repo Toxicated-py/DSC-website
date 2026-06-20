@@ -1,0 +1,15 @@
+export { OverviewTab } from './OverviewTab';
+export { UsersTab } from './UsersTab';
+export { EventsTab } from './EventsTab';
+export { ProposalsTab } from './ProposalsTab';
+export { ProjectsTab } from './ProjectsTab';
+export { BlogsTab } from './BlogsTab';
+export { GalleryTab } from './GalleryTab';
+export { PartnersTab } from './PartnersTab';
+export { ResourcesTab } from './ResourcesTab';
+export { CertificatesTab } from './CertificatesTab';
+export { ContentTab } from './ContentTab';
+export { ContactsTab } from './ContactsTab';
+export { SettingsTab } from './SettingsTab';
+export { AnalyticsTab } from './AnalyticsTab';
+export { LogsTab } from './LogsTab';
