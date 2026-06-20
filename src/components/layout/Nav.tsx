@@ -295,7 +295,7 @@ export function Nav() {
     >
       <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-3 shrink-0">
-          <div className="w-12 h-12 flex items-center justify-center bg-white p-1.5">
+          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white p-[2px]">
             <img src={DSC_LOGO_SRC} alt="Data Science Club logo" className="w-full h-full object-contain" />
           </div>
           <span className="font-bold text-sm tracking-widest text-[#171717] uppercase hidden xl:block" style={fonts.sans}>

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { CertificateRenderer } from "../../../components/CertificateRenderer";
 import { fonts } from "../../../config/fonts";
+import { isEventRegistrationOpen } from "../adminUtils";
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, BrutalSelect, BrutalTextarea } from "../AdminPrimitives";
 
 export function EventsTab({ ctx }: { ctx: any }) {
@@ -158,6 +159,7 @@ export function EventsTab({ ctx }: { ctx: any }) {
     openSettingsSections,
     partnerForm,
     partnerSubmissions,
+    pastEvents,
     patch,
     payload,
     pendingBlogs,
@@ -342,7 +344,9 @@ export function EventsTab({ ctx }: { ctx: any }) {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeEvents.map((event) => (
+            {activeEvents.map((event) => {
+              const registrationOpen = isEventRegistrationOpen(event);
+              return (
               <BrutalCard key={event.id} color="bg-white">
                 <div className="flex items-start justify-between mb-4">
                   <BrutalBadge color={event.status === "Upcoming" ? "bg-[#2563EB]" : "bg-slate-400"}>
@@ -379,7 +383,7 @@ export function EventsTab({ ctx }: { ctx: any }) {
                     onClick={() => toggleEventRegistration(event)}
                     className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
                   >
-                    {event.registration_open ? "Close Reg" : "Open Reg"}
+                    {registrationOpen ? "Close Reg" : "Open Reg"}
                   </button>
                   {isFullAdmin && (
                     <button
@@ -391,8 +395,44 @@ export function EventsTab({ ctx }: { ctx: any }) {
                   )}
                 </div>
               </BrutalCard>
-            ))}
+            );
+            })}
           </div>
+
+          {pastEvents.length > 0 && (
+            <div className="mt-10">
+              <div className="flex items-center justify-between gap-4 mb-5">
+                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Past Events</h2>
+                <BrutalBadge color="bg-slate-400">{pastEvents.length}</BrutalBadge>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pastEvents.map((event) => (
+                  <BrutalCard key={event.id} color="bg-white">
+                    <BrutalBadge color="bg-slate-400" className="mb-4">Past</BrutalBadge>
+                    <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>{event.title}</h3>
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                        <Calendar size={14} />
+                        <span>{event.date}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                        <MapPin size={14} />
+                        <span>{event.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                        <Users size={14} />
+                        <span>{event.attendees} attendees</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-4 border-t-2 border-slate-200">
+                      <button onClick={() => void openEventModal(event)} className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
+                      {isFullAdmin && <button onClick={() => handleArchiveEvent(event.id)} className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs">Archive</button>}
+                    </div>
+                  </BrutalCard>
+                ))}
+              </div>
+            </div>
+          )}
 
           {isFullAdmin && <div className="mt-10">
             <div className="flex items-center justify-between gap-4 mb-5">
@@ -472,10 +512,10 @@ export function EventsTab({ ctx }: { ctx: any }) {
               )}
             </div>
             <div className="mt-8">
-              <h3 className="text-xl uppercase mb-4" style={fonts.display}>Rejected Proposals</h3>
+              <h3 className="text-xl uppercase mb-4" style={fonts.display}>Rejected</h3>
               <div className="grid gap-3">
                 {rejectedEventProposals.map((proposal) => (
-                  <div key={proposal.id} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div key={`proposal-${proposal.id}`} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
                       <p className="font-bold uppercase">{proposal.title}</p>
                       <p className="text-xs font-mono text-slate-500">{proposal.proposer} - {proposal.submittedDate}</p>
@@ -483,28 +523,21 @@ export function EventsTab({ ctx }: { ctx: any }) {
                     <BrutalBadge color="bg-[#FB7185]">Rejected</BrutalBadge>
                   </div>
                 ))}
-                {rejectedEventProposals.length === 0 && (
-                  <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No rejected proposals.</p></BrutalCard>
+                {archivedEvents.map((event) => (
+                  <div key={`event-${event.id}`} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div>
+                      <p className="font-bold uppercase">{event.title}</p>
+                      <p className="text-xs font-mono text-slate-500">{event.date} - {event.location}</p>
+                    </div>
+                    <button onClick={() => void openEventModal(event)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
+                    <button onClick={() => updateEventStatus(event.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 font-bold uppercase text-xs">Unarchive</button>
+                  </div>
+                ))}
+                {rejectedEventProposals.length === 0 && archivedEvents.length === 0 && (
+                  <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No rejected items.</p></BrutalCard>
                 )}
               </div>
             </div>
-            {archivedEvents.length > 0 && (
-              <div className="mt-8">
-                <h3 className="text-xl uppercase mb-4" style={fonts.display}>Archived Events</h3>
-                <div className="grid gap-3">
-                  {archivedEvents.map((event) => (
-                    <div key={event.id} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div>
-                        <p className="font-bold uppercase">{event.title}</p>
-                        <p className="text-xs font-mono text-slate-500">{event.date} - {event.location}</p>
-                      </div>
-                    <button onClick={() => void openEventModal(event)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                    <button onClick={() => updateEventStatus(event.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 font-bold uppercase text-xs">Unarchive</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>}
         </>
       )}

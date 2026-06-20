@@ -18,6 +18,7 @@ export function ProjectSubmissionPage() {
     team: "",
     technologies: "",
     summary: "",
+    thumbnailUrl: "",
     content: "# Problem\n\n# Methodology\n\n# Results\n",
   });
   const [status, setStatus] = useState("");
@@ -43,6 +44,7 @@ export function ProjectSubmissionPage() {
         team: form.team,
         technologies: form.technologies.split(",").map((item: string) => item.trim()).filter(Boolean),
         summary: form.summary,
+        thumbnail_url: form.thumbnailUrl || null,
         content: form.content,
         status: "submitted",
       });
@@ -74,6 +76,7 @@ export function ProjectSubmissionPage() {
           </div>
           <BrutalField label="Team Members" value={form.team} onChange={(value) => updateField("team", value)} placeholder="S. Sharma, B. Thapa" />
           <BrutalField label="Technologies" value={form.technologies} onChange={(value) => updateField("technologies", value)} placeholder="Python, XGBoost, Streamlit" />
+          <BrutalField label="Project Image URL" value={form.thumbnailUrl} onChange={(value) => updateField("thumbnailUrl", value)} placeholder="https://..." />
           <BrutalTextArea label="Short Summary" rows={4} value={form.summary} onChange={(value) => updateField("summary", value)} placeholder="A 2-3 sentence summary for the gallery card." />
           <BrutalTextArea label="Full Case Study Markdown" rows={14} value={form.content} onChange={(value) => updateField("content", value)} />
         </BrutalCard>
@@ -82,6 +85,7 @@ export function ProjectSubmissionPage() {
           <BrutalCard color="bg-[#FFE800]">
             <h2 className="text-3xl uppercase mb-4" style={fonts.display}>Preview</h2>
             <div className="border-2 border-[#171717] bg-white p-4 mb-4">
+              {form.thumbnailUrl && <img src={form.thumbnailUrl} alt="" className="mb-4 aspect-video w-full border-2 border-[#171717] object-cover" />}
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#FB7185]">{form.category || "Category"}</p>
               <h3 className="text-2xl uppercase leading-tight mt-2" style={fonts.display}>{form.title || "Project title"}</h3>
               <p className="text-sm text-slate-600 mt-2">{form.summary || "Your summary preview will appear here."}</p>

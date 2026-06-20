@@ -159,7 +159,7 @@ export function NewLoginPage() {
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#2563EB]">
       <button
         type="button"
-        onClick={() => navigate(redirectTo)}
+        onClick={() => navigate("/")}
         aria-label="Close login"
         className="fixed top-6 right-6 z-20 w-12 h-12 bg-white border-2 border-[#171717] brutal-shadow brutal-shadow-hover transition-all flex items-center justify-center"
       >

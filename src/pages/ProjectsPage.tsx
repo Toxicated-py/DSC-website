@@ -31,7 +31,7 @@ export function ProjectsPage() {
       }
       const { data } = await supabase
         .from("projects")
-        .select("id,slug,title,category,technologies,summary,published_at,submitted_at,status")
+        .select("id,slug,title,category,technologies,summary,thumbnail_url,published_at,submitted_at,status")
         .in("status", ["approved", "published"])
         .order("published_at", { ascending: false, nullsFirst: false });
       if (!mounted) return;
@@ -53,6 +53,7 @@ export function ProjectsPage() {
           tags: project.technologies?.length ? project.technologies : [project.category || "Project"],
           author: "Club Member",
           year: date ? new Date(date).getFullYear() : new Date().getFullYear(),
+          imageUrl: project.thumbnail_url,
           color: style.color,
           text: style.text,
           desc: project.summary || "Project details will be updated soon.",
@@ -163,7 +164,11 @@ export function ProjectsPage() {
               className={`cursor-pointer border-2 border-[#171717] flex flex-col brutal-shadow brutal-shadow-hover transition-all group ${proj.color} ${proj.text}`}
             >
               <div className="w-full aspect-video border-b-2 border-[#171717] relative overflow-hidden flex items-center justify-center bg-black/10">
-                <Database size={48} className="opacity-20" />
+                {proj.imageUrl ? (
+                  <img src={proj.imageUrl} alt={proj.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+                ) : (
+                  <Database size={48} className="opacity-20" />
+                )}
                 <div className="absolute bottom-3 right-3 px-2 py-1 bg-white/20 border border-white/30 text-[9px] font-bold uppercase tracking-widest backdrop-blur-sm">{proj.year}</div>
               </div>
               <div className="p-6 flex flex-col flex-1">

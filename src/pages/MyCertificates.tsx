@@ -61,20 +61,21 @@ export function MyCertificates() {
   };
 
   return (
-    <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto min-h-screen">
+    <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto min-h-screen bg-[#F4EFEB]">
       <CertificatePrintStyles />
       <div className="mb-12">
         <Link to="/dashboard" className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
-          <ArrowLeft size={16} />
-          Back to Dashboard
+          <ArrowLeft size={16} /> Back to Dashboard
         </Link>
-        <Badge color="bg-[#FFE800]">
-          <Award size={10} className="inline mr-1" /> My Certificates
-        </Badge>
-        <h1 className="mt-4 text-5xl md:text-7xl uppercase leading-none" style={fonts.display}>
-          Certificates
+        <div>
+          <Badge color="bg-[#2563EB] text-white">
+            My Certificates
+          </Badge>
+        </div>
+        <h1 className="mt-4 text-6xl uppercase leading-none" style={fonts.display}>
+          My Certificates
         </h1>
-        <p className="mt-3 text-lg text-slate-600">View, print, and download certificates issued to you.</p>
+        <p className="font-mono text-sm text-slate-600">View, print, and download certificates issued to you.</p>
       </div>
 
       {loading ? (

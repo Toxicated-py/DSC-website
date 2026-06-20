@@ -10,6 +10,25 @@ import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } fr
 import { requireLoginForAction } from "../utils/authNavigation";
 import { fonts } from "../config/fonts";
 
+const formatEventDate = (date: Date) =>
+  `${date.toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })}, ${date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`;
+
+const remainingLabel = (date: Date) => {
+  const diff = date.getTime() - Date.now();
+  if (diff <= 0) return "ended";
+  const minutes = Math.ceil(diff / 6e4);
+  if (minutes < 60) return `${minutes} min remaining`;
+  const hours = Math.ceil(minutes / 60);
+  return hours < 24 ? `${hours} hrs remaining` : `${Math.ceil(hours / 24)} days remaining`;
+};
+
+const eventTimeLabel = (startDate: Date, endDate?: Date | null) => {
+  const now = Date.now();
+  if (startDate.getTime() > now) return remainingLabel(startDate);
+  if (!endDate || endDate.getTime() > now) return "running";
+  return "ended";
+};
+
 export function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -74,6 +93,22 @@ export function EventDetailPage() {
     } : attendee));
   };
 
+  const undoCheckInAttendee = async (registrationId: string) => {
+    if (!id) return;
+    setManagerStatus("");
+    try {
+      await apiPatch(`/api/events/${id}/registrations/${registrationId}/undo-check-in`, {}, { auth: true });
+    } catch (error: any) {
+      setManagerStatus(error.message || "Could not undo check-in.");
+      return;
+    }
+    setAttendees(attendees.map((attendee) => attendee.id === registrationId ? {
+      ...attendee,
+      status: "registered",
+      checked_in_at: null,
+    } : attendee));
+  };
+
   const reserveSpot = async () => {
     if (reservingSpot) return;
     setReserveStatus("");
@@ -134,9 +169,11 @@ export function EventDetailPage() {
   }
 
   const startDate = displayEvent.start_time ? new Date(displayEvent.start_time) : null;
+  const endDate = displayEvent.end_time ? new Date(displayEvent.end_time) : null;
   const eventEnded = Boolean(displayEvent.end_time && new Date(displayEvent.end_time).getTime() < Date.now());
   const registrationDeadline = displayEvent.registration_deadline ? new Date(displayEvent.registration_deadline) : null;
   const registrationClosedByDeadline = Boolean(registrationDeadline && registrationDeadline.getTime() < Date.now());
+  const registrationClosed = !displayEvent.registration_open || registrationClosedByDeadline;
   const isReserved = Boolean(myRegistration?.id);
 
   return (
@@ -145,7 +182,10 @@ export function EventDetailPage() {
         <ArrowLeft size={16} /> Back to Events
       </button>
 
-      <BrutalCard color="bg-[#2563EB]" className="text-white mb-12 border-4">
+      <BrutalCard color="bg-[#2563EB]" className="text-white mb-12 border-4 overflow-hidden">
+        {displayEvent.banner_url && (
+          <img src={displayEvent.banner_url} alt={displayEvent.title} className="-m-6 mb-8 h-64 w-[calc(100%+3rem)] object-cover border-b-4 border-[#171717]" />
+        )}
         <div className="flex justify-between items-start mb-10">
            <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{displayEvent.event_type || "WORKSHOP"}</BrutalBadge>
            <div className="text-right">
@@ -156,7 +196,7 @@ export function EventDetailPage() {
         <h1 className="text-5xl md:text-7xl uppercase leading-none mb-6" style={fonts.display}>{displayEvent.title}</h1>
         <div className="flex flex-wrap gap-6 font-mono text-sm opacity-90">
           <span className="flex items-center gap-2"><MapPin size={16}/> {displayEvent.venue || "TBA"}</span>
-          <span className="flex items-center gap-2"><Calendar size={16}/> {startDate ? startDate.toLocaleString() : "Date TBA"}</span>
+          <span className="flex items-center gap-2"><Calendar size={16}/> {startDate ? `${formatEventDate(startDate)} - ${eventTimeLabel(startDate, endDate)}` : "Date TBA"}</span>
           <span className="flex items-center gap-2"><Users size={16}/> {displayEvent.registeredCount || 0}/{displayEvent.capacity || 0} Spots Filled</span>
         </div>
       </BrutalCard>
@@ -170,7 +210,7 @@ export function EventDetailPage() {
           <BrutalCard className="sticky top-32">
             <h3 className="uppercase font-bold tracking-widest text-lg mb-6">Registration</h3>
             <p className="text-sm font-mono text-slate-500 mb-6">
-              {registrationDeadline ? `Registration deadline: ${registrationDeadline.toLocaleString()}` : "Registration deadline not set."}
+              {registrationDeadline ? `Registration deadline: ${formatEventDate(registrationDeadline)} - ${remainingLabel(registrationDeadline)}` : "Registration deadline not set."}
             </p>
             {reserveStatus && <p className="mb-4 text-xs font-bold text-[#FB7185]">{reserveStatus}</p>}
             {isReserved ? (
@@ -183,8 +223,8 @@ export function EventDetailPage() {
                 </BrutalButton>
               </div>
             ) : (
-              <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white" disabled={registrationClosedByDeadline || reservingSpot}>
-                {registrationClosedByDeadline ? "Registration Closed" : reservingSpot ? "Reserving..." : "Reserve Spot"}
+              <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white" disabled={registrationClosed || reservingSpot}>
+                {registrationClosed ? "Registration Closed" : reservingSpot ? "Reserving..." : "Reserve Spot"}
               </BrutalButton>
             )}
             {canManageEvent && (
@@ -224,7 +264,11 @@ export function EventDetailPage() {
                       <td className="p-3 font-mono text-xs">{attendee.ticket_code}</td>
                       <td className="p-3">{attendee.checked_in_at ? "Checked in" : attendee.status}</td>
                       <td className="p-3 text-right">
-                        {!attendee.checked_in_at && (
+                        {attendee.checked_in_at ? (
+                          <button onClick={() => undoCheckInAttendee(attendee.id)} className="px-3 py-2 border-2 border-[#171717] bg-[#FFE800] text-[#171717] text-xs font-bold uppercase">
+                            Undo
+                          </button>
+                        ) : (
                           <button onClick={() => checkInAttendee(attendee.id)} className="px-3 py-2 border-2 border-[#171717] bg-green-500 text-white text-xs font-bold uppercase">
                             Check In
                           </button>
