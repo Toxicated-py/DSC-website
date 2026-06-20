@@ -146,7 +146,7 @@ export function HomePage() {
                   </div>
                   <BrutalBadge color="bg-[#2563EB]">{nextEvent?.type || "Event"}</BrutalBadge>
                 </div>
-                <p className="mt-5 text-xl uppercase text-[#171717]" style={fonts.display}>{nextEvent?.label || "Approved events will appear here"}</p>
+                <p className="mt-5 text-xl uppercase text-[#171717]" style={fonts.display}>{nextEvent?.label || "No events yet"}</p>
                 <p className="mt-2 flex items-center gap-2 font-mono text-sm text-slate-400">
                   <Users size={16} /> {nextEvent?.capacity ? `${nextEvent.registeredCount || 0}/${nextEvent.capacity} spots` : "Club event"}
                 </p>
@@ -157,7 +157,7 @@ export function HomePage() {
                 className="block border-2 border-[#171717] bg-[#7C3AED] p-5 text-white brutal-shadow rotate-1 transition-transform hover:-translate-y-1"
               >
                 <span className="text-xs font-bold uppercase tracking-widest text-white/70">Projects</span>
-                <p className="mt-4 text-2xl uppercase" style={fonts.display}>{homeProject?.title || "Published Projects"}</p>
+                <p className="mt-4 text-2xl uppercase" style={fonts.display}>{homeProject?.title || "No projects yet"}</p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {(homeProject?.technologies?.length ? homeProject.technologies : [homeProject?.category || "Admin approved"]).map((tag: string) => (
                     <span key={tag} className="border border-white/40 bg-white/10 px-3 py-1 text-xs font-bold uppercase">{tag}</span>

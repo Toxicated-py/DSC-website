@@ -397,16 +397,7 @@ export function AdminPanelPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("users");
 
-  // Mock user data - in real app, fetch from backend
-  const users = [
-    { id: 1, name: "John Doe", email: "john.doe@gmail.com", role: "Member", verified: false, designation: null },
-    { id: 2, name: "Jane Smith", email: "jane@sms.tu.edu.np", role: "Club Member", verified: true, designation: "President" },
-    { id: 3, name: "Dr. Ram Kumar", email: "ram.kumar@sms.tu.edu.np", role: "Teacher", verified: true, designation: "Faculty Advisor" },
-    { id: 4, name: "Sita Thapa", email: "sita.thapa@outlook.com", role: "Club Member", verified: true, designation: "Vice President" },
-    { id: 5, name: "Hari Prasad", email: "hari.prasad@yahoo.com", role: "Member", verified: false, designation: null },
-    { id: 6, name: "Maya Singh", email: "maya@sms.tu.edu.np", role: "Club Member", verified: true, designation: "Secretary" },
-    { id: 7, name: "Prof. Sharma", email: "prof.sharma@sms.tu.edu.np", role: "Teacher", verified: true, designation: "Head of Department" },
-  ];
+  const users: Array<{ id: number; name: string; email: string; role: string; verified: boolean; designation: string | null }> = [];
 
   const getRoleBadge = (role: string, verified: boolean) => {
     if (role === "Teacher") {
