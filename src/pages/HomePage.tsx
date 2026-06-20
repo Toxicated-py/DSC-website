@@ -118,16 +118,29 @@ export function HomePage() {
           </div>
 
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_430px] lg:items-start">
-            <h1
-              className="relative max-w-[900px] text-7xl leading-[0.82] text-[#171717] sm:text-8xl md:text-[9rem] lg:text-[10rem] xl:text-[12rem]"
-              style={{ ...fonts.display, textShadow: "8px 8px 0 #2563EB, 16px 16px 0 #FB7185" }}
-            >
-              {heroTitleLines.map((line, index) => (
-                <React.Fragment key={`${line}-${index}`}>
-                  {line}{index < heroTitleLines.length - 1 ? <br /> : null}
-                </React.Fragment>
-              ))}
-            </h1>
+            <div>
+              <h1
+                className="relative max-w-[900px] text-7xl leading-[0.82] text-[#171717] sm:text-8xl md:text-[9rem] lg:text-[10rem] xl:text-[12rem]"
+                style={{ ...fonts.display, textShadow: "8px 8px 0 #2563EB, 16px 16px 0 #FB7185" }}
+              >
+                {heroTitleLines.map((line, index) => (
+                  <React.Fragment key={`${line}-${index}`}>
+                    {line}{index < heroTitleLines.length - 1 ? <br /> : null}
+                  </React.Fragment>
+                ))}
+              </h1>
+
+              <div className="mt-12 max-w-2xl border-t-2 border-[#171717] pt-8">
+                <p className="text-2xl leading-snug text-[#171717] sm:text-3xl" style={fonts.serif}>
+                  <em className="text-[#FB7185]">Sarathi</em> means guide. We are the student community at SMS TU that turns data science <em className="text-[#2563EB]">from theory into practice.</em>
+                </p>
+                <p className="mt-4 font-mono text-sm text-slate-500">Open to all students at SMS, Tribhuvan University.</p>
+                <div className="mt-8 flex flex-wrap gap-4">
+                  <Link to="/events"><BrutalButton color="bg-white">See Events</BrutalButton></Link>
+                  <Link to="/about"><BrutalButton color="bg-[#171717]" text="text-white">Our Story</BrutalButton></Link>
+                </div>
+              </div>
+            </div>
 
             <div className="grid gap-5 lg:pt-10">
               <div className="border-2 border-[#171717] bg-[#FB7185] p-6 text-white brutal-shadow rotate-1">
@@ -177,19 +190,6 @@ export function HomePage() {
             </div>
           </div>
 
-          <div className="mt-10 border-t-2 border-[#171717] pt-8 md:mt-12 md:grid md:grid-cols-[minmax(0,560px)_1fr] md:items-end md:gap-10">
-            <div>
-              <p className="text-2xl leading-snug text-[#171717] sm:text-3xl" style={fonts.serif}>
-                <em className="text-[#FB7185]">Sarathi</em> means guide. We are the student community at SMS TU that turns data science <em className="text-[#2563EB]">from theory into practice.</em>
-              </p>
-              <p className="mt-4 font-mono text-sm text-slate-500">Open to all students at SMS, Tribhuvan University.</p>
-            </div>
-
-            <div className="mt-8 flex flex-wrap gap-4 md:mt-0 md:justify-end">
-              <Link to="/events"><BrutalButton color="bg-white">See Events</BrutalButton></Link>
-              <Link to="/about"><BrutalButton color="bg-[#171717]" text="text-white">Our Story</BrutalButton></Link>
-            </div>
-          </div>
         </div>
       </section>
 
