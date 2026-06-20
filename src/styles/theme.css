@@ -134,7 +134,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', sans-serif;
     overflow-x: hidden;
   }
 
@@ -143,18 +143,21 @@
   }
 
   h1 {
+    font-family: 'Anton', sans-serif;
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   h2 {
+    font-family: 'Anton', sans-serif;
     font-size: var(--text-xl);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   h3 {
+    font-family: 'Anton', sans-serif;
     font-size: var(--text-lg);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
@@ -167,21 +170,30 @@
   }
 
   label {
+    font-family: 'Inter', sans-serif;
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   button {
+    font-family: 'Inter', sans-serif;
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
-  input {
+  input,
+  textarea,
+  select {
+    font-family: 'Inter', sans-serif;
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+
+  em {
+    font-family: 'Playfair Display', serif;
   }
 
   img,

@@ -98,6 +98,17 @@ export function UpdatedFooter() {
             <p className="text-xs text-slate-600 mt-2">
               {settings.tagline}
             </p>
+            <p className="text-xs text-slate-500 mt-4">
+              Made by{" "}
+              <a
+                href="https://github.com/Toxicated-py"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-[#2563EB] hover:text-[#171717] transition-colors"
+              >
+                Ashish Adhikari
+              </a>
+            </p>
             <div className="mt-6 flex md:justify-end items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 Domain &amp; hosting by

@@ -29,7 +29,7 @@ export function ScannerPage() {
     let mounted = true;
 
     async function checkScannerAccess() {
-      if (!eventId || !/^[0-9a-f-]{36}$/i.test(eventId)) {
+      if (!eventId) {
         setScannerStatus("Open scanner from an event page.");
         return;
       }
@@ -72,7 +72,7 @@ export function ScannerPage() {
   }, []);
 
   const explainScannerUnavailable = () => {
-    if (!eventId || !/^[0-9a-f-]{36}$/i.test(eventId)) {
+    if (!eventId) {
       setScannerStatus("Open scanner from an event page.");
       setCameraStatus("Choose Scanner from a specific event so the scanner knows which tickets to check.");
       return;
