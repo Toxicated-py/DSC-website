@@ -77,6 +77,7 @@ import {
   isEventRegistrationOpen,
   isFullAdminProfile,
   isOrganizerProfile,
+  isPastEvent,
   slugify,
   toDatetimeLocalValue,
 } from "./admin/adminUtils";
@@ -1682,7 +1683,9 @@ export function ComprehensiveAdminPanel() {
     project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     project.author.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const activeEvents = filteredEvents.filter((event) => event.status !== "archived" && event.status !== "rejected");
+  const visibleEvents = filteredEvents.filter((event) => event.status !== "archived" && event.status !== "rejected");
+  const activeEvents = visibleEvents.filter((event) => !isPastEvent(event));
+  const pastEvents = visibleEvents.filter((event) => isPastEvent(event));
   const archivedEvents = filteredEvents.filter((event) => event.status === "archived" || event.status === "rejected");
   const pendingEventProposals = eventProposals.filter((proposal) => proposal.status === "pending" || proposal.status === "submitted");
   const rejectedEventProposals = eventProposals.filter((proposal) => proposal.status === "rejected");
@@ -1994,6 +1997,7 @@ export function ComprehensiveAdminPanel() {
     openSettingsSections,
     partnerForm,
     partnerSubmissions,
+    pastEvents,
     pendingBlogs,
     pendingEventProposals,
     pendingGallery,

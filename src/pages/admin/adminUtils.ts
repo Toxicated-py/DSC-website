@@ -59,6 +59,9 @@ export const hasDatePassed = (value?: string | null) => {
 export const isEventRegistrationOpen = (event: any) =>
   Boolean(event?.registration_open) && !hasDatePassed(event?.registration_deadline);
 
+export const isPastEvent = (event: any) =>
+  hasDatePassed(event?.end_time || event?.start_time);
+
 export const slugify = (value: string) =>
   value
     .toLowerCase()
