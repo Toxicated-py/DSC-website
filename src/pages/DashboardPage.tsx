@@ -17,12 +17,6 @@ export function DashboardPage() {
     batchYear: "",
     memberSince: "New member",
   });
-  const [counts, setCounts] = useState({
-    eventProposals: 0,
-    projects: 0,
-    blogPosts: 0,
-    gallery: 0,
-  });
   const [contributions, setContributions] = useState<any[]>([]);
   const [dashboardEvents, setDashboardEvents] = useState<any[]>([]);
   const [dashboardProjects, setDashboardProjects] = useState<any[]>([]);
@@ -44,28 +38,12 @@ export function DashboardPage() {
         userData.user.email ||
         "Member";
 
-      const [{ data: profile }, eventProposalCount, projectCount, blogCount, galleryCount, contributionProposals, contributionProjects, contributionGallery, publicEvents, publicProjects, publicPosts] = await Promise.all([
+      const [{ data: profile }, contributionProposals, contributionProjects, contributionBlogs, contributionGallery, publicEvents, publicProjects, publicPosts] = await Promise.all([
         supabase
           .from("profiles")
           .select("full_name,email,batch_year,created_at")
           .eq("id", userData.user.id)
           .maybeSingle(),
-        supabase
-          .from("event_proposals")
-          .select("id", { count: "exact", head: true })
-          .eq("proposed_by", userData.user.id),
-        supabase
-          .from("projects")
-          .select("id", { count: "exact", head: true })
-          .eq("author_id", userData.user.id),
-        supabase
-          .from("blog_posts")
-          .select("id", { count: "exact", head: true })
-          .eq("author_id", userData.user.id),
-        supabase
-          .from("gallery_submissions")
-          .select("id", { count: "exact", head: true })
-          .eq("submitted_by", userData.user.id),
         supabase
           .from("event_proposals")
           .select("id,title,status,submitted_at,event_type")
@@ -77,6 +55,12 @@ export function DashboardPage() {
           .select("id,title,status,submitted_at,category")
           .eq("author_id", userData.user.id)
           .order("submitted_at", { ascending: false })
+          .limit(4),
+        supabase
+          .from("blog_posts")
+          .select("id,title,status,published_at,tags")
+          .eq("author_id", userData.user.id)
+          .order("published_at", { ascending: false })
           .limit(4),
         supabase
           .from("gallery_submissions")
@@ -111,15 +95,10 @@ export function DashboardPage() {
         batchYear: profile?.batch_year ? String(profile.batch_year) : "",
         memberSince: profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "New member",
       });
-      setCounts({
-        eventProposals: eventProposalCount.count || 0,
-        projects: projectCount.count || 0,
-        blogPosts: blogCount.count || 0,
-        gallery: galleryCount.count || 0,
-      });
       setContributions([
         ...(contributionProposals.data || []).map((item) => ({ ...item, kind: "Proposed Event", date: item.submitted_at, icon: <Calendar size={18} />, color: "bg-[#2563EB]" })),
         ...(contributionProjects.data || []).map((item) => ({ ...item, kind: "Project Submitted", date: item.submitted_at, icon: <Code size={18} />, color: "bg-[#FB7185]" })),
+        ...(contributionBlogs.data || []).map((item) => ({ ...item, kind: "Blog Post", date: item.published_at, icon: <FileText size={18} />, color: "bg-[#FFE800]", iconText: "text-[#171717]" })),
         ...(contributionGallery.data || []).map((item) => ({ ...item, kind: "Gallery Upload", date: item.created_at, icon: <Camera size={18} />, color: "bg-[#7C3AED]" })),
       ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()).slice(0, 6));
       setDashboardEvents(publicEvents.data || []);
@@ -186,20 +165,20 @@ export function DashboardPage() {
       <section className="mb-10">
         <div className="mb-6">
           <h2 className="text-4xl md:text-5xl uppercase" style={fonts.display}>My Contributions</h2>
-          <p className="text-sm text-slate-500">Events proposed, gallery uploads, projects submitted</p>
+          <p className="text-sm text-slate-500">Events proposed, projects, blogs, and gallery uploads</p>
         </div>
         <BrutalCard color="bg-white" className="p-0 overflow-hidden">
           {contributions.length === 0 ? (
             <div className="p-6">
               <p className="font-bold uppercase">No contributions yet.</p>
-              <p className="mt-2 text-sm font-mono text-slate-500">Submit a project, propose an event, or upload gallery photos.</p>
+              <p className="mt-2 text-sm font-mono text-slate-500">Submit a project, write a blog, propose an event, or upload gallery photos.</p>
             </div>
           ) : (
             <div className="divide-y-2 divide-[#171717]">
               {contributions.map((item) => (
                 <div key={`${item.kind}-${item.id}`} className="flex items-center justify-between gap-4 p-4 md:p-6">
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className={`h-12 w-12 shrink-0 border-2 border-[#171717] ${item.color} text-white flex items-center justify-center`}>
+                    <div className={`h-12 w-12 shrink-0 border-2 border-[#171717] ${item.color} ${item.iconText || "text-white"} flex items-center justify-center`}>
                       {item.icon}
                     </div>
                     <div className="min-w-0">
@@ -300,41 +279,8 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Right Column: Activity & Actions - Full width on mobile */}
+        {/* Right Column: Actions - Full width on mobile */}
         <div className="space-y-6 md:space-y-10">
-          {/* Your Activity */}
-          <div>
-            <div className="flex items-center justify-between mb-4 md:mb-6">
-              <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Your Activity</h2>
-              <Trophy size={20} className="text-[#FFE800]" />
-            </div>
-            <BrutalCard color="bg-white" className="p-0 overflow-hidden">
-              <div className="divide-y-2 divide-[#171717]">
-                <div className="flex items-center justify-between p-3 md:p-4 bg-[#F4EFEB]">
-                  <div>
-                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Event Proposals</div>
-                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Submitted by you</div>
-                  </div>
-                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{counts.eventProposals}</div>
-                </div>
-                <div className="flex items-center justify-between p-3 md:p-4 bg-white">
-                  <div>
-                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Projects Submitted</div>
-                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Waiting for review or published</div>
-                  </div>
-                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{counts.projects}</div>
-                </div>
-                <div className="flex items-center justify-between p-3 md:p-4 bg-white">
-                  <div>
-                    <div className="text-xs md:text-sm font-bold" style={fonts.sans}>Blog Posts</div>
-                    <div className="text-[9px] md:text-[10px] font-mono text-slate-500">Drafts and submissions by you</div>
-                  </div>
-                  <div className="text-base md:text-lg font-bold" style={fonts.display}>{counts.blogPosts}</div>
-                </div>
-              </div>
-            </BrutalCard>
-          </div>
-
           {/* Quick Actions - Better spacing on mobile */}
           <div>
             <h2 className="text-2xl md:text-3xl uppercase mb-4 md:mb-6" style={fonts.display}>Account</h2>
