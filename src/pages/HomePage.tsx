@@ -113,7 +113,7 @@ export function HomePage() {
               <Database size={20} />
             </span>
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-500 sm:text-sm">
-              School of Mathematical Sciences - Tribhuvan University
+              School of Mathematical Sciences - TU
             </p>
           </div>
 
