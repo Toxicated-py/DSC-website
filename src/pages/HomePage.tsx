@@ -125,7 +125,7 @@ export function HomePage() {
                 <p className="text-xl leading-snug text-[#171717] sm:text-2xl" style={fonts.serif}>
                   <em className="text-[#FB7185]">Sarathi</em> means guide. We are the student community at SMS TU that turns data science <em className="text-[#2563EB]">from theory into practice.</em>
                 </p>
-                <p className="mt-4 font-mono text-sm text-slate-500">Open to all students at SMS, Tribhuvan University.</p>
+                <p className="mt-4 font-mono text-sm text-slate-500">Open to all students at SMS, TU.</p>
                 <div className="mt-6 flex flex-wrap gap-4">
                   <Link to="/events"><BrutalButton color="bg-white">See Events</BrutalButton></Link>
                   <Link to="/about"><BrutalButton color="bg-[#171717]" text="text-white">Our Story</BrutalButton></Link>
@@ -232,7 +232,7 @@ export function HomePage() {
             )) : (
               <div className="p-8 md:col-span-3">
                 <p className="text-3xl uppercase" style={fonts.display}>No published events yet.</p>
-                <p className="mt-2 font-mono text-sm text-white/50">Approved events will appear here automatically.</p>
+                <p className="mt-2 font-mono text-sm text-white/50">New exicting events will be available soon.</p>
               </div>
             )}
           </div>
@@ -280,7 +280,7 @@ export function HomePage() {
           <BrutalBadge color="bg-white" text="text-[#2563EB]">Open to all SMS TU students</BrutalBadge>
           <h2 className="mt-6 text-5xl leading-[0.92] sm:text-6xl md:text-7xl" style={fonts.display}>YOUR SARATHI IS WAITING.</h2>
           <p className="mx-auto mt-6 max-w-3xl text-xl leading-relaxed opacity-90" style={fonts.serif}>
-            Data Sarathi is new. The community is still forming. The first events are being planned. This is the moment to show up - before it becomes something you wish you had joined earlier.
+            Data Sarathi is new. The community is still forming. This is the moment to show up - before it becomes something you wish you had joined earlier.
           </p>
           <p className="mt-6 font-mono text-sm text-white/70">Free to join - Open to all SMS TU students - No prior experience needed.</p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">

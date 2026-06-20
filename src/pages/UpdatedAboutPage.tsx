@@ -61,7 +61,7 @@ export function UpdatedAboutPage() {
         <BrutalCard color="bg-[#FFE800]">
           <h2 className="text-4xl md:text-5xl uppercase mb-4" style={fonts.display}>People Behind The Club</h2>
           <p className="mb-6 text-slate-700">
-            View the executive board, faculty advisors, and community members on the dedicated team page.
+            View the executive board, faculty advisors, and community members of the Data Science Club.
           </p>
           <Link
             to="/team"
@@ -78,15 +78,15 @@ export function UpdatedAboutPage() {
         <BrutalCard className="p-0 overflow-hidden">
           <div className="aspect-video bg-slate-200">
             <img loading="lazy"
-              src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=600&fit=crop"
-              alt="Data Science Club Team Photo"
-              className="w-full h-full object-cover"
+              src="/assets/logo reveal group.jpg"
+              alt="Data Science Club Team Photo at Logo reveal day"
+              className="w-full h-auto object-contain"
             />
           </div>
           <div className="p-6">
             <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>Our Amazing Team</h3>
             <p className="text-slate-600">
-              The incredible members of Data Science Club at our Annual Summit 2024. Together, we're building the future of data-driven innovation in Nepal.
+              The incredible members of Data Science Club at our Logo Revealing Ceremony - 30th May, 2026. Together, we're building the future of data-driven innovation in Nepal.
             </p>
           </div>
         </BrutalCard>

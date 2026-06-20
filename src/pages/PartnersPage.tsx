@@ -91,7 +91,7 @@ export function PartnersPage() {
           Our Partners
         </h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-          We're grateful to our partners who support our mission to empower students through data science
+          We're grateful to our partners who support our mission to empower students through data science.
         </p>
       </div>
 
