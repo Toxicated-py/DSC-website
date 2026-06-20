@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpen, Check, Code, GitBranch, MapPin, Trophy, Users } from "lucide-react";
+import { ArrowRight, BookOpen, Code, GitBranch, MapPin, Trophy, Users } from "lucide-react";
 import { BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { apiGet } from "../lib/apiClient";
 import { defaultSiteSettings, loadSiteSettings } from "../lib/siteSettings";
@@ -134,17 +134,6 @@ export function HomePage() {
             </div>
 
             <div className="grid gap-4 lg:pt-4">
-              <div className="border-2 border-[#171717] bg-[#FB7185] p-5 text-white brutal-shadow rotate-1">
-                <div className="mb-4 flex items-center justify-between gap-4">
-                  <span className="text-xs font-bold uppercase tracking-widest text-white/80">{homeSettings.membershipLabel}</span>
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#171717] bg-white text-[#171717]">
-                    <Check size={16} strokeWidth={3} />
-                  </span>
-                </div>
-                <p className="text-2xl uppercase" style={fonts.display}>{homeSettings.membershipTitle}</p>
-                <p className="mt-2 font-mono text-sm text-white/80">{homeSettings.membershipDescription}</p>
-              </div>
-
               <Link
                 to={nextEvent ? `/events/${nextEvent.slug || nextEvent.id}` : "/events"}
                 className="block border-2 border-[#171717] bg-white p-5 brutal-shadow -rotate-1 transition-transform hover:-translate-y-1"
