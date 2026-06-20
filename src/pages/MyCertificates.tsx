@@ -72,7 +72,7 @@ export function MyCertificates() {
             My Certificates
           </Badge>
         </div>
-        <h1 className="mt-4 text-6xl uppercase leading-none" style={fonts.display}>
+        <h1 className="mt-4 text-4xl sm:text-5xl md:text-6xl uppercase leading-none break-words" style={fonts.display}>
           My Certificates
         </h1>
         <p className="font-mono text-sm text-slate-600">View, print, and download certificates issued to you.</p>
