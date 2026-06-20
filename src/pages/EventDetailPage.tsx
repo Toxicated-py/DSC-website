@@ -22,6 +22,13 @@ const remainingLabel = (date: Date) => {
   return hours < 24 ? `${hours} hrs remaining` : `${Math.ceil(hours / 24)} days remaining`;
 };
 
+const eventTimeLabel = (startDate: Date, endDate?: Date | null) => {
+  const now = Date.now();
+  if (startDate.getTime() > now) return remainingLabel(startDate);
+  if (!endDate || endDate.getTime() > now) return "running";
+  return "ended";
+};
+
 export function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -162,6 +169,7 @@ export function EventDetailPage() {
   }
 
   const startDate = displayEvent.start_time ? new Date(displayEvent.start_time) : null;
+  const endDate = displayEvent.end_time ? new Date(displayEvent.end_time) : null;
   const eventEnded = Boolean(displayEvent.end_time && new Date(displayEvent.end_time).getTime() < Date.now());
   const registrationDeadline = displayEvent.registration_deadline ? new Date(displayEvent.registration_deadline) : null;
   const registrationClosedByDeadline = Boolean(registrationDeadline && registrationDeadline.getTime() < Date.now());
@@ -188,7 +196,7 @@ export function EventDetailPage() {
         <h1 className="text-5xl md:text-7xl uppercase leading-none mb-6" style={fonts.display}>{displayEvent.title}</h1>
         <div className="flex flex-wrap gap-6 font-mono text-sm opacity-90">
           <span className="flex items-center gap-2"><MapPin size={16}/> {displayEvent.venue || "TBA"}</span>
-          <span className="flex items-center gap-2"><Calendar size={16}/> {startDate ? `${formatEventDate(startDate)} - ${remainingLabel(startDate)}` : "Date TBA"}</span>
+          <span className="flex items-center gap-2"><Calendar size={16}/> {startDate ? `${formatEventDate(startDate)} - ${eventTimeLabel(startDate, endDate)}` : "Date TBA"}</span>
           <span className="flex items-center gap-2"><Users size={16}/> {displayEvent.registeredCount || 0}/{displayEvent.capacity || 0} Spots Filled</span>
         </div>
       </BrutalCard>
