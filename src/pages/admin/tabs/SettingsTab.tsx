@@ -325,7 +325,7 @@ export function SettingsTab({ ctx }: { ctx: any }) {
               {settingsStatus}
             </div>
           )}
-          <SettingsSection id="site" title="Site Settings" description="Main website name and tagline.">
+          <SettingsSection openSettingsSections={openSettingsSections} setOpenSettingsSections={setOpenSettingsSections} id="site" title="Site Settings" description="Main website name and tagline.">
             <BrutalInput label="Site Name" value={siteSettings.siteName} onChange={(e: any) => setSiteSettings({...siteSettings, siteName: e.target.value})} />
             <BrutalInput label="Tagline" value={siteSettings.tagline} onChange={(e: any) => setSiteSettings({...siteSettings, tagline: e.target.value})} />
             <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
@@ -333,7 +333,7 @@ export function SettingsTab({ ctx }: { ctx: any }) {
             </BrutalButton>
           </SettingsSection>
 
-          <SettingsSection id="contact" title="Contact Information" description="Contact cards, address, and office hours shown on Contact page.">
+          <SettingsSection openSettingsSections={openSettingsSections} setOpenSettingsSections={setOpenSettingsSections} id="contact" title="Contact Information" description="Contact cards, address, and office hours shown on Contact page.">
             <BrutalTextarea
               label="Office Hours"
               value={siteSettings.officeHours}
@@ -419,7 +419,7 @@ export function SettingsTab({ ctx }: { ctx: any }) {
             </BrutalButton>
           </SettingsSection>
 
-          <SettingsSection id="social" title="Social Media Links" description="Add, remove, or edit footer and contact social links.">
+          <SettingsSection openSettingsSections={openSettingsSections} setOpenSettingsSections={setOpenSettingsSections} id="social" title="Social Media Links" description="Add, remove, or edit footer and contact social links.">
             <div className="space-y-4">
               {Object.entries(siteSettings.socialLinks).map(([platform, url]) => (
                 <div key={platform} className="grid lg:grid-cols-[220px_1fr_auto] gap-3 items-end border-2 border-[#171717] bg-[#F4EFEB] p-3">
@@ -470,7 +470,7 @@ export function SettingsTab({ ctx }: { ctx: any }) {
             </BrutalButton>
           </SettingsSection>
 
-          <SettingsSection id="team" title="Team Members" description="Profile-linked executives/members and manual advisors shown on Team page.">
+          <SettingsSection openSettingsSections={openSettingsSections} setOpenSettingsSections={setOpenSettingsSections} id="team" title="Team Members" description="Profile-linked executives/members and manual advisors shown on Team page.">
             <div className="space-y-4">
               {siteSettings.teamMembers.map((member) => (
                 <div key={member.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">
@@ -587,7 +587,7 @@ export function SettingsTab({ ctx }: { ctx: any }) {
             </BrutalButton>
           </SettingsSection>
 
-          <SettingsSection id="faqs" title="Frequently Asked Questions" description="Questions and answers shown on the Contact page.">
+          <SettingsSection openSettingsSections={openSettingsSections} setOpenSettingsSections={setOpenSettingsSections} id="faqs" title="Frequently Asked Questions" description="Questions and answers shown on the Contact page.">
             <div className="space-y-4">
               {siteSettings.faqs.map((faq) => (
                 <div key={faq.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">

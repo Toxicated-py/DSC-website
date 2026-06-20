@@ -87,6 +87,28 @@ import {
 
 // âââ Main Admin Panel ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
+const SettingsSection = ({ id, title, description, children, openSettingsSections, setOpenSettingsSections }: any) => {
+  const isOpen = Boolean(openSettingsSections[id]);
+  return (
+    <BrutalCard>
+      <button
+        type="button"
+        onClick={() => setOpenSettingsSections((sections: Record<string, boolean>) => ({ ...sections, [id]: !sections[id] }))}
+        className="flex w-full items-center justify-between gap-4 text-left"
+      >
+        <div>
+          <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>{title}</h2>
+          {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
+        </div>
+        <span className="border-2 border-[#171717] bg-[#FFE800] px-3 py-1 text-xs font-bold uppercase tracking-widest">
+          {isOpen ? "Hide" : "Edit"}
+        </span>
+      </button>
+      {isOpen && <div className="mt-6">{children}</div>}
+    </BrutalCard>
+  );
+};
+
 export function ComprehensiveAdminPanel() {
   const navigate = useNavigate();
   const { adminTab } = useParams();
@@ -1866,29 +1888,6 @@ export function ComprehensiveAdminPanel() {
   });
   const activeCredentialCount = issuedCertificates.filter((certificate) => certificate.status !== "revoked" && certificate.status !== "archived").length;
   const revokedCredentialCount = issuedCertificates.filter((certificate) => certificate.status === "revoked" || certificate.status === "archived").length;
-  const SettingsSection = ({ id, title, description, children }: any) => {
-    const isOpen = Boolean(openSettingsSections[id]);
-    return (
-      <BrutalCard>
-        <button
-          type="button"
-          onClick={() => setOpenSettingsSections((sections) => ({ ...sections, [id]: !sections[id] }))}
-          className="flex w-full items-center justify-between gap-4 text-left"
-        >
-          <div>
-            <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>{title}</h2>
-            {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
-          </div>
-          <span className="border-2 border-[#171717] bg-[#FFE800] px-3 py-1 text-xs font-bold uppercase tracking-widest">
-            {isOpen ? "Hide" : "Edit"}
-          </span>
-        </button>
-        {isOpen && <div className="mt-6">{children}</div>}
-      </BrutalCard>
-    );
-  };
-
-
   const adminTabContext = {
     SettingsSection,
     activeBlogs,
