@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { Database, Users, ArrowRight, ArrowLeft, Search, Camera, Check, Calendar, MapPin, Tag, QrCode, Trophy, TrendingUp, Bell, Zap, Target, Star, Award, Clock, BookOpen, Code, GitBranch, Home, Mail, UserCheck, GraduationCap, User, FileText } from "lucide-react";
-import { QRCodeCanvas } from "qrcode.react";
-import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
-import { getPersistenceLabel, publishBlogPost, submitEventProposal, submitProject } from "../lib/contentApi";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { useNavigate, useParams } from "react-router-dom";
+import { Users, ArrowLeft, Check, Calendar, MapPin, QrCode } from "lucide-react";
+
+
+
+
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge } from "../components/ui/brutal";
 import { requireLoginForAction } from "../utils/authNavigation";
 import { fonts } from "../config/fonts";
 

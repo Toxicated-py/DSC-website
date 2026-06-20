@@ -14,73 +14,17 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  Check, User, UserCheck, GraduationCap, Settings, Search, Edit, Trash2, Crown,
-  Calendar, MapPin, Users, Trophy, TrendingUp, Save, X, Plus, Eye, EyeOff,
-  Mail, Phone, Globe, Github, Linkedin, Twitter, Instagram, Facebook,
-  Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare, ListFilter
-} from "lucide-react";
-import {
-  adminCreateResource,
-  adminCreateEventFromProposal,
-  adminDeleteContact,
-  adminDeleteResource,
-  adminListAuditLogs,
-  adminListContacts,
-  adminListResource,
-  adminListEventStaff,
-  adminReplaceEventStaff,
-  adminSaveSiteSettings,
-  adminUpdateContactStatus,
-  adminUpdateResource,
-  adminUpdateResourceStatus,
-} from "../lib/adminApi";
+import { User, UserCheck, GraduationCap, Settings, Edit, Crown, Calendar, Users, Trophy, Save, X, Eye, Mail, Phone, Globe, Home, FileText, Award, BarChart3, ListFilter } from "lucide-react";
+import { adminCreateResource, adminCreateEventFromProposal, adminDeleteContact, adminDeleteResource, adminListAuditLogs, adminListContacts, adminListResource, adminListEventStaff, adminReplaceEventStaff, adminSaveSiteSettings, adminUpdateContactStatus, adminUpdateResource, adminUpdateResourceStatus } from "../lib/adminApi";
 import { apiGet } from "../lib/apiClient";
 import { ContactItem, defaultSiteSettings, FAQItem, mergeSiteSettings, TeamMember } from "../lib/siteSettings";
-import {
-  deleteCertificate as deleteCertificateRecord,
-  getCertificatesByEvent,
-  issueCheckedInBulk,
-  issueSingleCertificate,
-  revokeCertificate,
-  updateCertificate,
-  uploadCertificateTemplateImage,
-  uploadSignatureImage,
-} from "../services/certificateService";
+import { deleteCertificate as deleteCertificateRecord, getCertificatesByEvent, issueCheckedInBulk, issueSingleCertificate, revokeCertificate, updateCertificate, uploadCertificateTemplateImage, uploadSignatureImage } from "../services/certificateService";
 import { CertificateRenderer } from "../components/CertificateRenderer";
 import { fonts } from "../config/fonts";
 import { AdminAccessDenied, AdminShellHeader, AdminTabs } from "./admin/AdminShell";
-import {
-  OverviewTab,
-  UsersTab,
-  EventsTab,
-  ProposalsTab,
-  ProjectsTab,
-  BlogsTab,
-  GalleryTab,
-  PartnersTab,
-  ResourcesTab,
-  CertificatesTab,
-  ContentTab,
-  ContactsTab,
-  SettingsTab,
-  AnalyticsTab,
-  LogsTab
-} from "./admin/tabs";
+import { OverviewTab, UsersTab, EventsTab, ProposalsTab, ProjectsTab, BlogsTab, GalleryTab, PartnersTab, ResourcesTab, CertificatesTab, ContentTab, ContactsTab, SettingsTab, AnalyticsTab, LogsTab } from "./admin/tabs";
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, BrutalSelect, BrutalTextarea } from "./admin/AdminPrimitives";
-import {
-  assignableRoleOptions,
-  certificateTemplateOptions,
-  formatCertificateError,
-  fromDatetimeLocalValue,
-  hasDatePassed,
-  isEventRegistrationOpen,
-  isFullAdminProfile,
-  isOrganizerProfile,
-  isPastEvent,
-  slugify,
-  toDatetimeLocalValue,
-} from "./admin/adminUtils";
+import { assignableRoleOptions, certificateTemplateOptions, formatCertificateError, fromDatetimeLocalValue, hasDatePassed, isEventRegistrationOpen, isFullAdminProfile, isOrganizerProfile, isPastEvent, slugify, toDatetimeLocalValue } from "./admin/adminUtils";
 
 
 // âââ Reusable Components âââââââââââââââââââââââââââââââââââââââââââââââââââââââ

@@ -1,12 +1,7 @@
-import {
-  Check, User, UserCheck, GraduationCap, Settings, Search, Edit, Trash2, Crown,
-  Calendar, MapPin, Users, Trophy, TrendingUp, Save, X, Plus, Eye, EyeOff,
-  Mail, Phone, Globe, Github, Linkedin, Twitter, Instagram, Facebook,
-  Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare, ListFilter
-} from "lucide-react";
-import { CertificateRenderer } from "../../../components/CertificateRenderer";
+
+
 import { fonts } from "../../../config/fonts";
-import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, BrutalSelect, BrutalTextarea } from "../AdminPrimitives";
+import { BrutalButton, BrutalCard, BrutalInput, BrutalTextarea } from "../AdminPrimitives";
 
 export function ResourcesTab({ ctx }: { ctx: any }) {
   const {

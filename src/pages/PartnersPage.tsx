@@ -1,29 +1,8 @@
-/**
- * Additional New Pages - Part 2
- *
- * 5. Gallery Page
- * 6. User Profile Page
- * 7. Achievements Page
- * 8. Partners Page
- */
-
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Image, User, Edit, Save, Trophy, Star, Award, Target, Heart, Search, X, ChevronLeft, ChevronRight,
-  Calendar, MapPin, Mail, Github, Linkedin, ExternalLink, Zap,
-  TrendingUp, Users, Code, BookOpen, Shield, Crown, GraduationCap, UserCheck, Handshake
-} from "lucide-react";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
-import { submitGallery } from "../lib/contentApi";
-
-
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui/brutal";
+import { ExternalLink, Handshake, Heart, Mail, Star, Zap } from "lucide-react";
+import { apiGet } from "../lib/apiClient";
+import { BrutalCard, BrutalBadge } from "../components/ui/brutal";
 import { fonts } from "../config/fonts";
-
-// âââ 5. GALLERY PAGE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
 export function PartnersPage() {
   const [adminPartners, setAdminPartners] = useState<any[]>([]);
   const [failedLogos, setFailedLogos] = useState<Record<string, boolean>>({});

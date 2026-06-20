@@ -4,13 +4,13 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Check, Shield, User, UserCheck, GraduationCap, Settings, Search, Edit, Trash2, Crown, X, Eye, EyeOff } from "lucide-react";
+import { Check, User, UserCheck, GraduationCap, Crown, X, Eye, EyeOff } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
 import { DSC_LOGO_SRC } from "../../config/assets";
 import { userFriendlyErrorMessage } from "../../lib/apiClient";
 
 
-import { BrutalButton, BrutalCard, BrutalBadge } from "../ui/brutal";
+import { BrutalButton } from "../ui/brutal";
 import { fonts } from "../../config/fonts";
 
 // âââ New Login/Signup Page with Google Auth âââââââââââââââââââââââââââââââââââ
