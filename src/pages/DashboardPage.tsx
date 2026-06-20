@@ -134,13 +134,6 @@ export function DashboardPage() {
     };
   }, []);
 
-  const userStats = [
-    { label: "Event Proposals", value: String(counts.eventProposals), icon: <Calendar size={20} />, color: "bg-[#2563EB]", trend: "Awaiting review" },
-    { label: "Projects Submitted", value: String(counts.projects), icon: <Code size={20} />, color: "bg-[#FB7185]", trend: "Your submissions" },
-    { label: "Blog Posts", value: String(counts.blogPosts), icon: <FileText size={20} />, color: "bg-[#FFE800]", trend: "Published by you" },
-    { label: "Gallery Uploads", value: String(counts.gallery), icon: <Camera size={20} />, color: "bg-[#7C3AED]", trend: "Photos submitted" },
-  ];
-
   const nextEvent = dashboardEvents[0];
   const announcements = dashboardPosts.map((post) => ({
     id: post.id,
@@ -190,22 +183,6 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
-        {userStats.map((stat, i) => (
-          <BrutalCard key={i} color="bg-white" className="hover:scale-105 transition-transform cursor-pointer">
-            <div className={`w-10 h-10 md:w-12 md:h-12 ${stat.color} border-2 border-[#171717] flex items-center justify-center mb-3 md:mb-4 ${stat.color === "bg-[#FFE800]" ? "text-[#171717]" : "text-white"}`}>
-              {stat.icon}
-            </div>
-            <div className="text-2xl md:text-4xl font-bold mb-1 break-words leading-tight" style={fonts.display}>{stat.value}</div>
-            <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400 mb-2" style={fonts.sans}>
-              {stat.label}
-            </div>
-            <div className="text-[9px] md:text-[10px] font-mono text-[#2563EB]">{stat.trend}</div>
-          </BrutalCard>
-        ))}
-      </div>
-
       <section className="mb-10">
         <div className="mb-6">
           <h2 className="text-4xl md:text-5xl uppercase" style={fonts.display}>My Contributions</h2>
@@ -232,7 +209,7 @@ export function DashboardPage() {
                       </p>
                     </div>
                   </div>
-                  <BrutalBadge color={["approved", "published", "featured"].includes(item.status) ? "bg-green-500" : item.status === "rejected" ? "bg-[#FB7185]" : "bg-[#FFE800]"} text={["approved", "published", "featured", "rejected"].includes(item.status) ? "text-white" : "text-[#171717]"}>
+                  <BrutalBadge className="shrink-0 text-[9px] sm:text-[10px] px-2 sm:px-3" color={["approved", "published", "featured"].includes(item.status) ? "bg-green-500" : item.status === "rejected" ? "bg-[#FB7185]" : "bg-[#FFE800]"} text={["approved", "published", "featured", "rejected"].includes(item.status) ? "text-white" : "text-[#171717]"}>
                     {item.status || "pending"}
                   </BrutalBadge>
                 </div>
