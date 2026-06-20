@@ -26,7 +26,7 @@ export function ProjectDetailPage() {
       }
       const query = supabase
         .from("projects")
-        .select("id,slug,title,category,technologies,summary,content,published_at,status")
+        .select("id,slug,title,category,technologies,summary,content,thumbnail_url,published_at,status")
         .in("status", ["approved", "published"]);
       const isUuid = /^[0-9a-f-]{36}$/i.test(id);
       const { data } = isUuid
@@ -54,8 +54,12 @@ export function ProjectDetailPage() {
         <BrutalCard><p className="font-bold uppercase">Project not found or not published yet.</p></BrutalCard>
       ) : (
         <>
-        <div className="w-full aspect-video bg-[#2563EB] border-4 border-[#171717] brutal-shadow-lg mb-12 flex items-center justify-center p-8">
-          <h1 className="text-5xl md:text-8xl text-white uppercase text-center" style={fonts.display}>{project.title}</h1>
+        <div className="w-full aspect-video bg-[#2563EB] border-4 border-[#171717] brutal-shadow-lg mb-12 flex items-center justify-center overflow-hidden">
+          {project.thumbnail_url ? (
+            <img src={project.thumbnail_url} alt={project.title} className="h-full w-full object-cover" />
+          ) : (
+            <h1 className="text-5xl md:text-8xl text-white uppercase text-center p-8" style={fonts.display}>{project.title}</h1>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-4 mb-8">
