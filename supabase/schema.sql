@@ -61,6 +61,7 @@ create table public.events (
   start_time timestamptz,
   end_time timestamptz,
   venue text,
+  banner_url text,
   capacity int not null default 40,
   registration_open boolean not null default true,
   status public.review_status not null default 'draft',

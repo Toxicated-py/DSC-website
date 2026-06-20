@@ -151,6 +151,7 @@ export function ComprehensiveAdminPanel() {
     startTime: "",
     endTime: "",
     venue: "",
+    bannerUrl: "",
     capacity: "40",
     status: "approved",
     registrationOpen: true,
@@ -967,6 +968,7 @@ export function ComprehensiveAdminPanel() {
       startTime: "",
       endTime: "",
       venue: "",
+      bannerUrl: "",
       capacity: "40",
       status: "approved",
       registrationOpen: true,
@@ -1015,6 +1017,7 @@ export function ComprehensiveAdminPanel() {
       startTime: event?.start_time ? event.start_time.slice(0, 16) : "",
       endTime: event?.end_time ? event.end_time.slice(0, 16) : "",
       venue: event?.venue || event?.location || "",
+      bannerUrl: event?.banner_url || "",
       capacity: event?.capacity ? String(event.capacity) : "40",
       status: event?.status || "approved",
       registrationOpen: event?.registration_open ?? true,
@@ -1046,6 +1049,7 @@ export function ComprehensiveAdminPanel() {
       start_time: eventForm.startTime ? new Date(eventForm.startTime).toISOString() : null,
       end_time: eventForm.endTime ? new Date(eventForm.endTime).toISOString() : null,
       venue: eventForm.venue,
+      banner_url: eventForm.bannerUrl || null,
       capacity: Number(eventForm.capacity) || 40,
       status: eventForm.status,
       registration_open: eventForm.registrationOpen,
@@ -2340,6 +2344,7 @@ export function ComprehensiveAdminPanel() {
               <BrutalInput label="Slug" value={eventForm.slug} onChange={(event: any) => setEventForm({ ...eventForm, slug: event.target.value })} placeholder="power-bi-workshop" />
               <BrutalTextarea label="Description" value={eventForm.description} onChange={(event: any) => setEventForm({ ...eventForm, description: event.target.value })} required />
               <BrutalInput label="Short Description" value={eventForm.shortDescription} onChange={(event: any) => setEventForm({ ...eventForm, shortDescription: event.target.value })} />
+              <BrutalInput label="Banner Image URL" value={eventForm.bannerUrl} onChange={(event: any) => setEventForm({ ...eventForm, bannerUrl: event.target.value })} placeholder="https://..." />
               <div className="grid md:grid-cols-2 gap-4">
                 <BrutalInput label="Start Time" type="datetime-local" value={eventForm.startTime} onChange={(event: any) => setEventForm({ ...eventForm, startTime: event.target.value })} />
                 <BrutalInput label="End Time" type="datetime-local" value={eventForm.endTime} onChange={(event: any) => setEventForm({ ...eventForm, endTime: event.target.value })} />
