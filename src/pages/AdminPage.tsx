@@ -72,9 +72,13 @@ import {
   assignableRoleOptions,
   certificateTemplateOptions,
   formatCertificateError,
+  fromDatetimeLocalValue,
+  hasDatePassed,
+  isEventRegistrationOpen,
   isFullAdminProfile,
   isOrganizerProfile,
   slugify,
+  toDatetimeLocalValue,
 } from "./admin/adminUtils";
 
 
@@ -1014,14 +1018,14 @@ export function ComprehensiveAdminPanel() {
       eventType: event?.event_type || event?.category || "WORKSHOP",
       description: event?.description || "",
       shortDescription: event?.short_description || "",
-      startTime: event?.start_time ? event.start_time.slice(0, 16) : "",
-      endTime: event?.end_time ? event.end_time.slice(0, 16) : "",
+      startTime: toDatetimeLocalValue(event?.start_time),
+      endTime: toDatetimeLocalValue(event?.end_time),
       venue: event?.venue || event?.location || "",
       bannerUrl: event?.banner_url || "",
       capacity: event?.capacity ? String(event.capacity) : "40",
       status: event?.status || "approved",
       registrationOpen: event?.registration_open ?? true,
-      registrationDeadline: event?.registration_deadline ? event.registration_deadline.slice(0, 16) : "",
+      registrationDeadline: toDatetimeLocalValue(event?.registration_deadline),
       coordinatorEmails: "",
     });
 
@@ -1046,14 +1050,14 @@ export function ComprehensiveAdminPanel() {
       event_type: eventForm.eventType,
       description: eventForm.description,
       short_description: eventForm.shortDescription || eventForm.description.slice(0, 160),
-      start_time: eventForm.startTime ? new Date(eventForm.startTime).toISOString() : null,
-      end_time: eventForm.endTime ? new Date(eventForm.endTime).toISOString() : null,
+      start_time: fromDatetimeLocalValue(eventForm.startTime),
+      end_time: fromDatetimeLocalValue(eventForm.endTime),
       venue: eventForm.venue,
       banner_url: eventForm.bannerUrl || null,
       capacity: Number(eventForm.capacity) || 40,
       status: eventForm.status,
       registration_open: eventForm.registrationOpen,
-      registration_deadline: eventForm.registrationDeadline ? new Date(eventForm.registrationDeadline).toISOString() : null,
+      registration_deadline: fromDatetimeLocalValue(eventForm.registrationDeadline),
       created_by: editingItem?.created_by || adminProfile?.id || null,
     };
 
@@ -1112,14 +1116,18 @@ export function ComprehensiveAdminPanel() {
   };
 
   const toggleEventRegistration = async (event: any) => {
-    const next = !event.registration_open;
+    const next = !isEventRegistrationOpen(event);
+    const patch: Record<string, any> = { registration_open: next };
+    if (next && hasDatePassed(event.registration_deadline)) {
+      patch.registration_deadline = null;
+    }
     try {
-      await adminUpdateResource("events", event.id, { registration_open: next });
+      await adminUpdateResource("events", event.id, patch);
     } catch (error: any) {
       setAdminStatus(error.message || "Could not update registration.");
       return;
     }
-    setEvents(events.map((row) => row.id === event.id ? { ...row, registration_open: next } : row));
+    setEvents(events.map((row) => row.id === event.id ? { ...row, ...patch } : row));
   };
 
   const updateProjectStatus = async (id: string, status: string) => {

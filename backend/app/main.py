@@ -80,6 +80,21 @@ def supabase_http_error(exc: SupabaseRestError) -> HTTPException:
     return HTTPException(status_code=exc.status_code, detail=detail)
 
 
+def parse_supabase_datetime(value: Any) -> datetime | None:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        try:
+            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def get_supabase(settings: Settings = Depends(get_settings)) -> SupabaseRestClient:
     try:
         return SupabaseRestClient(settings, get_http_client())
@@ -716,11 +731,12 @@ async def reserve_event_spot(
     event_id = event["id"]
     if not event.get("registration_open") or event.get("status") == "archived":
         raise HTTPException(status_code=400, detail="Registration is closed for this event.")
-    start_time = event.get("start_time")
-    if start_time and str(start_time) < date.today().isoformat():
+    now = datetime.now(timezone.utc)
+    start_time = parse_supabase_datetime(event.get("start_time"))
+    if start_time and start_time.date() < now.date():
         raise HTTPException(status_code=400, detail="This event has ended.")
-    deadline = event.get("registration_deadline")
-    if deadline and str(deadline) < datetime.now(timezone.utc).isoformat():
+    deadline = parse_supabase_datetime(event.get("registration_deadline"))
+    if deadline and deadline < now:
         raise HTTPException(status_code=400, detail="Registration deadline has passed.")
     existing = await client.select(
         "event_registrations",
@@ -846,7 +862,8 @@ async def scan_event_ticket(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
     event_id = event["id"]
-    if event.get("end_time") and str(event.get("end_time")) < datetime.now(timezone.utc).isoformat():
+    end_time = parse_supabase_datetime(event.get("end_time"))
+    if end_time and end_time < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Scanner is closed because this event has ended.")
     if not await can_manage_event(service_client, profile, event):
         raise HTTPException(status_code=403, detail="You are not allowed to scan for this event.")

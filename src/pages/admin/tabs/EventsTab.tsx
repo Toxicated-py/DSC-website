@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { CertificateRenderer } from "../../../components/CertificateRenderer";
 import { fonts } from "../../../config/fonts";
+import { isEventRegistrationOpen } from "../adminUtils";
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, BrutalSelect, BrutalTextarea } from "../AdminPrimitives";
 
 export function EventsTab({ ctx }: { ctx: any }) {
@@ -342,7 +343,9 @@ export function EventsTab({ ctx }: { ctx: any }) {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeEvents.map((event) => (
+            {activeEvents.map((event) => {
+              const registrationOpen = isEventRegistrationOpen(event);
+              return (
               <BrutalCard key={event.id} color="bg-white">
                 <div className="flex items-start justify-between mb-4">
                   <BrutalBadge color={event.status === "Upcoming" ? "bg-[#2563EB]" : "bg-slate-400"}>
@@ -379,7 +382,7 @@ export function EventsTab({ ctx }: { ctx: any }) {
                     onClick={() => toggleEventRegistration(event)}
                     className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
                   >
-                    {event.registration_open ? "Close Reg" : "Open Reg"}
+                    {registrationOpen ? "Close Reg" : "Open Reg"}
                   </button>
                   {isFullAdmin && (
                     <button
@@ -391,7 +394,8 @@ export function EventsTab({ ctx }: { ctx: any }) {
                   )}
                 </div>
               </BrutalCard>
-            ))}
+            );
+            })}
           </div>
 
           {isFullAdmin && <div className="mt-10">

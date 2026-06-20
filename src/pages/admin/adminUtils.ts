@@ -39,6 +39,26 @@ export const certificateTemplateOptions = [
 
 export const assignableRoleOptions = ["member", "student", "teacher", "event_manager", "organizer", "president", "admin"];
 
+export const toDatetimeLocalValue = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 16);
+};
+
+export const fromDatetimeLocalValue = (value: string) =>
+  value ? new Date(value).toISOString() : null;
+
+export const hasDatePassed = (value?: string | null) => {
+  if (!value) return false;
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime()) && date.getTime() <= Date.now();
+};
+
+export const isEventRegistrationOpen = (event: any) =>
+  Boolean(event?.registration_open) && !hasDatePassed(event?.registration_deadline);
+
 export const slugify = (value: string) =>
   value
     .toLowerCase()
