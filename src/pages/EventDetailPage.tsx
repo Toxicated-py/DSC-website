@@ -84,6 +84,22 @@ export function EventDetailPage() {
     } : attendee));
   };
 
+  const undoCheckInAttendee = async (registrationId: string) => {
+    if (!id) return;
+    setManagerStatus("");
+    try {
+      await apiPatch(`/api/events/${id}/registrations/${registrationId}/undo-check-in`, {}, { auth: true });
+    } catch (error: any) {
+      setManagerStatus(error.message || "Could not undo check-in.");
+      return;
+    }
+    setAttendees(attendees.map((attendee) => attendee.id === registrationId ? {
+      ...attendee,
+      status: "registered",
+      checked_in_at: null,
+    } : attendee));
+  };
+
   const reserveSpot = async () => {
     if (reservingSpot) return;
     setReserveStatus("");
@@ -238,7 +254,11 @@ export function EventDetailPage() {
                       <td className="p-3 font-mono text-xs">{attendee.ticket_code}</td>
                       <td className="p-3">{attendee.checked_in_at ? "Checked in" : attendee.status}</td>
                       <td className="p-3 text-right">
-                        {!attendee.checked_in_at && (
+                        {attendee.checked_in_at ? (
+                          <button onClick={() => undoCheckInAttendee(attendee.id)} className="px-3 py-2 border-2 border-[#171717] bg-[#FFE800] text-[#171717] text-xs font-bold uppercase">
+                            Undo
+                          </button>
+                        ) : (
                           <button onClick={() => checkInAttendee(attendee.id)} className="px-3 py-2 border-2 border-[#171717] bg-green-500 text-white text-xs font-bold uppercase">
                             Check In
                           </button>

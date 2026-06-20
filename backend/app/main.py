@@ -808,6 +808,31 @@ async def check_in_registration(
     return rows[0]
 
 
+@app.patch("/api/events/{event_id}/registrations/{registration_id}/undo-check-in")
+async def undo_check_in_registration(
+    event_id: str,
+    registration_id: str,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> dict[str, Any]:
+    service_client = get_privileged_supabase(settings)
+    event = await select_by_id_or_slug(client, "events", event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    event_id = event["id"]
+    if not await can_manage_event(service_client, profile, event):
+        raise HTTPException(status_code=403, detail="You are not allowed to manage this event.")
+    rows = await service_client.update(
+        "event_registrations",
+        {"status": "registered", "checked_in_at": None},
+        filters={"id": f"eq.{registration_id}", "event_id": f"eq.{event_id}"},
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="Registration not found.")
+    return rows[0]
+
+
 @app.post("/api/events/{event_id}/scan")
 async def scan_event_ticket(
     event_id: str,
