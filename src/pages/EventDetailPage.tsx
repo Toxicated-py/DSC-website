@@ -30,6 +30,17 @@ const eventTimeLabel = (startDate: Date, endDate?: Date | null) => {
   return "ended";
 };
 
+const googleFormEmbedUrl = (url?: string | null) => {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("embedded", "true");
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+};
+
 export function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -255,6 +266,7 @@ export function EventDetailPage() {
   const isReserved = Boolean(myRegistration?.id);
   const isTeamEvent = displayEvent.registration_mode === "team";
   const teamMaxSize = Math.min(4, Math.max(2, Number(displayEvent.team_max_size || 2)));
+  const guestGoogleFormUrl = googleFormEmbedUrl(displayEvent.google_form_url);
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
@@ -339,16 +351,16 @@ export function EventDetailPage() {
       </div>
 
       {showGuestForm && !isReserved && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-6 md:items-center md:py-10">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-6 pt-24 md:items-center md:py-12">
           <form onSubmit={reserveGuestSpot} className="w-full max-w-4xl border-2 border-[#171717] bg-white p-5 brutal-shadow-lg md:p-7">
             <div className="mb-6 flex flex-col gap-4 border-b-2 border-[#171717] pb-5 md:flex-row md:items-start md:justify-between">
               <div>
-                <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{isTeamEvent ? "Team Registration" : "Guest Registration"}</BrutalBadge>
+                <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{guestGoogleFormUrl ? "Google Form" : isTeamEvent ? "Team Registration" : "Guest Registration"}</BrutalBadge>
                 <h2 className="mt-4 text-3xl uppercase md:text-5xl" style={fonts.display}>
-                  {isTeamEvent ? "Team Lead Details" : "Guest Details"}
+                  {guestGoogleFormUrl ? "Guest Registration Form" : isTeamEvent ? "Team Lead Details" : "Guest Details"}
                 </h2>
                 <p className="mt-2 max-w-xl text-sm font-mono text-slate-600">
-                  {isTeamEvent ? `Register your team. Max ${teamMaxSize} people.` : "No account needed. Your ticket appears after submission."}
+                  {guestGoogleFormUrl ? "Fill the embedded Google Form below." : isTeamEvent ? `Register your team. Max ${teamMaxSize} people.` : "No account needed. Your ticket appears after submission."}
                 </p>
               </div>
               <button
@@ -361,6 +373,24 @@ export function EventDetailPage() {
               </button>
             </div>
 
+            {guestGoogleFormUrl ? (
+              <div>
+                <iframe
+                  title="Guest registration form"
+                  src={guestGoogleFormUrl}
+                  className="h-[70vh] min-h-[520px] w-full border-2 border-[#171717]"
+                />
+                <a
+                  href={displayEvent.google_form_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex border-2 border-[#171717] bg-[#FFE800] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#171717]"
+                >
+                  Open Form In New Tab
+                </a>
+              </div>
+            ) : (
+              <>
             <div className="grid gap-4 md:grid-cols-2">
               <BrutalInput label="Full Name" value={guestForm.name} onChange={(event) => setGuestForm({ ...guestForm, name: event.target.value })} required disabled={reservingSpot} />
               <BrutalInput label="Email" type="email" value={guestForm.email} onChange={(event) => setGuestForm({ ...guestForm, email: event.target.value })} required disabled={reservingSpot} />
@@ -409,6 +439,8 @@ export function EventDetailPage() {
                 {reservingSpot ? "Submitting..." : "Submit Guest Registration"}
               </BrutalButton>
             </div>
+              </>
+            )}
           </form>
         </div>
       )}
