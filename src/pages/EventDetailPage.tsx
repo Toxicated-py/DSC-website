@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Users, ArrowLeft, Check, Calendar, MapPin, QrCode } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
 
 
 
 
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
-import { BrutalButton, BrutalCard, BrutalBadge } from "../components/ui/brutal";
-import { requireLoginForAction } from "../utils/authNavigation";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from "../components/ui/brutal";
 import { fonts } from "../config/fonts";
 
 const formatEventDate = (date: Date) =>
@@ -40,6 +41,17 @@ export function EventDetailPage() {
   const [managerStatus, setManagerStatus] = useState("");
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [reservingSpot, setReservingSpot] = useState(false);
+  const [showReserveChoice, setShowReserveChoice] = useState(false);
+  const [showGuestForm, setShowGuestForm] = useState(false);
+  const [guestForm, setGuestForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    institution: "",
+    teamName: "",
+    member2Name: "",
+    member2Email: "",
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -112,11 +124,19 @@ export function EventDetailPage() {
   const reserveSpot = async () => {
     if (reservingSpot) return;
     setReserveStatus("");
-    if (!(await requireLoginForAction(navigate, `/events/${id}`))) return;
     if (!id) {
       setReserveStatus("Invalid event.");
       return;
     }
+
+    const user = isSupabaseConfigured && supabase
+      ? (await supabase.auth.getUser()).data.user
+      : null;
+    if (!user) {
+      setShowReserveChoice(true);
+      return;
+    }
+
     try {
       setReservingSpot(true);
       const result = await apiPost<any>(`/api/events/${id}/reserve`, {}, { auth: true });
@@ -137,6 +157,51 @@ export function EventDetailPage() {
         return;
       }
       setReserveStatus(userFriendlyErrorMessage(error, "Could not reserve a spot. Please try again."));
+    } finally {
+      setReservingSpot(false);
+    }
+  };
+
+  const reserveGuestSpot = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (reservingSpot || !id) return;
+    setReserveStatus("");
+
+    const members = guestForm.member2Name.trim() || guestForm.member2Email.trim()
+      ? [{ name: guestForm.member2Name.trim(), email: guestForm.member2Email.trim() }]
+      : [];
+    const registrationKind = displayEvent?.registration_mode === "team" ? "team" : "individual";
+    const minSize = Math.max(1, Number(displayEvent?.team_min_size || (registrationKind === "team" ? 2 : 1)));
+
+    if (registrationKind === "team" && members.length + 1 < Math.max(2, minSize)) {
+      setReserveStatus(`Team registration needs at least ${Math.max(2, minSize)} people.`);
+      return;
+    }
+
+    try {
+      setReservingSpot(true);
+      const result = await apiPost<any>(`/api/events/${id}/guest-reserve`, {
+        name: guestForm.name.trim(),
+        email: guestForm.email.trim(),
+        phone: guestForm.phone.trim() || null,
+        institution: guestForm.institution.trim() || null,
+        registration_kind: registrationKind,
+        team_name: guestForm.teamName.trim() || null,
+        team_members: members,
+      });
+      setMyRegistration(result.registration || null);
+      setReserveStatus(result.message === "Already registered."
+        ? "You already registered as a guest."
+        : "Guest registration complete. Save your ticket code.");
+      setShowGuestForm(false);
+      setShowReserveChoice(false);
+      setEventInfo((current: any) => {
+        if (!current) return current;
+        const nextCount = Number(result.registered_count ?? result.registeredCount ?? Number(current.registeredCount || current.registered_count || 0) + 1);
+        return { ...current, registeredCount: nextCount, registered_count: nextCount };
+      });
+    } catch (error: any) {
+      setReserveStatus(userFriendlyErrorMessage(error, "Could not register as guest. Please try again."));
     } finally {
       setReservingSpot(false);
     }
@@ -175,6 +240,7 @@ export function EventDetailPage() {
   const registrationClosedByDeadline = Boolean(registrationDeadline && registrationDeadline.getTime() < Date.now());
   const registrationClosed = !displayEvent.registration_open || registrationClosedByDeadline;
   const isReserved = Boolean(myRegistration?.id);
+  const isTeamEvent = displayEvent.registration_mode === "team";
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
@@ -218,14 +284,52 @@ export function EventDetailPage() {
                 <BrutalButton disabled className="w-full cursor-not-allowed opacity-80" color="bg-green-500" text="text-white">
                   <Check size={16} /> Reserved
                 </BrutalButton>
-                <BrutalButton onClick={() => navigate(`/ticket/${myRegistration.id}`, { state: { from: `/events/${id}` } })} className="w-full" color="bg-[#FFE800]" text="text-[#171717]">
-                  <QrCode size={16} /> View Ticket
-                </BrutalButton>
+                {myRegistration.user_id ? (
+                  <BrutalButton onClick={() => navigate(`/ticket/${myRegistration.id}`, { state: { from: `/events/${id}` } })} className="w-full" color="bg-[#FFE800]" text="text-[#171717]">
+                    <QrCode size={16} /> View Ticket
+                  </BrutalButton>
+                ) : (
+                  <div className="border-2 border-[#171717] bg-white p-4 text-center">
+                    {myRegistration.ticket_code && <QRCodeCanvas value={myRegistration.ticket_code} size={140} className="mx-auto mb-3" />}
+                    <p className="text-xs font-bold uppercase tracking-widest">Guest ticket code</p>
+                    <p className="break-all font-mono text-xs">{myRegistration.ticket_code}</p>
+                  </div>
+                )}
               </div>
             ) : (
-              <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white" disabled={registrationClosed || reservingSpot}>
-                {registrationClosed ? "Registration Closed" : reservingSpot ? "Reserving..." : "Reserve Spot"}
-              </BrutalButton>
+              <div className="space-y-4">
+                <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white" disabled={registrationClosed || reservingSpot}>
+                  {registrationClosed ? "Registration Closed" : reservingSpot ? "Reserving..." : "Reserve Spot"}
+                </BrutalButton>
+                {showReserveChoice && !registrationClosed && (
+                  <div className="grid gap-3">
+                    <BrutalButton onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/events/${id}`)}`)} className="w-full" color="bg-[#171717]" text="text-white">
+                      Login Now
+                    </BrutalButton>
+                    <BrutalButton onClick={() => setShowGuestForm((current) => !current)} className="w-full" color="bg-[#FFE800]" text="text-[#171717]">
+                      Guest Registration
+                    </BrutalButton>
+                  </div>
+                )}
+                {showGuestForm && (
+                  <form onSubmit={reserveGuestSpot} className="border-t-2 border-[#171717] pt-4">
+                    <BrutalInput label="Full Name" value={guestForm.name} onChange={(event) => setGuestForm({ ...guestForm, name: event.target.value })} required />
+                    <BrutalInput label="Email" type="email" value={guestForm.email} onChange={(event) => setGuestForm({ ...guestForm, email: event.target.value })} required />
+                    <BrutalInput label="Phone" value={guestForm.phone} onChange={(event) => setGuestForm({ ...guestForm, phone: event.target.value })} />
+                    <BrutalInput label="Institution" value={guestForm.institution} onChange={(event) => setGuestForm({ ...guestForm, institution: event.target.value })} />
+                    {isTeamEvent && (
+                      <>
+                        <BrutalInput label="Team Name" value={guestForm.teamName} onChange={(event) => setGuestForm({ ...guestForm, teamName: event.target.value })} />
+                        <BrutalInput label="Second Member Name" value={guestForm.member2Name} onChange={(event) => setGuestForm({ ...guestForm, member2Name: event.target.value })} required />
+                        <BrutalInput label="Second Member Email" type="email" value={guestForm.member2Email} onChange={(event) => setGuestForm({ ...guestForm, member2Email: event.target.value })} required />
+                      </>
+                    )}
+                    <BrutalButton type="submit" className="w-full" disabled={reservingSpot}>
+                      {reservingSpot ? "Submitting..." : "Submit Guest Registration"}
+                    </BrutalButton>
+                  </form>
+                )}
+              </div>
             )}
             {canManageEvent && (
               <div className="mt-4 pt-4 border-t-2 border-[#171717] space-y-3">
@@ -258,9 +362,15 @@ export function EventDetailPage() {
               <tbody>
                 {attendees.map((attendee) => {
                   const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles;
+                  const attendeeName = profile?.full_name || profile?.email || attendee.guest_name || attendee.guest_email || "Guest";
                   return (
                     <tr key={attendee.id} className="border-b border-slate-200">
-                      <td className="p-3 font-bold">{profile?.full_name || profile?.email || "Member"}</td>
+                      <td className="p-3 font-bold">
+                        {attendeeName}
+                        {attendee.registration_kind === "team" && attendee.team_name && (
+                          <span className="block font-mono text-[11px] text-slate-500">{attendee.team_name}</span>
+                        )}
+                      </td>
                       <td className="p-3 font-mono text-xs">{attendee.ticket_code}</td>
                       <td className="p-3">{attendee.checked_in_at ? "Checked in" : attendee.status}</td>
                       <td className="p-3 text-right">

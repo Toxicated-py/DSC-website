@@ -127,6 +127,9 @@ export function ComprehensiveAdminPanel() {
     status: "approved",
     registrationOpen: true,
     registrationDeadline: "",
+    registrationMode: "individual",
+    teamMinSize: "1",
+    teamMaxSize: "1",
     coordinatorEmails: "",
   });
   const [projectForm, setProjectForm] = useState({
@@ -944,6 +947,9 @@ export function ComprehensiveAdminPanel() {
       status: "approved",
       registrationOpen: true,
       registrationDeadline: "",
+      registrationMode: "individual",
+      teamMinSize: "1",
+      teamMaxSize: "1",
       coordinatorEmails: "",
     });
   };
@@ -993,6 +999,9 @@ export function ComprehensiveAdminPanel() {
       status: event?.status || "approved",
       registrationOpen: event?.registration_open ?? true,
       registrationDeadline: toDatetimeLocalValue(event?.registration_deadline),
+      registrationMode: event?.registration_mode || "individual",
+      teamMinSize: String(event?.team_min_size || 1),
+      teamMaxSize: String(event?.team_max_size || 1),
       coordinatorEmails: "",
     });
 
@@ -1025,6 +1034,9 @@ export function ComprehensiveAdminPanel() {
       status: eventForm.status,
       registration_open: eventForm.registrationOpen,
       registration_deadline: fromDatetimeLocalValue(eventForm.registrationDeadline),
+      registration_mode: eventForm.registrationMode,
+      team_min_size: Number(eventForm.teamMinSize) || 1,
+      team_max_size: Number(eventForm.teamMaxSize) || Number(eventForm.teamMinSize) || 1,
       created_by: editingItem?.created_by || adminProfile?.id || null,
     };
 
@@ -2309,6 +2321,26 @@ export function ComprehensiveAdminPanel() {
                 <BrutalInput label="Location" value={eventForm.venue} onChange={(event: any) => setEventForm({ ...eventForm, venue: event.target.value })} />
                 <BrutalInput label="Capacity" type="number" value={eventForm.capacity} onChange={(event: any) => setEventForm({ ...eventForm, capacity: event.target.value })} />
               </div>
+              <BrutalSelect
+                label="Registration Mode"
+                value={eventForm.registrationMode}
+                onChange={(event: any) => setEventForm({
+                  ...eventForm,
+                  registrationMode: event.target.value,
+                  teamMinSize: event.target.value === "team" ? String(Math.max(2, Number(eventForm.teamMinSize) || 2)) : "1",
+                  teamMaxSize: event.target.value === "team" ? String(Math.max(2, Number(eventForm.teamMaxSize) || 2)) : "1",
+                })}
+                options={[
+                  { value: "individual", label: "Individual" },
+                  { value: "team", label: "Team" },
+                ]}
+              />
+              {eventForm.registrationMode === "team" && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <BrutalInput label="Team Min Size" type="number" min="2" value={eventForm.teamMinSize} onChange={(event: any) => setEventForm({ ...eventForm, teamMinSize: event.target.value })} />
+                  <BrutalInput label="Team Max Size" type="number" min="2" value={eventForm.teamMaxSize} onChange={(event: any) => setEventForm({ ...eventForm, teamMaxSize: event.target.value })} />
+                </div>
+              )}
               <BrutalSelect
                 label="Category"
                 value={eventForm.eventType}

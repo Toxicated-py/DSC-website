@@ -25,6 +25,7 @@ from .schemas import (
     EventProposalCreate,
     GallerySubmissionCreate,
     GenericPayload,
+    GuestEventRegistration,
     ProjectCreate,
     SiteSettingsUpdate,
     StatusUpdate,
@@ -36,6 +37,7 @@ from .supabase_rest import SupabaseRestClient, SupabaseRestError
 RATE_LIMIT_WINDOW_SECONDS = 10 * 60
 RATE_LIMIT_MAX_REQUESTS = 5
 rate_limit_hits: dict[str, list[float]] = {}
+REGISTRATION_COLUMNS = "id,event_id,user_id,ticket_code,status,registered_at,checked_in_at,registration_kind,guest_name,guest_email,guest_phone,guest_institution,team_name,team_members"
 
 
 def check_public_post_rate_limit(request: Request, bucket: str) -> None:
@@ -687,7 +689,7 @@ async def event_workspace(
     if profile:
         existing_registration = await service_client.select(
             "event_registrations",
-            columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+            columns=REGISTRATION_COLUMNS,
             filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
             limit=1,
         )
@@ -696,7 +698,7 @@ async def event_workspace(
     if manager:
         registrations = await service_client.select(
             "event_registrations",
-            columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+            columns=REGISTRATION_COLUMNS,
             filters={"event_id": f"eq.{event_id}"},
             order="registered_at.desc",
         )
@@ -740,7 +742,7 @@ async def reserve_event_spot(
         raise HTTPException(status_code=400, detail="Registration deadline has passed.")
     existing = await client.select(
         "event_registrations",
-        columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+        columns=REGISTRATION_COLUMNS,
         filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
         limit=1,
     )
@@ -761,6 +763,75 @@ async def reserve_event_spot(
     }
 
 
+@app.post("/api/events/{event_id}/guest-reserve", status_code=201)
+async def reserve_event_spot_as_guest(
+    event_id: str,
+    payload: GuestEventRegistration,
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    check_public_post_rate_limit(request, "event_guest_registration")
+    service_client = get_privileged_supabase(settings)
+    event = await select_by_id_or_slug(service_client, "events", event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    event_id = event["id"]
+    if not event.get("registration_open") or event.get("status") == "archived":
+        raise HTTPException(status_code=400, detail="Registration is closed for this event.")
+    now = datetime.now(timezone.utc)
+    start_time = parse_supabase_datetime(event.get("start_time"))
+    if start_time and start_time.date() < now.date():
+        raise HTTPException(status_code=400, detail="This event has ended.")
+    deadline = parse_supabase_datetime(event.get("registration_deadline"))
+    if deadline and deadline < now:
+        raise HTTPException(status_code=400, detail="Registration deadline has passed.")
+
+    registration_kind = payload.registration_kind
+    min_size = int(event.get("team_min_size") or (2 if registration_kind == "team" else 1))
+    max_size = int(event.get("team_max_size") or max(min_size, 1))
+    team_members = [member.model_dump(mode="json") for member in payload.team_members]
+    total_people = 1 + len(team_members)
+    if registration_kind == "team" and total_people < max(2, min_size):
+        raise HTTPException(status_code=400, detail=f"Team registration needs at least {max(2, min_size)} people.")
+    if total_people > max_size:
+        raise HTTPException(status_code=400, detail=f"Team registration allows at most {max_size} people.")
+
+    existing = await service_client.select(
+        "event_registrations",
+        columns=REGISTRATION_COLUMNS,
+        filters={"event_id": f"eq.{event_id}", "guest_email": f"eq.{payload.email.lower()}"},
+        limit=1,
+    )
+    if existing:
+        count = await active_registration_count(service_client, event_id)
+        return {"message": "Already registered.", "registration": existing[0], "registered_count": count}
+
+    registered_count = await active_registration_count(service_client, event_id)
+    if event.get("capacity") and registered_count >= int(event.get("capacity")):
+        raise HTTPException(status_code=400, detail="This event is full.")
+
+    rows = await service_client.insert(
+        "event_registrations",
+        {
+            "event_id": event_id,
+            "user_id": None,
+            "status": "registered",
+            "registration_kind": registration_kind,
+            "guest_name": payload.name.strip(),
+            "guest_email": payload.email.lower(),
+            "guest_phone": payload.phone.strip() if payload.phone else None,
+            "guest_institution": payload.institution.strip() if payload.institution else None,
+            "team_name": payload.team_name.strip() if payload.team_name else None,
+            "team_members": team_members,
+        },
+    )
+    return {
+        "message": "Registered.",
+        "registration": rows[0] if rows else None,
+        "registered_count": await active_registration_count(service_client, event_id),
+    }
+
+
 @app.get("/api/me/tickets")
 async def get_my_tickets(
     profile: dict[str, Any] = Depends(get_current_profile),
@@ -770,7 +841,7 @@ async def get_my_tickets(
     user_client = SupabaseRestClient(settings, get_http_client(), auth_token=profile.get("_auth_token"))
     registrations = await user_client.select(
         "event_registrations",
-        columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+        columns=REGISTRATION_COLUMNS,
         filters={"user_id": f"eq.{profile['id']}"},
         order="registered_at.desc",
     )
@@ -872,7 +943,7 @@ async def scan_event_ticket(
         raise HTTPException(status_code=400, detail="Ticket code is required.")
     registrations = await service_client.select(
         "event_registrations",
-        columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+        columns=REGISTRATION_COLUMNS,
         filters={"event_id": f"eq.{event_id}", "ticket_code": f"eq.{ticket_code}"},
         limit=1,
     )
