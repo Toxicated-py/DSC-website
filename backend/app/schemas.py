@@ -35,21 +35,6 @@ class TicketScan(BaseModel):
     ticket_code: str = Field(min_length=3, max_length=120)
 
 
-class GuestTeamMember(BaseModel):
-    name: str = Field(min_length=2, max_length=120)
-    email: EmailStr
-
-
-class GuestEventRegistration(BaseModel):
-    name: str = Field(min_length=2, max_length=120)
-    email: EmailStr
-    phone: str | None = Field(default=None, max_length=40)
-    institution: str | None = Field(default=None, max_length=180)
-    registration_kind: Literal["individual", "team"] = "individual"
-    team_name: str | None = Field(default=None, max_length=120)
-    team_members: list[GuestTeamMember] = Field(default_factory=list)
-
-
 class SiteSettingsUpdate(BaseModel):
     value: dict[str, Any]
 

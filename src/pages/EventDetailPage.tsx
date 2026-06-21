@@ -54,19 +54,6 @@ export function EventDetailPage() {
   const [reservingSpot, setReservingSpot] = useState(false);
   const [showReserveChoice, setShowReserveChoice] = useState(false);
   const [showGuestForm, setShowGuestForm] = useState(false);
-  const [guestForm, setGuestForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    institution: "",
-    teamName: "",
-    member2Name: "",
-    member2Email: "",
-    member3Name: "",
-    member3Email: "",
-    member4Name: "",
-    member4Email: "",
-  });
 
   useEffect(() => {
     let mounted = true;
@@ -178,59 +165,6 @@ export function EventDetailPage() {
     }
   };
 
-  const reserveGuestSpot = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const eventApiId = eventInfo?.id || id;
-    if (reservingSpot || !eventApiId) return;
-    setReserveStatus("");
-
-    const members = [
-      { name: guestForm.member2Name.trim(), email: guestForm.member2Email.trim() },
-      { name: guestForm.member3Name.trim(), email: guestForm.member3Email.trim() },
-      { name: guestForm.member4Name.trim(), email: guestForm.member4Email.trim() },
-    ].filter((member) => member.name || member.email);
-    if (members.some((member) => !member.name || !member.email)) {
-      setReserveStatus("Each team member needs both name and email.");
-      return;
-    }
-    const registrationKind = displayEvent?.registration_mode === "team" ? "team" : "individual";
-    const minSize = Math.max(1, Number(displayEvent?.team_min_size || (registrationKind === "team" ? 2 : 1)));
-
-    if (registrationKind === "team" && members.length + 1 < Math.max(2, minSize)) {
-      setReserveStatus(`Team registration needs at least ${Math.max(2, minSize)} people.`);
-      return;
-    }
-
-    try {
-      setReservingSpot(true);
-      setReserveStatus("Submitting guest registration...");
-      const result = await apiPost<any>(`/api/events/${eventApiId}/guest-reserve`, {
-        name: guestForm.name.trim(),
-        email: guestForm.email.trim(),
-        phone: guestForm.phone.trim() || null,
-        institution: guestForm.institution.trim() || null,
-        registration_kind: registrationKind,
-        team_name: guestForm.teamName.trim() || null,
-        team_members: members,
-      });
-      setMyRegistration(result.registration || null);
-      setReserveStatus(result.message === "Already registered."
-        ? "You already registered as a guest."
-        : "Guest registration complete. Save your ticket code.");
-      setShowGuestForm(false);
-      setShowReserveChoice(false);
-      setEventInfo((current: any) => {
-        if (!current) return current;
-        const nextCount = Number(result.registered_count ?? result.registeredCount ?? Number(current.registeredCount || current.registered_count || 0) + 1);
-        return { ...current, registeredCount: nextCount, registered_count: nextCount };
-      });
-    } catch (error: any) {
-      setReserveStatus(userFriendlyErrorMessage(error, "Could not register as guest. Please try again."));
-    } finally {
-      setReservingSpot(false);
-    }
-  };
-
   const displayEvent = eventInfo;
 
   if (loadingEvent) {
@@ -264,8 +198,6 @@ export function EventDetailPage() {
   const registrationClosedByDeadline = Boolean(registrationDeadline && registrationDeadline.getTime() < Date.now());
   const registrationClosed = !displayEvent.registration_open || registrationClosedByDeadline;
   const isReserved = Boolean(myRegistration?.id);
-  const isTeamEvent = displayEvent.registration_mode === "team";
-  const teamMaxSize = Math.min(4, Math.max(2, Number(displayEvent.team_max_size || 2)));
   const guestGoogleFormUrl = googleFormEmbedUrl(displayEvent.google_form_url);
 
   return (
@@ -352,15 +284,15 @@ export function EventDetailPage() {
 
       {showGuestForm && !isReserved && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-6 pt-24 md:items-center md:py-12">
-          <form onSubmit={reserveGuestSpot} className="w-full max-w-4xl border-2 border-[#171717] bg-white p-5 brutal-shadow-lg md:p-7">
+          <div className="w-full max-w-4xl border-2 border-[#171717] bg-white p-5 brutal-shadow-lg md:p-7">
             <div className="mb-6 flex flex-col gap-4 border-b-2 border-[#171717] pb-5 md:flex-row md:items-start md:justify-between">
               <div>
-                <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{guestGoogleFormUrl ? "Google Form" : isTeamEvent ? "Team Registration" : "Guest Registration"}</BrutalBadge>
+                <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Google Form</BrutalBadge>
                 <h2 className="mt-4 text-3xl uppercase md:text-5xl" style={fonts.display}>
-                  {guestGoogleFormUrl ? "Guest Registration Form" : isTeamEvent ? "Team Lead Details" : "Guest Details"}
+                  Guest Registration Form
                 </h2>
                 <p className="mt-2 max-w-xl text-sm font-mono text-slate-600">
-                  {guestGoogleFormUrl ? "Fill the embedded Google Form below." : isTeamEvent ? `Register your team. Max ${teamMaxSize} people.` : "No account needed. Your ticket appears after submission."}
+                  Fill the embedded Google Form below.
                 </p>
               </div>
               <button
@@ -390,58 +322,12 @@ export function EventDetailPage() {
                 </a>
               </div>
             ) : (
-              <>
-            <div className="grid gap-4 md:grid-cols-2">
-              <BrutalInput label="Full Name" value={guestForm.name} onChange={(event) => setGuestForm({ ...guestForm, name: event.target.value })} required disabled={reservingSpot} />
-              <BrutalInput label="Email" type="email" value={guestForm.email} onChange={(event) => setGuestForm({ ...guestForm, email: event.target.value })} required disabled={reservingSpot} />
-              <BrutalInput label="Phone Optional" value={guestForm.phone} onChange={(event) => setGuestForm({ ...guestForm, phone: event.target.value })} disabled={reservingSpot} />
-              <BrutalInput label="Institution" value={guestForm.institution} onChange={(event) => setGuestForm({ ...guestForm, institution: event.target.value })} disabled={reservingSpot} />
-            </div>
-
-            {isTeamEvent && (
-              <div className="mt-5 border-t-2 border-[#171717] pt-5">
-                <BrutalInput label="Team Name" value={guestForm.teamName} onChange={(event) => setGuestForm({ ...guestForm, teamName: event.target.value })} disabled={reservingSpot} />
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="border-2 border-[#171717] bg-slate-50 p-3">
-                    <p className="mb-3 text-xs font-bold uppercase tracking-widest">Member 2 Required</p>
-                    <BrutalInput label="Name" value={guestForm.member2Name} onChange={(event) => setGuestForm({ ...guestForm, member2Name: event.target.value })} required disabled={reservingSpot} />
-                    <BrutalInput label="Email" type="email" value={guestForm.member2Email} onChange={(event) => setGuestForm({ ...guestForm, member2Email: event.target.value })} required disabled={reservingSpot} />
-                  </div>
-                  {teamMaxSize >= 3 && (
-                    <div className="border-2 border-[#171717] bg-slate-50 p-3">
-                      <p className="mb-3 text-xs font-bold uppercase tracking-widest">Member 3 Optional</p>
-                      <BrutalInput label="Name" value={guestForm.member3Name} onChange={(event) => setGuestForm({ ...guestForm, member3Name: event.target.value })} disabled={reservingSpot} />
-                      <BrutalInput label="Email" type="email" value={guestForm.member3Email} onChange={(event) => setGuestForm({ ...guestForm, member3Email: event.target.value })} disabled={reservingSpot} />
-                    </div>
-                  )}
-                  {teamMaxSize >= 4 && (
-                    <div className="border-2 border-[#171717] bg-slate-50 p-3">
-                      <p className="mb-3 text-xs font-bold uppercase tracking-widest">Member 4 Optional</p>
-                      <BrutalInput label="Name" value={guestForm.member4Name} onChange={(event) => setGuestForm({ ...guestForm, member4Name: event.target.value })} disabled={reservingSpot} />
-                      <BrutalInput label="Email" type="email" value={guestForm.member4Email} onChange={(event) => setGuestForm({ ...guestForm, member4Email: event.target.value })} disabled={reservingSpot} />
-                    </div>
-                  )}
-                </div>
+              <div className="border-2 border-[#171717] bg-[#F4EFEB] p-5">
+                <p className="font-bold uppercase tracking-widest">Guest registration is not configured for this event.</p>
+                <p className="mt-2 text-sm text-slate-600">Ask an admin to add a Google Form URL in the event settings.</p>
               </div>
             )}
-
-            {reserveStatus && <p className="mt-4 text-sm font-bold text-[#FB7185]">{reserveStatus}</p>}
-            <div className="mt-6 flex flex-col gap-3 md:flex-row md:justify-end">
-              <button
-                type="button"
-                onClick={() => setShowGuestForm(false)}
-                disabled={reservingSpot}
-                className="border-2 border-[#171717] bg-white px-6 py-3 font-bold uppercase tracking-widest hover:bg-slate-100 disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <BrutalButton type="submit" disabled={reservingSpot}>
-                {reservingSpot ? "Submitting..." : "Submit Guest Registration"}
-              </BrutalButton>
-            </div>
-              </>
-            )}
-          </form>
+          </div>
         </div>
       )}
 
@@ -465,14 +351,11 @@ export function EventDetailPage() {
               <tbody>
                 {attendees.map((attendee) => {
                   const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles;
-                  const attendeeName = profile?.full_name || profile?.email || attendee.guest_name || attendee.guest_email || "Guest";
+                  const attendeeName = profile?.full_name || profile?.email || "Member";
                   return (
                     <tr key={attendee.id} className="border-b border-slate-200">
                       <td className="p-3 font-bold">
                         {attendeeName}
-                        {attendee.registration_kind === "team" && attendee.team_name && (
-                          <span className="block font-mono text-[11px] text-slate-500">{attendee.team_name}</span>
-                        )}
                       </td>
                       <td className="p-3 font-mono text-xs">{attendee.ticket_code}</td>
                       <td className="p-3">{attendee.checked_in_at ? "Checked in" : attendee.status}</td>
