@@ -128,7 +128,8 @@ export function EventDetailPage() {
   const reserveSpot = async () => {
     if (reservingSpot) return;
     setReserveStatus("");
-    if (!id) {
+    const eventApiId = eventInfo?.id || id;
+    if (!eventApiId) {
       setReserveStatus("Invalid event.");
       return;
     }
@@ -143,7 +144,7 @@ export function EventDetailPage() {
 
     try {
       setReservingSpot(true);
-      const result = await apiPost<any>(`/api/events/${id}/reserve`, {}, { auth: true });
+      const result = await apiPost<any>(`/api/events/${eventApiId}/reserve`, {}, { auth: true });
       setMyRegistration(result.registration || null);
       if (result.message === "Already registered.") {
         setReserveStatus("You already reserved this event.");
@@ -168,7 +169,8 @@ export function EventDetailPage() {
 
   const reserveGuestSpot = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (reservingSpot || !id) return;
+    const eventApiId = eventInfo?.id || id;
+    if (reservingSpot || !eventApiId) return;
     setReserveStatus("");
 
     const members = [
@@ -190,7 +192,8 @@ export function EventDetailPage() {
 
     try {
       setReservingSpot(true);
-      const result = await apiPost<any>(`/api/events/${id}/guest-reserve`, {
+      setReserveStatus("Submitting guest registration...");
+      const result = await apiPost<any>(`/api/events/${eventApiId}/guest-reserve`, {
         name: guestForm.name.trim(),
         email: guestForm.email.trim(),
         phone: guestForm.phone.trim() || null,
@@ -323,31 +326,44 @@ export function EventDetailPage() {
                   </div>
                 )}
                 {showGuestForm && (
-                  <form onSubmit={reserveGuestSpot} className="border-t-2 border-[#171717] pt-4">
-                    <BrutalInput label="Full Name" value={guestForm.name} onChange={(event) => setGuestForm({ ...guestForm, name: event.target.value })} required />
-                    <BrutalInput label="Email" type="email" value={guestForm.email} onChange={(event) => setGuestForm({ ...guestForm, email: event.target.value })} required />
-                    <BrutalInput label="Phone" value={guestForm.phone} onChange={(event) => setGuestForm({ ...guestForm, phone: event.target.value })} />
-                    <BrutalInput label="Institution" value={guestForm.institution} onChange={(event) => setGuestForm({ ...guestForm, institution: event.target.value })} />
+                  <form onSubmit={reserveGuestSpot} className="border-2 border-[#171717] bg-white p-4 brutal-shadow">
+                    <div className="mb-4">
+                      <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{isTeamEvent ? "Team Lead" : "Guest Details"}</BrutalBadge>
+                      <p className="mt-3 text-xs font-mono text-slate-600">
+                        {isTeamEvent ? `Register your team. Max ${teamMaxSize} people.` : "No account needed. Your ticket appears after submission."}
+                      </p>
+                    </div>
+                    <div className="grid gap-3">
+                      <BrutalInput label="Full Name" value={guestForm.name} onChange={(event) => setGuestForm({ ...guestForm, name: event.target.value })} required disabled={reservingSpot} />
+                      <BrutalInput label="Email" type="email" value={guestForm.email} onChange={(event) => setGuestForm({ ...guestForm, email: event.target.value })} required disabled={reservingSpot} />
+                      <BrutalInput label="Phone Optional" value={guestForm.phone} onChange={(event) => setGuestForm({ ...guestForm, phone: event.target.value })} disabled={reservingSpot} />
+                      <BrutalInput label="Institution" value={guestForm.institution} onChange={(event) => setGuestForm({ ...guestForm, institution: event.target.value })} disabled={reservingSpot} />
+                    </div>
                     {isTeamEvent && (
-                      <>
-                        <BrutalInput label="Team Name" value={guestForm.teamName} onChange={(event) => setGuestForm({ ...guestForm, teamName: event.target.value })} />
-                        <BrutalInput label="Second Member Name" value={guestForm.member2Name} onChange={(event) => setGuestForm({ ...guestForm, member2Name: event.target.value })} required />
-                        <BrutalInput label="Second Member Email" type="email" value={guestForm.member2Email} onChange={(event) => setGuestForm({ ...guestForm, member2Email: event.target.value })} required />
+                      <div className="mt-5 border-t-2 border-[#171717] pt-4">
+                        <BrutalInput label="Team Name" value={guestForm.teamName} onChange={(event) => setGuestForm({ ...guestForm, teamName: event.target.value })} disabled={reservingSpot} />
+                        <div className="border-2 border-[#171717] bg-slate-50 p-3">
+                          <p className="mb-3 text-xs font-bold uppercase tracking-widest">Member 2 Required</p>
+                          <BrutalInput label="Name" value={guestForm.member2Name} onChange={(event) => setGuestForm({ ...guestForm, member2Name: event.target.value })} required disabled={reservingSpot} />
+                          <BrutalInput label="Email" type="email" value={guestForm.member2Email} onChange={(event) => setGuestForm({ ...guestForm, member2Email: event.target.value })} required disabled={reservingSpot} />
+                        </div>
                         {teamMaxSize >= 3 && (
-                          <>
-                            <BrutalInput label="Third Member Name" value={guestForm.member3Name} onChange={(event) => setGuestForm({ ...guestForm, member3Name: event.target.value })} />
-                            <BrutalInput label="Third Member Email" type="email" value={guestForm.member3Email} onChange={(event) => setGuestForm({ ...guestForm, member3Email: event.target.value })} />
-                          </>
+                          <div className="mt-3 border-2 border-[#171717] bg-slate-50 p-3">
+                            <p className="mb-3 text-xs font-bold uppercase tracking-widest">Member 3 Optional</p>
+                            <BrutalInput label="Name" value={guestForm.member3Name} onChange={(event) => setGuestForm({ ...guestForm, member3Name: event.target.value })} disabled={reservingSpot} />
+                            <BrutalInput label="Email" type="email" value={guestForm.member3Email} onChange={(event) => setGuestForm({ ...guestForm, member3Email: event.target.value })} disabled={reservingSpot} />
+                          </div>
                         )}
                         {teamMaxSize >= 4 && (
-                          <>
-                            <BrutalInput label="Fourth Member Name" value={guestForm.member4Name} onChange={(event) => setGuestForm({ ...guestForm, member4Name: event.target.value })} />
-                            <BrutalInput label="Fourth Member Email" type="email" value={guestForm.member4Email} onChange={(event) => setGuestForm({ ...guestForm, member4Email: event.target.value })} />
-                          </>
+                          <div className="mt-3 border-2 border-[#171717] bg-slate-50 p-3">
+                            <p className="mb-3 text-xs font-bold uppercase tracking-widest">Member 4 Optional</p>
+                            <BrutalInput label="Name" value={guestForm.member4Name} onChange={(event) => setGuestForm({ ...guestForm, member4Name: event.target.value })} disabled={reservingSpot} />
+                            <BrutalInput label="Email" type="email" value={guestForm.member4Email} onChange={(event) => setGuestForm({ ...guestForm, member4Email: event.target.value })} disabled={reservingSpot} />
+                          </div>
                         )}
-                      </>
+                      </div>
                     )}
-                    <BrutalButton type="submit" className="w-full" disabled={reservingSpot}>
+                    <BrutalButton type="submit" className="mt-4 w-full" disabled={reservingSpot}>
                       {reservingSpot ? "Submitting..." : "Submit Guest Registration"}
                     </BrutalButton>
                   </form>
