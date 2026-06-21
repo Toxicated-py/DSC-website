@@ -838,6 +838,14 @@ async def get_my_tickets(
     settings: Settings = Depends(get_settings),
     client: SupabaseRestClient = Depends(get_supabase),
 ) -> list[dict[str, Any]]:
+    service_client = get_privileged_supabase(settings)
+    if profile.get("id") and profile.get("email"):
+        await service_client.update(
+            "event_registrations",
+            {"user_id": profile["id"]},
+            filters={"guest_email": f"eq.{profile['email'].lower()}", "user_id": "is.null"},
+        )
+
     user_client = SupabaseRestClient(settings, get_http_client(), auth_token=profile.get("_auth_token"))
     registrations = await user_client.select(
         "event_registrations",

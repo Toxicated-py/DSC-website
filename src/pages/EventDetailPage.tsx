@@ -51,6 +51,10 @@ export function EventDetailPage() {
     teamName: "",
     member2Name: "",
     member2Email: "",
+    member3Name: "",
+    member3Email: "",
+    member4Name: "",
+    member4Email: "",
   });
 
   useEffect(() => {
@@ -167,9 +171,15 @@ export function EventDetailPage() {
     if (reservingSpot || !id) return;
     setReserveStatus("");
 
-    const members = guestForm.member2Name.trim() || guestForm.member2Email.trim()
-      ? [{ name: guestForm.member2Name.trim(), email: guestForm.member2Email.trim() }]
-      : [];
+    const members = [
+      { name: guestForm.member2Name.trim(), email: guestForm.member2Email.trim() },
+      { name: guestForm.member3Name.trim(), email: guestForm.member3Email.trim() },
+      { name: guestForm.member4Name.trim(), email: guestForm.member4Email.trim() },
+    ].filter((member) => member.name || member.email);
+    if (members.some((member) => !member.name || !member.email)) {
+      setReserveStatus("Each team member needs both name and email.");
+      return;
+    }
     const registrationKind = displayEvent?.registration_mode === "team" ? "team" : "individual";
     const minSize = Math.max(1, Number(displayEvent?.team_min_size || (registrationKind === "team" ? 2 : 1)));
 
@@ -241,6 +251,7 @@ export function EventDetailPage() {
   const registrationClosed = !displayEvent.registration_open || registrationClosedByDeadline;
   const isReserved = Boolean(myRegistration?.id);
   const isTeamEvent = displayEvent.registration_mode === "team";
+  const teamMaxSize = Math.min(4, Math.max(2, Number(displayEvent.team_max_size || 2)));
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
@@ -322,6 +333,18 @@ export function EventDetailPage() {
                         <BrutalInput label="Team Name" value={guestForm.teamName} onChange={(event) => setGuestForm({ ...guestForm, teamName: event.target.value })} />
                         <BrutalInput label="Second Member Name" value={guestForm.member2Name} onChange={(event) => setGuestForm({ ...guestForm, member2Name: event.target.value })} required />
                         <BrutalInput label="Second Member Email" type="email" value={guestForm.member2Email} onChange={(event) => setGuestForm({ ...guestForm, member2Email: event.target.value })} required />
+                        {teamMaxSize >= 3 && (
+                          <>
+                            <BrutalInput label="Third Member Name" value={guestForm.member3Name} onChange={(event) => setGuestForm({ ...guestForm, member3Name: event.target.value })} />
+                            <BrutalInput label="Third Member Email" type="email" value={guestForm.member3Email} onChange={(event) => setGuestForm({ ...guestForm, member3Email: event.target.value })} />
+                          </>
+                        )}
+                        {teamMaxSize >= 4 && (
+                          <>
+                            <BrutalInput label="Fourth Member Name" value={guestForm.member4Name} onChange={(event) => setGuestForm({ ...guestForm, member4Name: event.target.value })} />
+                            <BrutalInput label="Fourth Member Email" type="email" value={guestForm.member4Email} onChange={(event) => setGuestForm({ ...guestForm, member4Email: event.target.value })} />
+                          </>
+                        )}
                       </>
                     )}
                     <BrutalButton type="submit" className="w-full" disabled={reservingSpot}>

@@ -1036,7 +1036,7 @@ export function ComprehensiveAdminPanel() {
       registration_deadline: fromDatetimeLocalValue(eventForm.registrationDeadline),
       registration_mode: eventForm.registrationMode,
       team_min_size: Number(eventForm.teamMinSize) || 1,
-      team_max_size: Number(eventForm.teamMaxSize) || Number(eventForm.teamMinSize) || 1,
+      team_max_size: Math.min(4, Number(eventForm.teamMaxSize) || Number(eventForm.teamMinSize) || 1),
       created_by: editingItem?.created_by || adminProfile?.id || null,
     };
 
@@ -2338,7 +2338,7 @@ export function ComprehensiveAdminPanel() {
               {eventForm.registrationMode === "team" && (
                 <div className="grid md:grid-cols-2 gap-4">
                   <BrutalInput label="Team Min Size" type="number" min="2" value={eventForm.teamMinSize} onChange={(event: any) => setEventForm({ ...eventForm, teamMinSize: event.target.value })} />
-                  <BrutalInput label="Team Max Size" type="number" min="2" value={eventForm.teamMaxSize} onChange={(event: any) => setEventForm({ ...eventForm, teamMaxSize: event.target.value })} />
+                  <BrutalInput label="Team Max Size" type="number" min="2" max="4" value={eventForm.teamMaxSize} onChange={(event: any) => setEventForm({ ...eventForm, teamMaxSize: event.target.value })} />
                 </div>
               )}
               <BrutalSelect
