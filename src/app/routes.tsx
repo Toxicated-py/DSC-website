@@ -23,7 +23,7 @@ function PageTitle({ title, children }: { title: string; children: React.ReactNo
   return (
     <>
       <Helmet>
-        <title>{title} — DSC</title>
+        <title>{title} — Data Sarathi</title>
       </Helmet>
       {children}
     </>
