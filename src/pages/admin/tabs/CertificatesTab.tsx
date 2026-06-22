@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Download, Edit, FileUp, X } from "lucide-react";
+import { CheckCircle2, Download, Edit, FileUp, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../../../lib/apiClient";
+import { apiDelete, apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../../../lib/apiClient";
 import { fonts } from "../../../config/fonts";
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput } from "../AdminPrimitives";
 
@@ -118,6 +118,7 @@ export function CertificatesTab() {
   const [search, setSearch] = useState("");
   const [editRow, setEditRow] = useState<CertificateRow | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadCertificates = async () => {
     setLoading(true);
@@ -144,9 +145,10 @@ export function CertificatesTab() {
     loadCertificates();
   }, []);
 
-  const filteredEvents = events
+  const matchingEvents = events
     .filter((event) => event.title.toLowerCase().includes(eventQuery.toLowerCase()))
     .slice(0, 8);
+  const eventSuggestions = matchingEvents.length ? matchingEvents : events.slice(0, 8);
 
   const validHeaders = ["required_email", "required_name", "required_certificate_id"];
   const headersOk = validHeaders.every((header) => csvHeaders.includes(header));
@@ -248,6 +250,20 @@ export function CertificatesTab() {
     }
   };
 
+  const deleteCertificate = async (row: CertificateRow) => {
+    if (!window.confirm(`Delete certificate ${row.certificate_id} for ${row.recipient_name}?`)) return;
+    setDeletingId(row.id);
+    try {
+      await apiDelete(`/api/admin/certificates/${row.id}`, { auth: true });
+      toast.success("Certificate deleted.");
+      await loadCertificates();
+    } catch (error) {
+      toast.error(userFriendlyErrorMessage(error, "Could not delete certificate."));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid md:grid-cols-3 gap-4">
@@ -298,7 +314,7 @@ export function CertificatesTab() {
             />
             {eventQuery && (
               <div className="absolute z-20 -mt-3 w-full border-2 border-[#171717] bg-white brutal-shadow max-h-64 overflow-y-auto">
-                {filteredEvents.map((event) => (
+                {eventSuggestions.map((event) => (
                   <button
                     key={event.id}
                     type="button"
@@ -312,6 +328,11 @@ export function CertificatesTab() {
                     {event.title}
                   </button>
                 ))}
+                {!matchingEvents.length && events.length > 0 && (
+                  <div className="border-b-2 border-[#171717] bg-[#F4EFEB] px-3 py-2 text-[10px] font-bold uppercase text-slate-500">
+                    No exact match. Showing available events.
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -389,7 +410,14 @@ export function CertificatesTab() {
             {importBlocker}
           </p>
         )}
-        <BrutalButton type="button" className="mt-5 w-full" color="bg-[#2563EB]" text="text-white" onClick={importCertificates} disabled={!canImport || importing}>
+        <BrutalButton
+          type="button"
+          className={`mt-5 w-full ${!canImport || importing ? "cursor-not-allowed opacity-50 brutal-shadow-none hover:translate-x-0 hover:translate-y-0" : ""}`}
+          color="bg-[#2563EB]"
+          text="text-white"
+          onClick={importCertificates}
+          disabled={!canImport || importing}
+        >
           {importing ? "Importing..." : `Import ${csvRows.length} Certificates`}
         </BrutalButton>
       </BrutalCard>
@@ -443,6 +471,7 @@ export function CertificatesTab() {
                           <td className="p-2">{row.event_name}</td>
                           <td className="p-2">{row.issued_at ? new Date(row.issued_at).toLocaleDateString() : ""}</td>
                           <td className="p-2">
+                            <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
                               onClick={() => setEditRow({ ...row, issued_at: row.issued_at?.slice(0, 10) || "" })}
@@ -450,6 +479,15 @@ export function CertificatesTab() {
                             >
                               <Edit size={14} className="inline mr-1" /> Edit
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteCertificate(row)}
+                              disabled={deletingId === row.id}
+                              className="border-2 border-[#171717] bg-[#FB7185] px-3 py-1 font-bold uppercase text-white hover:bg-[#F43F5E] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Trash2 size={14} className="inline mr-1" /> {deletingId === row.id ? "Deleting" : "Delete"}
+                            </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

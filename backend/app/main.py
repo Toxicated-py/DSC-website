@@ -1210,6 +1210,30 @@ async def admin_update_certificate(
     return row
 
 
+@app.delete("/api/admin/certificates/{certificate_id_uuid}")
+async def admin_delete_certificate(
+    certificate_id_uuid: str,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, str]:
+    if not is_full_admin(profile):
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
+    rows = await client.delete("certificates", filters={"id": f"eq.{certificate_id_uuid}"})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Certificate not found.")
+    row = rows[0]
+    await write_audit_log(
+        client,
+        profile,
+        action="delete",
+        resource="certificates",
+        resource_id=certificate_id_uuid,
+        summary=f"Deleted certificate {row.get('certificate_id') or certificate_id_uuid}",
+    )
+    return {"message": "Deleted."}
+
+
 @app.get("/api/certificates/{certificate_id}")
 async def get_certificate(
     certificate_id: str,
