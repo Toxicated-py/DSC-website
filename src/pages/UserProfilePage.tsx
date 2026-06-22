@@ -18,6 +18,7 @@ function splitPhone(value: string) {
 export function UserProfilePage() {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [saveStatus, setSaveStatus] = useState("");
   const [newSkill, setNewSkill] = useState("");
@@ -113,6 +114,7 @@ export function UserProfilePage() {
   }, [navigate]);
 
   const handleEditToggle = async () => {
+    if (isSaving) return;
     setSaveStatus("");
     if (!isEditing) {
       setIsEditing(true);
@@ -128,6 +130,8 @@ export function UserProfilePage() {
 
       const parsedYear = Number.parseInt(profile.year, 10);
       const fullPhone = phoneNumber ? `${phoneCode}${phoneNumber}` : "";
+      setIsSaving(true);
+      setSaveStatus("Saving profile...");
       try {
         await apiPatch("/api/me", {
           data: {
@@ -148,6 +152,8 @@ export function UserProfilePage() {
       } catch (error: any) {
         setSaveStatus(userFriendlyErrorMessage(error, "Could not save profile. Please check your details and try again."));
         return;
+      } finally {
+        setIsSaving(false);
       }
       setSaveStatus("Profile saved.");
     }
@@ -229,8 +235,11 @@ export function UserProfilePage() {
             text="text-white"
             onClick={handleEditToggle}
             className="text-xs sm:text-sm px-4 py-2 sm:px-6 sm:py-3 w-full sm:w-auto"
+            disabled={isSaving}
           >
-            {isEditing ? (
+            {isSaving ? (
+              <><Save size={14} className="inline mr-1" /> Saving...</>
+            ) : isEditing ? (
               <><Save size={14} className="inline mr-1" /> Save</>
             ) : (
               <><Edit size={14} className="inline mr-1" /> Edit Profile</>
