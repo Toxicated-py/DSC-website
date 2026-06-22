@@ -14,7 +14,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { User, UserCheck, GraduationCap, Settings, Edit, Crown, Calendar, Users, Trophy, Save, X, Eye, Mail, Phone, Globe, Home, FileText, Award, BarChart3, ListFilter } from "lucide-react";
+import { User, UserCheck, GraduationCap, Settings, Edit, Crown, Calendar, Users, Trophy, Save, X, Eye, Mail, Phone, Globe, Home, FileText, BarChart3, ListFilter } from "lucide-react";
 import { adminCreateResource, adminCreateEventFromProposal, adminDeleteContact, adminDeleteResource, adminListAuditLogs, adminListContacts, adminListResource, adminListEventStaff, adminReplaceEventStaff, adminSaveSiteSettings, adminUpdateContactStatus, adminUpdateResource, adminUpdateResourceStatus } from "../lib/adminApi";
 import { apiGet } from "../lib/apiClient";
 import { ContactItem, defaultSiteSettings, FAQItem, mergeSiteSettings, TeamMember } from "../lib/siteSettings";
@@ -22,7 +22,7 @@ import { deleteCertificate as deleteCertificateRecord, getCertificatesByEvent, i
 import { CertificateRenderer } from "../components/CertificateRenderer";
 import { fonts } from "../config/fonts";
 import { AdminAccessDenied, AdminShellHeader, AdminTabs } from "./admin/AdminShell";
-import { OverviewTab, UsersTab, EventsTab, ProposalsTab, ProjectsTab, BlogsTab, GalleryTab, PartnersTab, ResourcesTab, CertificatesTab, ContentTab, ContactsTab, SettingsTab, AnalyticsTab, LogsTab } from "./admin/tabs";
+import { OverviewTab, UsersTab, EventsTab, ProposalsTab, ProjectsTab, BlogsTab, GalleryTab, PartnersTab, ResourcesTab, ContentTab, ContactsTab, SettingsTab, AnalyticsTab, LogsTab } from "./admin/tabs";
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, BrutalSelect, BrutalTextarea } from "./admin/AdminPrimitives";
 import { assignableRoleOptions, certificateTemplateOptions, formatCertificateError, fromDatetimeLocalValue, hasDatePassed, isEventRegistrationOpen, isFullAdminProfile, isOrganizerProfile, isPastEvent, slugify, toDatetimeLocalValue } from "./admin/adminUtils";
 
@@ -215,7 +215,6 @@ export function ComprehensiveAdminPanel() {
     { id: "gallery", label: "Gallery", icon: <Eye size={16} /> },
     { id: "partners", label: "Partners", icon: <Globe size={16} /> },
     { id: "resources", label: "Resources", icon: <Save size={16} /> },
-    { id: "certificates", label: "Certificates", icon: <Award size={16} /> },
     { id: "contacts", label: "Contact", icon: <Mail size={16} /> },
     { id: "settings", label: "Settings", icon: <Settings size={16} /> },
     { id: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
@@ -270,12 +269,10 @@ export function ComprehensiveAdminPanel() {
       const isAdmin = isFullAdminProfile(myProfile);
       const isOrganizer = isOrganizerProfile(myProfile);
       const canManage = isAdmin || isOrganizer;
-      setIsCertificateAdmin(isAdmin);
       if (!canManage) return;
 
       const [
         profileRows,
-        certs,
         projectRowsRaw,
         proposalRows,
         eventRowsRaw,
@@ -289,7 +286,6 @@ export function ComprehensiveAdminPanel() {
         auditRows,
       ] = await Promise.all([
         isAdmin ? safeList(adminListResource<any>("profiles"), "users") : Promise.resolve([myProfile]),
-        isAdmin ? safeList(adminListResource<any>("certificates"), "certificates") : Promise.resolve([]),
         safeList(adminListResource<any>("projects"), "projects"),
         safeList(adminListResource<any>("event-proposals"), "event proposals"),
         safeList(adminListResource<any>("events"), "events"),
@@ -309,7 +305,6 @@ export function ComprehensiveAdminPanel() {
       const projectRows = isAdmin ? projectRowsRaw : (projectRowsRaw || []).filter((project: any) => project.author_id === myProfile.id);
       const blogRows = isAdmin ? blogRowsRaw : (blogRowsRaw || []).filter((post: any) => post.author_id === myProfile.id);
       const eventRows = isAdmin ? eventRowsRaw : (eventRowsRaw || []).filter((event: any) => event.created_by === myProfile.id);
-      const certificateRows = certs || [];
       const mappedProfiles = (profiles || []).map((profile) => ({
         id: profile.id,
         name: profile.full_name || profile.email || "Member",
@@ -325,7 +320,6 @@ export function ComprehensiveAdminPanel() {
       }));
       setUsers(mappedProfiles);
       setProfileOptions(profiles || []);
-      setIssuedCertificates(certificateRows);
       setProjects((projectRows || []).map((project) => {
         const author = profileById.get(project.author_id);
         return {
@@ -2117,8 +2111,6 @@ export function ComprehensiveAdminPanel() {
           <ResourcesTab ctx={adminTabContext} />
         </div>
       )}
-
-      <CertificatesTab ctx={adminTabContext} />
 
       <ContentTab ctx={adminTabContext} />
 

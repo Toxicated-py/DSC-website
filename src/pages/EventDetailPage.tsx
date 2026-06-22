@@ -265,7 +265,7 @@ export function EventDetailPage() {
                       Login Now
                     </BrutalButton>
                     <BrutalButton onClick={() => setShowGuestForm((current) => !current)} className="w-full" color="bg-[#FFE800]" text="text-[#171717]">
-                      Guest Registration
+                      Direct Registration
                     </BrutalButton>
                   </div>
                 )}
@@ -323,8 +323,8 @@ export function EventDetailPage() {
               </div>
             ) : (
               <div className="border-2 border-[#171717] bg-[#F4EFEB] p-5">
-                <p className="font-bold uppercase tracking-widest">Guest registration is not configured for this event.</p>
-                <p className="mt-2 text-sm text-slate-600">Ask an admin to add a Google Form URL in the event settings.</p>
+                <p className="font-bold uppercase tracking-widest text-red-700">Sorry, Guest registration is not available for this event.</p>
+                <p className="mt-2 text-sm text-red-700">Login and register for the event.</p>
               </div>
             )}
           </div>
