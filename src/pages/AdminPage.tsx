@@ -22,7 +22,7 @@ import { deleteCertificate as deleteCertificateRecord, getCertificatesByEvent, i
 import { CertificateRenderer } from "../components/CertificateRenderer";
 import { fonts } from "../config/fonts";
 import { AdminAccessDenied, AdminShellHeader, AdminTabs } from "./admin/AdminShell";
-import { OverviewTab, UsersTab, EventsTab, ProposalsTab, ProjectsTab, BlogsTab, GalleryTab, PartnersTab, ResourcesTab, ContentTab, ContactsTab, SettingsTab, AnalyticsTab, LogsTab } from "./admin/tabs";
+import { OverviewTab, UsersTab, EventsTab, ProposalsTab, ProjectsTab, BlogsTab, GalleryTab, PartnersTab, ResourcesTab, ContentTab, ContactsTab, CertificatesTab, SettingsTab, AnalyticsTab, LogsTab } from "./admin/tabs";
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, BrutalSelect, BrutalTextarea } from "./admin/AdminPrimitives";
 import { assignableRoleOptions, certificateTemplateOptions, formatCertificateError, fromDatetimeLocalValue, hasDatePassed, isEventRegistrationOpen, isFullAdminProfile, isOrganizerProfile, isPastEvent, slugify, toDatetimeLocalValue } from "./admin/adminUtils";
 
@@ -216,6 +216,7 @@ export function ComprehensiveAdminPanel() {
     { id: "partners", label: "Partners", icon: <Globe size={16} /> },
     { id: "resources", label: "Resources", icon: <Save size={16} /> },
     { id: "contacts", label: "Contact", icon: <Mail size={16} /> },
+    { id: "certificates", label: "Certificates", icon: <FileText size={16} /> },
     { id: "settings", label: "Settings", icon: <Settings size={16} /> },
     { id: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
     { id: "logs", label: "Logs", icon: <ListFilter size={16} /> },
@@ -2117,6 +2118,7 @@ export function ComprehensiveAdminPanel() {
 
       {/* âââ CONTACT INBOX TAB âââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       <ContactsTab ctx={adminTabContext} />
+      {activeTab === "certificates" && isFullAdmin && <CertificatesTab />}
 
       {/* âââ SETTINGS TAB ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       <SettingsTab ctx={adminTabContext} />

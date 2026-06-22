@@ -80,6 +80,20 @@ class GallerySubmissionCreate(BaseModel):
     event_id: str | None = None
 
 
+class CertificateImportRow(BaseModel):
+    required_email: str
+    required_name: str
+    required_certificate_id: str
+
+
+class CertificateImportPayload(BaseModel):
+    rows: list[CertificateImportRow]
+    event_id: str | None = None
+    event_name: str
+    certificate_type: str = Field(min_length=2, max_length=200)
+    issued_at: str | None = None
+
+
 class AdminResource(str):
     pass
 

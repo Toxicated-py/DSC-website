@@ -63,7 +63,7 @@ class SupabaseRestClient:
         }
         return await self._request("POST", table, json=payload, headers=headers)
 
-    async def upsert(self, table: str, payload: dict[str, Any], *, on_conflict: str | None = None) -> Any:
+    async def upsert(self, table: str, payload: dict[str, Any] | list[dict[str, Any]], *, on_conflict: str | None = None) -> Any:
         headers = {
             **self.headers,
             "prefer": "resolution=merge-duplicates,return=representation",
@@ -115,7 +115,7 @@ class SupabaseRestClient:
         table: str,
         *,
         params: dict[str, str | int] | None = None,
-        json: dict[str, Any] | None = None,
+        json: dict[str, Any] | list[dict[str, Any]] | None = None,
         headers: dict[str, str] | None = None,
     ) -> Any:
         query = f"?{urlencode(params)}" if params else ""
