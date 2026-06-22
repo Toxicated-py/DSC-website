@@ -1,4 +1,6 @@
-create table if not exists public.certificates (
+drop table if exists public.certificates cascade;
+
+create table public.certificates (
   id uuid primary key default gen_random_uuid(),
   certificate_id text not null unique,
   recipient_name text not null,
@@ -11,14 +13,6 @@ create table if not exists public.certificates (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
-alter table public.certificates
-  add column if not exists certificate_id text,
-  add column if not exists recipient_name text,
-  add column if not exists recipient_email text,
-  add column if not exists event_name text,
-  add column if not exists imported_by uuid references auth.users(id) on delete set null,
-  add column if not exists updated_at timestamptz not null default now();
 
 create unique index if not exists certificates_certificate_id_unique_idx
   on public.certificates (certificate_id);

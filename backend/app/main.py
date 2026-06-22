@@ -389,6 +389,13 @@ async def backfill_profiles_from_auth(client: SupabaseRestClient) -> None:
 
 
 def normalize_certificate(row: dict[str, Any]) -> dict[str, Any]:
+    row["certificate_title"] = row.get("certificate_type") or "Certificate"
+    row["issued_date"] = row.get("issued_at")
+    row["verification_code"] = row.get("certificate_id")
+    row["event_title_snapshot"] = row.get("event_name") or "Event"
+    row["recipient_name_snapshot"] = row.get("recipient_name") or "Participant"
+    row["issuer_name"] = "Data Science Club"
+    row["status"] = row.get("status") or "valid"
     if not isinstance(row.get("signature_data"), list):
         row["signature_data"] = []
     if not isinstance(row.get("template_data"), dict):
@@ -1214,7 +1221,9 @@ async def get_certificate(
     if not row:
         raise HTTPException(status_code=404, detail="Certificate not found.")
     is_admin = profile.get("role") in {"admin", "president"} or "admin" in (profile.get("roles") or [])
-    if not is_admin and row.get("member_id") != profile["id"] and row.get("recipient_id") != profile["id"]:
+    profile_email = str(profile.get("email") or "").lower()
+    recipient_email = str(row.get("recipient_email") or "").lower()
+    if not is_admin and recipient_email != profile_email:
         raise HTTPException(status_code=403, detail="You do not have access to this certificate.")
     return normalize_certificate(row)
 
@@ -1269,7 +1278,7 @@ async def get_my_submissions(
     blog_posts = await client.select("blog_posts", filters={"author_id": f"eq.{user_id}"}, order="published_at.desc")
     proposals = await client.select("event_proposals", filters={"proposed_by": f"eq.{user_id}"}, order="submitted_at.desc")
     gallery = await client.select("gallery_submissions", filters={"submitted_by": f"eq.{user_id}"}, order="created_at.desc")
-    certificates = await client.select("certificates", filters={"member_id": f"eq.{user_id}"}, order="created_at.desc")
+    certificates = await client.select("certificates", filters={"recipient_email": f"eq.{str(profile.get('email') or '').lower()}"}, order="created_at.desc")
     return {
         "projects": projects,
         "blog_posts": blog_posts,
@@ -1287,15 +1296,9 @@ async def get_my_certificates(
     client = get_privileged_supabase(settings, profile.get("_auth_token"))
     rows = await client.select(
         "certificates",
-        filters={"member_id": f"eq.{profile['id']}"},
+        filters={"recipient_email": f"eq.{str(profile.get('email') or '').lower()}"},
         order="created_at.desc",
     )
-    if not rows:
-        rows = await client.select(
-            "certificates",
-            filters={"recipient_id": f"eq.{profile['id']}"},
-            order="created_at.desc",
-        )
     return [normalize_certificate(row) for row in rows]
 
 

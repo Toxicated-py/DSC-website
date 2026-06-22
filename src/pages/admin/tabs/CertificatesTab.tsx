@@ -151,6 +151,15 @@ export function CertificatesTab() {
   const validHeaders = ["required_email", "required_name", "required_certificate_id"];
   const headersOk = validHeaders.every((header) => csvHeaders.includes(header));
   const canImport = headersOk && csvRows.length > 0 && eventName.trim() && certificateType.trim();
+  const importBlocker = !headersOk
+    ? "Upload a CSV with the required headers first."
+    : csvRows.length === 0
+      ? "Upload a CSV with at least one certificate row."
+      : !eventName.trim()
+        ? "Choose or type an event name."
+        : !certificateType.trim()
+          ? "Enter a certificate type."
+          : "";
 
   const stats = useMemo(() => {
     const eventCount = new Set(certificates.map((row) => row.event_name).filter(Boolean)).size;
@@ -258,13 +267,19 @@ export function CertificatesTab() {
 
       <BrutalCard>
         <h2 className="text-3xl uppercase mb-6" style={fonts.display}>Import Certificates from CSV</h2>
-        <div className="mb-6">
-          <BrutalButton type="button" onClick={() => downloadText(
-            "dsc-certificates-template.csv",
-            "required_email,required_name,required_certificate_id\nstudent@example.com,Full Name Here,DSC-2026-001\n"
-          )}>
+        <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
+          <BrutalButton
+            type="button"
+            onClick={() => downloadText(
+              "dsc-certificates-template.csv",
+              "required_email,required_name,required_certificate_id\nstudent@example.com,Full Name Here,DSC-2026-001\n"
+            )}
+          >
             <Download size={16} /> Download CSV Template
           </BrutalButton>
+          <div className="border-2 border-[#171717] bg-[#F4EFEB] p-3 font-mono text-xs">
+            Required headers: <b>required_email</b>, <b>required_name</b>, <b>required_certificate_id</b>
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-4">
@@ -329,9 +344,10 @@ export function CertificatesTab() {
           />
         </div>
 
-        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed border-[#171717] bg-[#F4EFEB] p-8 text-center">
+        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-[#171717] bg-[#F4EFEB] p-8 text-center brutal-shadow-hover">
           <FileUp size={32} className="text-[#2563EB]" />
-          <span className="font-bold uppercase tracking-widest">Drop CSV here or click to upload</span>
+          <span className="font-bold uppercase tracking-widest">Upload CSV</span>
+          <span className="font-mono text-xs text-slate-500">Click here and select a .csv file</span>
           <input type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => handleFile(event.target.files?.[0])} />
         </label>
 
@@ -368,8 +384,13 @@ export function CertificatesTab() {
           </div>
         )}
 
+        {importBlocker && (
+          <p className="mt-4 border-2 border-[#171717] bg-[#FFE800] p-3 text-xs font-bold uppercase tracking-widest">
+            {importBlocker}
+          </p>
+        )}
         <BrutalButton type="button" className="mt-5 w-full" color="bg-[#2563EB]" text="text-white" onClick={importCertificates} disabled={!canImport || importing}>
-          Import {csvRows.length} Certificates
+          {importing ? "Importing..." : `Import ${csvRows.length} Certificates`}
         </BrutalButton>
       </BrutalCard>
 
