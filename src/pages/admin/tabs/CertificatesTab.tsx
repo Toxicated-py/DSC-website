@@ -286,6 +286,7 @@ export function CertificatesTab() {
         <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
           <BrutalButton
             type="button"
+            className="w-fit px-3 py-2 text-xs"
             onClick={() => downloadText(
               "dsc-certificates-template.csv",
               "required_email,required_name,required_certificate_id\nstudent@example.com,Full Name Here,DSC-2026-001\n"
