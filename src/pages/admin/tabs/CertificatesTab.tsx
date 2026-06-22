@@ -34,6 +34,7 @@ const certificateTypes = [
   "Certificate of Achievement",
   "Certificate of Excellence",
 ];
+const pageSize = 10;
 
 function parseCsvLine(line: string) {
   const cells: string[] = [];
@@ -116,6 +117,7 @@ export function CertificatesTab() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [editRow, setEditRow] = useState<CertificateRow | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -146,9 +148,8 @@ export function CertificatesTab() {
   }, []);
 
   const matchingEvents = events
-    .filter((event) => event.title.toLowerCase().includes(eventQuery.toLowerCase()))
+    .filter((event) => event.title.toLowerCase().startsWith(eventQuery.trim().toLowerCase()))
     .slice(0, 8);
-  const eventSuggestions = matchingEvents.length ? matchingEvents : events.slice(0, 8);
 
   const validHeaders = ["required_email", "required_name", "required_certificate_id"];
   const headersOk = validHeaders.every((header) => csvHeaders.includes(header));
@@ -177,8 +178,11 @@ export function CertificatesTab() {
     const haystack = `${row.certificate_id} ${row.recipient_name} ${row.recipient_email}`.toLowerCase();
     return haystack.includes(search.toLowerCase());
   });
+  const pageCount = Math.max(1, Math.ceil(filteredCertificates.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const visibleCertificates = filteredCertificates.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const groupedCertificates = filteredCertificates.reduce<Record<string, CertificateRow[]>>((groups, row) => {
+  const groupedCertificates = visibleCertificates.reduce<Record<string, CertificateRow[]>>((groups, row) => {
     const key = row.event_name || "Unassigned";
     groups[key] = [...(groups[key] || []), row];
     return groups;
@@ -286,7 +290,7 @@ export function CertificatesTab() {
         <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
           <BrutalButton
             type="button"
-            className="w-fit px-3 py-2 text-xs"
+            className="inline-flex w-fit items-center gap-2 whitespace-nowrap px-3 py-2 text-xs"
             onClick={() => downloadText(
               "dsc-certificates-template.csv",
               "required_email,required_name,required_certificate_id\nstudent@example.com,Full Name Here,DSC-2026-001\n"
@@ -315,7 +319,7 @@ export function CertificatesTab() {
             />
             {eventQuery && (
               <div className="absolute z-20 -mt-3 w-full border-2 border-[#171717] bg-white brutal-shadow max-h-64 overflow-y-auto">
-                {eventSuggestions.map((event) => (
+                {matchingEvents.map((event) => (
                   <button
                     key={event.id}
                     type="button"
@@ -329,21 +333,18 @@ export function CertificatesTab() {
                     {event.title}
                   </button>
                 ))}
-                {!matchingEvents.length && events.length > 0 && (
-                  <div className="border-b-2 border-[#171717] bg-[#F4EFEB] px-3 py-2 text-[10px] font-bold uppercase text-slate-500">
-                    No exact match. Showing available events.
-                  </div>
+                {!matchingEvents.length && eventQuery.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEventId(null);
+                      setEventName(eventQuery);
+                    }}
+                    className="block w-full px-3 py-2 text-left text-xs font-bold uppercase hover:bg-[#FFE800]"
+                  >
+                    Use: {eventQuery}
+                  </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEventId(null);
-                    setEventName(eventQuery);
-                  }}
-                  className="block w-full px-3 py-2 text-left text-xs font-bold uppercase hover:bg-[#FFE800]"
-                >
-                  Use: {eventQuery}
-                </button>
               </div>
             )}
           </div>
@@ -436,7 +437,10 @@ export function CertificatesTab() {
         <BrutalInput
           label="Search"
           value={search}
-          onChange={(event: any) => setSearch(event.target.value)}
+          onChange={(event: any) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
           placeholder="Search by name, email, or certificate ID"
         />
         {loading ? (
@@ -501,6 +505,31 @@ export function CertificatesTab() {
                 </div>
               </div>
             ))}
+            {pageCount > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                <span className="font-mono text-xs">
+                  Page {currentPage} of {pageCount} - showing {visibleCertificates.length} of {filteredCertificates.length}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage((value) => Math.max(1, value - 1))}
+                    disabled={currentPage === 1}
+                    className="border-2 border-[#171717] bg-white px-3 py-1 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                    disabled={currentPage === pageCount}
+                    className="border-2 border-[#171717] bg-white px-3 py-1 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </BrutalCard>
