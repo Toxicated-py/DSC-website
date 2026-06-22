@@ -65,11 +65,10 @@ Useful hosted-project commands:
 
 ```bash
 npm run supabase:link
-npm run supabase:pull
-npm run supabase:push
+npm run supabase:migrations
 ```
 
-Migrations under `supabase/migrations` remain the source of truth for database structure.
+Migrations under `supabase/migrations` remain the source of truth for the hosted database structure. Apply production schema changes intentionally through the linked hosted project; do not start or reset a local Supabase database for this site.
 
 ## Google Login
 

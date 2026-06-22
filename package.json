@@ -15,8 +15,7 @@
     "api:install": "python -m pip install -r backend/requirements.txt",
     "api:dev": "python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8001",
     "supabase:link": "npx supabase link --project-ref $SUPABASE_PROJECT_REF",
-    "supabase:pull": "npx supabase db pull",
-    "supabase:push": "npx supabase db push"
+    "supabase:migrations": "npx supabase migration list"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
