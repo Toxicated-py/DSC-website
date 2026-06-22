@@ -9,6 +9,8 @@ dist/
 cli/
 supabase/.branches/
 supabase/.temp/
+skills-lock.json
+.agents/
 
 # Environment files and secrets
 .env

@@ -51,10 +51,10 @@ class Settings(BaseModel):
     supabase_url: str = os.getenv("SUPABASE_URL") or os.getenv("VITE_SUPABASE_URL", "")
     supabase_service_role_key: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     supabase_key: str = (
-        os.getenv("SUPABASE_PUBLISHABLE_KEY")
-        or os.getenv("SUPABASE_ANON_KEY")
-        or os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY")
+        os.getenv("SUPABASE_ANON_KEY")
         or os.getenv("VITE_SUPABASE_ANON_KEY")
+        or os.getenv("SUPABASE_PUBLISHABLE_KEY")
+        or os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY")
         or ""
     )
     admin_rpc_secret: str = os.getenv("ADMIN_RPC_SECRET", "")
@@ -64,8 +64,14 @@ class Settings(BaseModel):
     def is_supabase_configured(self) -> bool:
         return bool(self.supabase_url and self.supabase_key)
 
+    @property
+    def is_production(self) -> bool:
+        return self.environment.lower() == "production"
+
     def model_post_init(self, __context: object) -> None:
-        if self.environment == "production" and not self.admin_rpc_secret:
+        if self.is_production and not os.getenv("ALLOWED_ORIGINS", "").strip():
+            raise ValueError("ALLOWED_ORIGINS must be set explicitly in production.")
+        if self.is_production and not self.admin_rpc_secret:
             logger.warning("ADMIN_RPC_SECRET is empty in production; admin RPC endpoints may be less protected.")
 
 

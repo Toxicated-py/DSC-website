@@ -69,7 +69,7 @@ npm run supabase:pull
 npm run supabase:push
 ```
 
-Migrations under `supabase/migrations` remain the source of truth for database structure. The hosted Supabase region migration from Seoul `ap-northeast-2` to Mumbai `ap-south-1` is tracked in [docs/SUPABASE_REGION_MIGRATION.md](docs/SUPABASE_REGION_MIGRATION.md).
+Migrations under `supabase/migrations` remain the source of truth for database structure.
 
 ## Production Deployment
 
@@ -78,14 +78,14 @@ Deploy the frontend and backend separately, with Supabase as the hosted database
 Frontend environment variables:
 
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_SUPABASE_ANON_KEY`
 - `VITE_BASE_URL` or the configured API base URL used by the frontend host
 
 Backend environment variables:
 
 - `APP_ENV=production`
 - `SUPABASE_URL`
-- `SUPABASE_PUBLISHABLE_KEY` or `SUPABASE_ANON_KEY`
+- `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` for server-only privileged operations
 - `ADMIN_RPC_SECRET` for protected admin RPC calls, if enabled
 - `ALLOWED_ORIGINS`, comma-separated, for production CORS origins
