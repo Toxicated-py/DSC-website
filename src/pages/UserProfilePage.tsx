@@ -8,6 +8,12 @@ import { fonts } from "../config/fonts";
 
 function splitPhone(value: string) {
   const cleaned = value.trim();
+  if (cleaned.startsWith("+977")) {
+    return {
+      code: "+977",
+      number: cleaned.slice(4).replace(/\D/g, "").slice(0, 10),
+    };
+  }
   const match = cleaned.match(/^(\+\d{1,4})(\d*)$/);
   return {
     code: match?.[1] || "+977",
