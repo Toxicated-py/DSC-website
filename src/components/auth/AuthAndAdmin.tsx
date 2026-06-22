@@ -69,6 +69,7 @@ export function NewLoginPage() {
   const isResetPassword = location.pathname === "/reset-password";
   const [email, setEmail] = useState("");
   const [resetEmail, setResetEmail] = useState("");
+  const [phoneCode, setPhoneCode] = useState("+977");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -170,7 +171,7 @@ export function NewLoginPage() {
               captchaToken: authCaptchaToken || undefined,
               data: {
                 full_name: name,
-                phone: `+977${phone.trim()}`,
+                phone: `${phoneCode}${phone.trim()}`,
                 is_sms_student: isSmsStudent,
                 student_email: isSmsStudent ? studentEmail.trim().toLowerCase() : "",
               },
@@ -444,9 +445,14 @@ export function NewLoginPage() {
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest mb-2">Phone</label>
                 <div className="flex border-2 border-[#171717] focus-within:ring-4 focus-within:ring-[#FB7185]/30 transition-all">
-                  <span className="border-r-2 border-[#171717] bg-[#F4EFEB] px-3 py-3 font-mono text-sm text-slate-500">
-                    +977
-                  </span>
+                  <input
+                    type="tel"
+                    value={phoneCode}
+                    onChange={e => setPhoneCode(`+${e.target.value.replace(/\D/g, "").slice(0, 4)}`)}
+                    className="w-20 border-r-2 border-[#171717] bg-[#F4EFEB] px-3 py-3 font-mono text-sm text-slate-600 focus:outline-none"
+                    aria-label="Country code"
+                    required
+                  />
                   <input
                     type="tel"
                     value={phone}

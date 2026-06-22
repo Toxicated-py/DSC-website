@@ -5,6 +5,16 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, userFriendlyErrorMessage } from "../lib/apiClient";
 import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui/brutal";
 import { fonts } from "../config/fonts";
+
+function splitPhone(value: string) {
+  const cleaned = value.trim();
+  const match = cleaned.match(/^(\+\d{1,4})(\d*)$/);
+  return {
+    code: match?.[1] || "+977",
+    number: match?.[2] || cleaned.replace(/\D/g, "").slice(0, 10),
+  };
+}
+
 export function UserProfilePage() {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
@@ -12,6 +22,8 @@ export function UserProfilePage() {
   const [saveStatus, setSaveStatus] = useState("");
   const [newSkill, setNewSkill] = useState("");
   const [newProfileLink, setNewProfileLink] = useState({ label: "", url: "" });
+  const [phoneCode, setPhoneCode] = useState("+977");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [profile, setProfile] = useState({
     name: "Member",
@@ -60,6 +72,9 @@ export function UserProfilePage() {
         ]);
 
         if (!mounted) return;
+        const parsedPhone = splitPhone(data?.phone || "");
+        setPhoneCode(parsedPhone.code);
+        setPhoneNumber(parsedPhone.number);
         setProfile((current) => ({
           ...current,
           name: data?.full_name || fallbackName,
@@ -112,11 +127,12 @@ export function UserProfilePage() {
       }
 
       const parsedYear = Number.parseInt(profile.year, 10);
+      const fullPhone = phoneNumber ? `${phoneCode}${phoneNumber}` : "";
       try {
         await apiPatch("/api/me", {
           data: {
           full_name: profile.name,
-          phone: profile.phone,
+          phone: fullPhone,
           bio: profile.bio,
           batch_year: Number.isFinite(parsedYear) ? parsedYear : null,
           major: profile.major,
@@ -128,6 +144,7 @@ export function UserProfilePage() {
           skills: profile.skills,
           },
         }, { auth: true });
+        setProfile((current) => ({ ...current, phone: fullPhone }));
       } catch (error: any) {
         setSaveStatus(userFriendlyErrorMessage(error, "Could not save profile. Please check your details and try again."));
         return;
@@ -251,12 +268,26 @@ export function UserProfilePage() {
                       value={profile.email}
                       readOnly
                     />
-                    <BrutalInput
-                      label="Phone"
-                      value={profile.phone}
-                      onChange={(e: any) => setProfile({ ...profile, phone: e.target.value })}
-                      placeholder="+977 98XXXXXXXX"
-                    />
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-2">Phone</label>
+                      <div className="flex border-2 border-[#171717] focus-within:ring-4 focus-within:ring-[#FB7185]/30 transition-all">
+                        <input
+                          type="tel"
+                          value={phoneCode}
+                          onChange={(e) => setPhoneCode(`+${e.target.value.replace(/\D/g, "").slice(0, 4)}`)}
+                          className="w-20 border-r-2 border-[#171717] bg-[#F4EFEB] px-3 py-3 font-mono text-sm text-slate-600 focus:outline-none"
+                          aria-label="Country code"
+                        />
+                        <input
+                          type="tel"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                          placeholder="98XXXXXXXX"
+                          className="min-w-0 flex-1 p-3 font-mono text-sm focus:outline-none"
+                          inputMode="numeric"
+                        />
+                      </div>
+                    </div>
                   </>
                 ) : (
                   <>
