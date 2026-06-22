@@ -8,9 +8,7 @@ const supabaseKey =
 export const isSupabaseConfigured =
   Boolean(supabaseUrl) &&
   Boolean(supabaseKey) &&
-  (supabaseUrl.startsWith("https://") ||
-    supabaseUrl.startsWith("http://127.0.0.1") ||
-    supabaseUrl.startsWith("http://localhost")) &&
+  supabaseUrl.startsWith("https://") &&
   !supabaseUrl.includes("your-project-ref") &&
   !supabaseKey.includes("your-anon-key") &&
   !supabaseKey.includes("your-anon-public-key") &&

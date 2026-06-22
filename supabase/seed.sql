@@ -1,3 +1,0 @@
--- Local development seed data.
--- Keep this file safe to run repeatedly when applying seed data to a disposable Supabase database.
--- Add non-production sample rows here when you need test data.

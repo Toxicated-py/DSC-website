@@ -65,11 +65,10 @@ Useful hosted-project commands:
 
 ```bash
 npm run supabase:link
-npm run supabase:pull
-npm run supabase:push
+npm run supabase:migrations
 ```
 
-Migrations under `supabase/migrations` remain the source of truth for database structure.
+Migrations under `supabase/migrations` remain the source of truth for the hosted database structure. Apply production schema changes intentionally through the linked hosted project; do not start or reset a local Supabase database for this site.
 
 ## Google Login
 
@@ -121,6 +120,33 @@ https://www.dscsms.com/**
 
 After setup, test `/login`, click `Sign In with Google`, and confirm the app returns to `/dashboard` or the original protected route.
 
+Password reset uses the same Supabase redirect list. Make sure `/reset-password` is covered by the wildcard URLs above, then test `Forgot password?` from `/login`.
+
+## CAPTCHA Protection
+
+Auth forms support Cloudflare Turnstile when configured.
+
+Cloudflare:
+
+1. Create a Turnstile site for `dscsms.com`.
+2. Add `localhost` for local testing if needed.
+3. Copy the Site Key and Secret Key.
+
+Supabase dashboard:
+
+1. Open `Authentication` -> `Bot and Abuse Protection`.
+2. Enable CAPTCHA protection.
+3. Select Cloudflare Turnstile.
+4. Paste the Turnstile Secret Key and save.
+
+Frontend environment:
+
+```bash
+VITE_TURNSTILE_SITE_KEY=your-public-turnstile-site-key
+```
+
+Only the Turnstile Site Key is public. Never commit the Turnstile Secret Key.
+
 ## Production Deployment
 
 Deploy the frontend and backend separately, with Supabase as the hosted database/auth provider.
@@ -130,6 +156,7 @@ Frontend environment variables:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_BASE_URL` or the configured API base URL used by the frontend host
+- `VITE_TURNSTILE_SITE_KEY` for CAPTCHA on auth forms, if Supabase CAPTCHA is enabled
 
 Backend environment variables:
 

@@ -64,6 +64,7 @@ async def get_current_profile(
             email = user.get("email") or ""
             metadata = user.get("user_metadata") or {}
             full_name = metadata.get("full_name") or metadata.get("name") or email.split("@")[0] or "Member"
+            phone = metadata.get("phone") or user.get("phone")
             roles = ["member", "student"] if email.lower().endswith("@sms.tu.edu.np") else ["member"]
             try:
                 try:
@@ -76,6 +77,7 @@ async def get_current_profile(
                         "id": user_id,
                         "email": email,
                         "full_name": full_name,
+                        "phone": phone or None,
                         "role": "member",
                         "roles": roles,
                         "membership_status": "approved",

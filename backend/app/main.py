@@ -1138,6 +1138,7 @@ async def update_me(
     client = get_privileged_supabase(settings, profile.get("_auth_token"))
     allowed = {
         "full_name",
+        "phone",
         "bio",
         "batch_year",
         "major",

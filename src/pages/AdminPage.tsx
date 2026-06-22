@@ -309,6 +309,7 @@ export function ComprehensiveAdminPanel() {
         id: profile.id,
         name: profile.full_name || profile.email || "Member",
         email: profile.email,
+        phone: profile.phone || "",
         role: profile.role,
         roles: Array.isArray(profile.roles) && profile.roles.length ? profile.roles : [profile.role || "member"],
         membershipStatus: profile.membership_status,

@@ -2,7 +2,7 @@
  * Authentication components backed by Supabase auth.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check, User, UserCheck, GraduationCap, Crown, X, Eye, EyeOff } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
@@ -15,10 +15,62 @@ import { fonts } from "../../config/fonts";
 
 // âââ New Login/Signup Page with Google Auth âââââââââââââââââââââââââââââââââââ
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (element: HTMLElement, options: Record<string, unknown>) => string;
+      remove: (widgetId: string) => void;
+    };
+  }
+}
+
+const TURNSTILE_SCRIPT = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+
+function TurnstileChallenge({ siteKey, onToken, resetKey }: { siteKey: string; onToken: (token: string) => void; resetKey: number }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!siteKey) return;
+    let cancelled = false;
+    const script =
+      document.querySelector<HTMLScriptElement>(`script[src="${TURNSTILE_SCRIPT}"]`) ||
+      Object.assign(document.createElement("script"), { src: TURNSTILE_SCRIPT, async: true, defer: true });
+
+    const renderWidget = () => {
+      if (cancelled || widgetRef.current || !containerRef.current || !window.turnstile) return;
+      widgetRef.current = window.turnstile.render(containerRef.current, {
+        sitekey: siteKey,
+        callback: onToken,
+        "expired-callback": () => onToken(""),
+        "error-callback": () => onToken(""),
+      });
+    };
+
+    if (!script.parentElement) document.head.appendChild(script);
+    if (window.turnstile) renderWidget();
+    script.addEventListener("load", renderWidget);
+
+    return () => {
+      cancelled = true;
+      script.removeEventListener("load", renderWidget);
+      if (widgetRef.current && window.turnstile) window.turnstile.remove(widgetRef.current);
+      widgetRef.current = null;
+      onToken("");
+    };
+  }, [onToken, resetKey, siteKey]);
+
+  return <div ref={containerRef} className="min-h-[65px]" />;
+}
+
 export function NewLoginPage() {
   const location = useLocation();
   const isSignup = location.pathname === "/register";
+  const isResetPassword = location.pathname === "/reset-password";
   const [email, setEmail] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
+  const [phoneCode, setPhoneCode] = useState("+977");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
@@ -26,13 +78,24 @@ export function NewLoginPage() {
   const [studentEmail, setStudentEmail] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [resetStatus, setResetStatus] = useState("");
+  const [authCaptchaToken, setAuthCaptchaToken] = useState("");
+  const [resetCaptchaToken, setResetCaptchaToken] = useState("");
+  const [authCaptchaResetKey, setAuthCaptchaResetKey] = useState(0);
+  const [resetCaptchaResetKey, setResetCaptchaResetKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [canUpdatePassword, setCanUpdatePassword] = useState(false);
   const navigate = useNavigate();
   const redirectParam = new URLSearchParams(location.search).get("redirect");
   const redirectTo = redirectParam?.startsWith("/") ? redirectParam : "/dashboard";
+  const turnstileSiteKey = String(import.meta.env.VITE_TURNSTILE_SITE_KEY || "").trim();
+  const captchaEnabled = Boolean(turnstileSiteKey);
+  const handleAuthCaptcha = useCallback((token: string) => setAuthCaptchaToken(token), []);
+  const handleResetCaptcha = useCallback((token: string) => setResetCaptchaToken(token), []);
   const passwordRules = [
     { label: "At least 8 characters", valid: password.length >= 8 },
     { label: "One uppercase letter", valid: /[A-Z]/.test(password) },
@@ -45,24 +108,37 @@ export function NewLoginPage() {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
     let mounted = true;
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setCanUpdatePassword(true);
+    });
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
+      if (isResetPassword) {
+        setCanUpdatePassword(Boolean(data.session?.user));
+        return;
+      }
       if (data.session?.user) {
         navigate(redirectTo, { replace: true });
       }
     });
     return () => {
       mounted = false;
+      listener.subscription.unsubscribe();
     };
-  }, [navigate, redirectTo]);
+  }, [isResetPassword, navigate, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setNotice("");
+    setResetStatus("");
     setIsSubmitting(true);
 
     try {
+      if (captchaEnabled && !authCaptchaToken) {
+        setError("Complete the CAPTCHA first.");
+        return;
+      }
       if (isSignup) {
         if (!isStrongPassword) {
           setError("Create a stronger password before signing up.");
@@ -92,14 +168,20 @@ export function NewLoginPage() {
             email,
             password,
             options: {
+              captchaToken: authCaptchaToken || undefined,
               data: {
                 full_name: name,
+                phone: `${phoneCode}${phone.trim()}`,
                 is_sms_student: isSmsStudent,
                 student_email: isSmsStudent ? studentEmail.trim().toLowerCase() : "",
               },
             },
           })
-        : await supabase.auth.signInWithPassword({ email, password });
+        : await supabase.auth.signInWithPassword({
+            email,
+            password,
+            options: { captchaToken: authCaptchaToken || undefined },
+          });
 
       if (response.error) {
         setError(userFriendlyErrorMessage(response.error, "Could not sign in. Check your email and password."));
@@ -116,6 +198,7 @@ export function NewLoginPage() {
         setConfirmPassword("");
       }
     } finally {
+      if (captchaEnabled) setAuthCaptchaResetKey((key) => key + 1);
       setIsSubmitting(false);
     }
   };
@@ -144,6 +227,133 @@ export function NewLoginPage() {
       setIsGoogleSubmitting(false);
     }
   };
+
+  const handlePasswordResetRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetEmail = (showForgotPassword && !isResetPassword ? resetEmail : email).trim();
+    setError("");
+    setNotice("");
+    setResetStatus("");
+    setIsSubmitting(true);
+
+    try {
+      if (captchaEnabled && !resetCaptchaToken) {
+        setResetStatus("Complete the CAPTCHA first.");
+        return;
+      }
+      if (!isSupabaseConfigured || !supabase) {
+        setResetStatus("Password reset is temporarily unavailable.");
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+        captchaToken: resetCaptchaToken || undefined,
+      });
+
+      if (error) {
+        setResetStatus(userFriendlyErrorMessage(error, "Could not send reset email. Please try again."));
+        return;
+      }
+
+      setResetStatus("Password reset link sent. Check your email.");
+    } finally {
+      if (captchaEnabled) setResetCaptchaResetKey((key) => key + 1);
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setNotice("");
+    setIsSubmitting(true);
+
+    try {
+      if (!isSupabaseConfigured || !supabase) {
+        setError("Password update is temporarily unavailable.");
+        return;
+      }
+      if (!isStrongPassword) {
+        setError("Create a stronger password before saving.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setError(userFriendlyErrorMessage(error, "Could not update password. Please open the reset link again."));
+        return;
+      }
+
+      await supabase.auth.signOut();
+      setNotice("Password updated. Sign in with your new password.");
+      setPassword("");
+      setConfirmPassword("");
+      setCanUpdatePassword(false);
+      setShowForgotPassword(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isResetPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#2563EB]">
+        <div className="w-full max-w-lg bg-white border-4 border-[#171717] brutal-shadow-lg p-8">
+          <h1 className="text-4xl uppercase mb-3" style={fonts.display}>Reset Password</h1>
+          <p className="font-mono text-sm text-slate-600 mb-6">
+            {canUpdatePassword ? "Enter your new password." : "Send a reset link to your email."}
+          </p>
+          <form onSubmit={canUpdatePassword ? handlePasswordUpdate : handlePasswordResetRequest} className="space-y-4">
+            {canUpdatePassword ? (
+              <>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="New password"
+                  className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30"
+                  required
+                />
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30"
+                  required
+                />
+              </>
+            ) : (
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your.email@example.com"
+                className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30"
+                required
+              />
+            )}
+            {captchaEnabled && !canUpdatePassword && (
+              <TurnstileChallenge siteKey={turnstileSiteKey} onToken={handleResetCaptcha} resetKey={resetCaptchaResetKey} />
+            )}
+            {error && <p className="text-xs font-bold text-[#FB7185]">{error}</p>}
+            {notice && <p className="text-xs font-bold text-[#2563EB]">{notice}</p>}
+            <BrutalButton type="submit" color="bg-[#171717]" text="text-white" className="w-full disabled:opacity-50" disabled={isSubmitting}>
+              {isSubmitting ? "Please Wait..." : canUpdatePassword ? "Save New Password" : "Send Reset Link"}
+            </BrutalButton>
+          </form>
+          <button type="button" onClick={() => navigate("/login")} className="mt-5 text-xs font-bold uppercase tracking-widest text-[#2563EB]">
+            Back to login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#2563EB]">
@@ -229,6 +439,31 @@ export function NewLoginPage() {
                   className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30 transition-all"
                   required
                 />
+              </div>
+            )}
+            {isSignup && (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest mb-2">Phone</label>
+                <div className="flex border-2 border-[#171717] focus-within:ring-4 focus-within:ring-[#FB7185]/30 transition-all">
+                  <input
+                    type="tel"
+                    value={phoneCode}
+                    onChange={e => setPhoneCode(`+${e.target.value.replace(/\D/g, "").slice(0, 4)}`)}
+                    className="w-20 border-r-2 border-[#171717] bg-[#F4EFEB] px-3 py-3 font-mono text-sm text-slate-600 focus:outline-none"
+                    aria-label="Country code"
+                    required
+                  />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="98XXXXXXXX"
+                    className="min-w-0 flex-1 p-3 font-mono text-sm focus:outline-none"
+                    inputMode="numeric"
+                    pattern="[0-9]{10}"
+                    required
+                  />
+                </div>
               </div>
             )}
             <div>
@@ -339,6 +574,9 @@ export function NewLoginPage() {
               </div>
             )}
 
+            {captchaEnabled && (
+              <TurnstileChallenge siteKey={turnstileSiteKey} onToken={handleAuthCaptcha} resetKey={authCaptchaResetKey} />
+            )}
             <BrutalButton
               type="submit"
               color="bg-[#171717]"
@@ -348,7 +586,41 @@ export function NewLoginPage() {
             >
               {isSubmitting ? "Please Wait..." : isSignup ? "Create Account" : "Sign In"}
             </BrutalButton>
+            {!isSignup && (
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(!showForgotPassword)}
+                className="w-full text-xs font-bold uppercase tracking-widest text-[#2563EB] hover:underline"
+              >
+                Forgot password?
+              </button>
+            )}
           </form>
+
+          {showForgotPassword && !isSignup && (
+            <form onSubmit={handlePasswordResetRequest} className="mt-4 border-2 border-[#171717] bg-[#F4EFEB] p-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-widest">Reset Password</p>
+              <input
+                type="email"
+                value={resetEmail}
+                onChange={e => setResetEmail(e.target.value)}
+                placeholder="your.email@example.com"
+                className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 bg-white"
+                required
+              />
+              {captchaEnabled && (
+                <TurnstileChallenge siteKey={turnstileSiteKey} onToken={handleResetCaptcha} resetKey={resetCaptchaResetKey} />
+              )}
+              {resetStatus && (
+                <p className={`text-xs font-bold ${resetStatus.toLowerCase().includes("sent") ? "text-[#2563EB]" : "text-[#FB7185]"}`}>
+                  {resetStatus}
+                </p>
+              )}
+              <BrutalButton type="submit" color="bg-[#FFE800]" text="text-[#171717]" className="w-full disabled:opacity-50" disabled={isSubmitting}>
+                {isSubmitting ? "Sending..." : "Send Reset Link"}
+              </BrutalButton>
+            </form>
+          )}
 
           {/* Divider */}
           <div className="flex items-center gap-4 my-6">
