@@ -136,7 +136,7 @@ export function CertificatesTab() {
   const loadEvents = async () => {
     if (events.length) return;
     try {
-      const rows = await apiGet<EventOption[]>("/api/events?status=all", { auth: "optional" });
+      const rows = await apiGet<EventOption[]>("/api/admin/resources/events", { auth: true });
       setEvents(rows);
     } catch {
       setEvents([]);
@@ -316,7 +316,7 @@ export function CertificatesTab() {
               }}
               placeholder="Search or type event name"
             />
-            {eventQuery && (
+            {eventQuery && matchingEvents.length > 0 && (
               <div className="absolute z-20 -mt-3 w-full border-2 border-[#171717] bg-white brutal-shadow max-h-64 overflow-y-auto">
                 {matchingEvents.map((event) => (
                   <button
@@ -332,18 +332,6 @@ export function CertificatesTab() {
                     {event.title}
                   </button>
                 ))}
-                {!matchingEvents.length && eventQuery.trim() && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEventId(null);
-                      setEventName(eventQuery);
-                    }}
-                    className="block w-full px-3 py-2 text-left text-xs font-bold uppercase hover:bg-[#FFE800]"
-                  >
-                    Use: {eventQuery}
-                  </button>
-                )}
               </div>
             )}
           </div>
