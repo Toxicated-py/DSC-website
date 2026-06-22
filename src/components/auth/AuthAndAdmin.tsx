@@ -2,7 +2,7 @@
  * Authentication components backed by Supabase auth.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check, User, UserCheck, GraduationCap, Crown, X, Eye, EyeOff } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
@@ -14,6 +14,54 @@ import { BrutalButton } from "../ui/brutal";
 import { fonts } from "../../config/fonts";
 
 // âââ New Login/Signup Page with Google Auth âââââââââââââââââââââââââââââââââââ
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (element: HTMLElement, options: Record<string, unknown>) => string;
+      remove: (widgetId: string) => void;
+    };
+  }
+}
+
+const TURNSTILE_SCRIPT = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+
+function TurnstileChallenge({ siteKey, onToken, resetKey }: { siteKey: string; onToken: (token: string) => void; resetKey: number }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!siteKey) return;
+    let cancelled = false;
+    const script =
+      document.querySelector<HTMLScriptElement>(`script[src="${TURNSTILE_SCRIPT}"]`) ||
+      Object.assign(document.createElement("script"), { src: TURNSTILE_SCRIPT, async: true, defer: true });
+
+    const renderWidget = () => {
+      if (cancelled || widgetRef.current || !containerRef.current || !window.turnstile) return;
+      widgetRef.current = window.turnstile.render(containerRef.current, {
+        sitekey: siteKey,
+        callback: onToken,
+        "expired-callback": () => onToken(""),
+        "error-callback": () => onToken(""),
+      });
+    };
+
+    if (!script.parentElement) document.head.appendChild(script);
+    if (window.turnstile) renderWidget();
+    script.addEventListener("load", renderWidget);
+
+    return () => {
+      cancelled = true;
+      script.removeEventListener("load", renderWidget);
+      if (widgetRef.current && window.turnstile) window.turnstile.remove(widgetRef.current);
+      widgetRef.current = null;
+      onToken("");
+    };
+  }, [onToken, resetKey, siteKey]);
+
+  return <div ref={containerRef} className="min-h-[65px]" />;
+}
 
 export function NewLoginPage() {
   const location = useLocation();
@@ -30,6 +78,10 @@ export function NewLoginPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [resetStatus, setResetStatus] = useState("");
+  const [authCaptchaToken, setAuthCaptchaToken] = useState("");
+  const [resetCaptchaToken, setResetCaptchaToken] = useState("");
+  const [authCaptchaResetKey, setAuthCaptchaResetKey] = useState(0);
+  const [resetCaptchaResetKey, setResetCaptchaResetKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -39,6 +91,10 @@ export function NewLoginPage() {
   const navigate = useNavigate();
   const redirectParam = new URLSearchParams(location.search).get("redirect");
   const redirectTo = redirectParam?.startsWith("/") ? redirectParam : "/dashboard";
+  const turnstileSiteKey = String(import.meta.env.VITE_TURNSTILE_SITE_KEY || "").trim();
+  const captchaEnabled = Boolean(turnstileSiteKey);
+  const handleAuthCaptcha = useCallback((token: string) => setAuthCaptchaToken(token), []);
+  const handleResetCaptcha = useCallback((token: string) => setResetCaptchaToken(token), []);
   const passwordRules = [
     { label: "At least 8 characters", valid: password.length >= 8 },
     { label: "One uppercase letter", valid: /[A-Z]/.test(password) },
@@ -78,6 +134,10 @@ export function NewLoginPage() {
     setIsSubmitting(true);
 
     try {
+      if (captchaEnabled && !authCaptchaToken) {
+        setError("Complete the CAPTCHA first.");
+        return;
+      }
       if (isSignup) {
         if (!isStrongPassword) {
           setError("Create a stronger password before signing up.");
@@ -107,6 +167,7 @@ export function NewLoginPage() {
             email,
             password,
             options: {
+              captchaToken: authCaptchaToken || undefined,
               data: {
                 full_name: name,
                 phone: phone.trim(),
@@ -115,7 +176,11 @@ export function NewLoginPage() {
               },
             },
           })
-        : await supabase.auth.signInWithPassword({ email, password });
+        : await supabase.auth.signInWithPassword({
+            email,
+            password,
+            options: { captchaToken: authCaptchaToken || undefined },
+          });
 
       if (response.error) {
         setError(userFriendlyErrorMessage(response.error, "Could not sign in. Check your email and password."));
@@ -132,6 +197,7 @@ export function NewLoginPage() {
         setConfirmPassword("");
       }
     } finally {
+      if (captchaEnabled) setAuthCaptchaResetKey((key) => key + 1);
       setIsSubmitting(false);
     }
   };
@@ -170,6 +236,10 @@ export function NewLoginPage() {
     setIsSubmitting(true);
 
     try {
+      if (captchaEnabled && !resetCaptchaToken) {
+        setResetStatus("Complete the CAPTCHA first.");
+        return;
+      }
       if (!isSupabaseConfigured || !supabase) {
         setResetStatus("Password reset is temporarily unavailable.");
         return;
@@ -177,6 +247,7 @@ export function NewLoginPage() {
 
       const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
+        captchaToken: resetCaptchaToken || undefined,
       });
 
       if (error) {
@@ -186,6 +257,7 @@ export function NewLoginPage() {
 
       setResetStatus("Password reset link sent. Check your email.");
     } finally {
+      if (captchaEnabled) setResetCaptchaResetKey((key) => key + 1);
       setIsSubmitting(false);
     }
   };
@@ -264,6 +336,9 @@ export function NewLoginPage() {
                 className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30"
                 required
               />
+            )}
+            {captchaEnabled && !canUpdatePassword && (
+              <TurnstileChallenge siteKey={turnstileSiteKey} onToken={handleResetCaptcha} resetKey={resetCaptchaResetKey} />
             )}
             {error && <p className="text-xs font-bold text-[#FB7185]">{error}</p>}
             {notice && <p className="text-xs font-bold text-[#2563EB]">{notice}</p>}
@@ -486,6 +561,9 @@ export function NewLoginPage() {
               </div>
             )}
 
+            {captchaEnabled && (
+              <TurnstileChallenge siteKey={turnstileSiteKey} onToken={handleAuthCaptcha} resetKey={authCaptchaResetKey} />
+            )}
             <BrutalButton
               type="submit"
               color="bg-[#171717]"
@@ -517,6 +595,9 @@ export function NewLoginPage() {
                 className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 bg-white"
                 required
               />
+              {captchaEnabled && (
+                <TurnstileChallenge siteKey={turnstileSiteKey} onToken={handleResetCaptcha} resetKey={resetCaptchaResetKey} />
+              )}
               {resetStatus && (
                 <p className={`text-xs font-bold ${resetStatus.toLowerCase().includes("sent") ? "text-[#2563EB]" : "text-[#FB7185]"}`}>
                   {resetStatus}
