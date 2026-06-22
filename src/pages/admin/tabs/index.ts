@@ -9,6 +9,7 @@ export { PartnersTab } from './PartnersTab';
 export { ResourcesTab } from './ResourcesTab';
 export { ContentTab } from './ContentTab';
 export { ContactsTab } from './ContactsTab';
+export { CertificatesTab } from './CertificatesTab';
 export { SettingsTab } from './SettingsTab';
 export { AnalyticsTab } from './AnalyticsTab';
 export { LogsTab } from './LogsTab';

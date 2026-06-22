@@ -5,6 +5,7 @@ import { Users, Camera, Calendar, QrCode, Bell, Award, Clock, Code, User, FileTe
 
 
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { apiGet } from "../lib/apiClient";
 
 import { BrutalButton, BrutalCard, BrutalBadge } from "../components/ui/brutal";
 
@@ -14,6 +15,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const [member, setMember] = useState({
     name: "Member",
+    phone: "",
     batchYear: "",
     memberSince: "New member",
   });
@@ -38,12 +40,8 @@ export function DashboardPage() {
         userData.user.email ||
         "Member";
 
-      const [{ data: profile }, contributionProposals, contributionProjects, contributionBlogs, contributionGallery, publicEvents, publicProjects, publicPosts] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("full_name,email,batch_year,created_at")
-          .eq("id", userData.user.id)
-          .maybeSingle(),
+      const [profile, contributionProposals, contributionProjects, contributionBlogs, contributionGallery, publicEvents, publicProjects, publicPosts] = await Promise.all([
+        apiGet<any>("/api/me", { auth: true }),
         supabase
           .from("event_proposals")
           .select("id,title,status,submitted_at,event_type")
@@ -92,6 +90,7 @@ export function DashboardPage() {
       if (!mounted) return;
       setMember({
         name: profile?.full_name || profile?.email || fallbackName,
+        phone: profile?.phone || userData.user.user_metadata?.phone || "",
         batchYear: profile?.batch_year ? String(profile.batch_year) : "",
         memberSince: profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "New member",
       });
@@ -142,6 +141,7 @@ export function DashboardPage() {
               <span className="font-mono text-xs text-slate-400">Member since {member.memberSince}</span>
             </div>
             <h1 className="text-6xl md:text-8xl uppercase leading-none" style={fonts.display}>{member.name}</h1>
+            {member.phone && <p className="mt-3 font-mono text-sm text-slate-300">{member.phone}</p>}
           </div>
           <div className="flex gap-3 flex-wrap">
           <BrutalButton color="bg-white" className="text-xs px-4 py-2" onClick={() => setDashboardNotice(announcements.length ? announcements.map((item) => item.title).join(" | ") : "No new notifications right now.")}>

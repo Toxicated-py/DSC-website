@@ -1,811 +1,546 @@
-import { Check, Settings, Edit, Users, Save, X, FileText, Award } from "lucide-react";
-import { CertificateRenderer } from "../../../components/CertificateRenderer";
+import React, { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Download, Edit, FileUp, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
+import { apiDelete, apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../../../lib/apiClient";
 import { fonts } from "../../../config/fonts";
-import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, BrutalSelect, BrutalTextarea } from "../AdminPrimitives";
+import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput } from "../AdminPrimitives";
 
-export function CertificatesTab({ ctx }: { ctx: any }) {
-  const {
-    SettingsSection,
-    activeBlogs,
-    activeCredentialCount,
-    activeEventCount,
-    activeEvents,
-    activeMemberCount,
-    activePartners,
-    activeProjects,
-    activeTab,
-    addCertificateSignature,
-    addContactItem,
-    addFAQ,
-    addLearningMaterial,
-    addSocialLink,
-    addTeamMember,
-    adminProfile,
-    adminStatus,
-    alreadyIssuedCertificateAttendees,
-    answer,
-    applyCertificateEvent,
-    approvedGallery,
-    archivedBlogs,
-    archivedEvents,
-    archivedPartners,
-    assignableRoleOptions,
-    attendanceSummary,
-    attendees,
-    attendeesForEvent,
-    auditLogs,
-    author,
-    blogForm,
-    blogPosts,
-    blogRows,
-    buildCertificateTemplateData,
-    canAccessAdmin,
-    canManage,
-    capacity,
-    certificateEventAttendees,
-    certificateEventRegistrations,
-    certificateForm,
-    certificateMemberOptions,
-    certificateModal,
-    certificatePreviewName,
-    certificatePreviewRecipient,
-    certificatePreviewRecord,
-    certificateRows,
-    certificateStatus,
-    certificateTemplateOptions,
-    checkedIn,
-    checkedInCount,
-    contactMessages,
-    contentStatusStats,
-    coordinatorEmails,
-    copyCertificateLink,
-    createEventFromProposal,
-    createdEvent,
-    currentRoles,
-    data,
-    date,
-    deleteCertificate,
-    deleteContactMessage,
-    deleteLearningMaterial,
-    deletePartner,
-    deleteUserProfile,
-    destructiveAuditCount,
-    editCertificate,
-    editingBlogId,
-    editingCertificateId,
-    editingItem,
-    editingPartnerId,
-    editingProjectId,
-    eligibleCertificateAttendees,
-    eventCertificateType,
-    eventForm,
-    eventProposals,
-    eventRegistrations,
-    eventRows,
-    eventTime,
-    eventUtilization,
-    events,
-    failedDetails,
-    filteredAuditLogs,
-    filteredEvents,
-    filteredProjects,
-    filteredUsers,
-    findProfileByEmail,
-    firstAddress,
-    firstEmail,
-    firstPhone,
-    form,
-    gallerySubmissions,
-    getRoleBadge,
-    handleArchiveEvent,
-    handleIssueCertificate,
-    handleUserAction,
-    isAdmin,
-    isCertificateAdmin,
-    isCheckedIn,
-    isFullAdmin,
-    isIssued,
-    isOpen,
-    isOrganizer,
-    isOrganizerAdmin,
-    isSelectedRecipientAlreadyIssued,
-    isSelectedRecipientCheckedIn,
-    issueEventCertificates,
-    issuedCertificates,
-    issuedRecipientIdsForEvent,
-    issuingBulkCertificates,
-    label,
-    learningMaterials,
-    linkTeamMemberToProfile,
-    logSearchQuery,
-    managerTabs,
-    mapped,
-    mappedProfiles,
-    maxGrowth,
-    memberGrowth,
-    membershipStatus,
-    message,
-    monthLabels,
-    myProfile,
-    name,
-    navigate,
-    newContactItem,
-    newFAQ,
-    newSocialLink,
-    newTeamMember,
-    next,
-    nextPrimaryRole,
-    nextRoles,
-    nextSocialLinks,
-    nextTab,
-    normalizeCertificateForRenderer,
-    normalized,
-    normalizedEmail,
-    normalizedSettings,
-    now,
-    ok,
-    openAdminTab,
-    openBlogModal,
-    openEventModal,
-    openPartnerModal,
-    openProjectModal,
-    openReviewPreview,
-    openSettingsSections,
-    partnerForm,
-    partnerSubmissions,
-    patch,
-    payload,
-    pendingBlogs,
-    pendingEventProposals,
-    pendingGallery,
-    pendingProjects,
-    pendingReviewCount,
-    platform,
-    popularEvents,
-    position,
-    postsThisMonth,
-    profile,
-    profileById,
-    profileFields,
-    profileOptions,
-    profileToTeamFields,
-    profiles,
-    projectForm,
-    projectRows,
-    projects,
-    projectsThisMonth,
-    publicUrl,
-    query,
-    question,
-    recentAuditLogs,
-    refreshCertificateRegistry,
-    refreshed,
-    registrationsCount,
-    rejectedEventProposals,
-    rejectedGallery,
-    rejectedProjects,
-    removeCertificateSignature,
-    removeContactItem,
-    removeFAQ,
-    removeSocialLink,
-    removeTeamMember,
-    resetBlogForm,
-    resetCertificateForm,
-    resetEventForm,
-    resetPartnerForm,
-    resetProjectForm,
-    resource,
-    resourceForm,
-    reviewPreview,
-    revokedCredentialCount,
-    role,
-    roles,
-    rows,
-    safeList,
-    saveBlogPost,
-    saveEvent,
-    savePartner,
-    saveProject,
-    saveSiteSettings,
-    saveUser,
-    savingBlog,
-    savingEvent,
-    savingProject,
-    savingSettings,
-    savingUser,
-    searchQuery,
-    selectedCertificateEvent,
-    selectedEvent,
-    selectedRegistration,
-    selectedTab,
-    setAdminProfile,
-    setAdminStatus,
-    setAuditLogs,
-    setBlogForm,
-    setBlogPosts,
-    setCertificateForm,
-    setCertificateModal,
-    setCertificateRevoked,
-    setCertificateStatus,
-    setContactMessages,
-    setEditingBlogId,
-    setEditingCertificateId,
-    setEditingItem,
-    setEditingPartnerId,
-    setEditingProjectId,
-    setEventForm,
-    setEventProposals,
-    setEventRegistrations,
-    setEvents,
-    setGallerySubmissions,
-    setIsCertificateAdmin,
-    setIssuedCertificates,
-    setIssuingBulkCertificates,
-    setLearningMaterials,
-    setLogSearchQuery,
-    setNewContactItem,
-    setNewFAQ,
-    setNewSocialLink,
-    setNewTeamMember,
-    setOpenSettingsSections,
-    setPartnerForm,
-    setPartnerSubmissions,
-    setProfileOptions,
-    setProjectForm,
-    setProjects,
-    setResourceForm,
-    setReviewPreview,
-    setSavingBlog,
-    setSavingEvent,
-    setSavingProject,
-    setSavingSettings,
-    setSavingUser,
-    setSearchQuery,
-    setSelectedTab,
-    setSettingsStatus,
-    setShowBlogModal,
-    setShowEventModal,
-    setShowPartnerModal,
-    setShowProjectModal,
-    setShowUserModal,
-    setSiteSettings,
-    setUsers,
-    settingsStatus,
-    showBlogModal,
-    showEventModal,
-    showPartnerModal,
-    showProjectModal,
-    showUserModal,
-    signatureData,
-    siteSettings,
-    slug,
-    statusLabel,
-    summary,
-    tabs,
-    tags,
-    technologies,
-    templateData,
-    thisMonth,
-    todayAuditCount,
-    toggleEventRegistration,
-    toggleUserRole,
-    uncheckedCertificateAttendees,
-    upcomingEventCount,
-    updateBlogStatus,
-    updateCertificateSignature,
-    updateContactItem,
-    updateContactMessageStatus,
-    updateEventStatus,
-    updateFAQ,
-    updateHomeFeature,
-    updateHomeSettings,
-    updateProfile,
-    updateProjectStatus,
-    updateProposalStatus,
-    updateSocialLink,
-    updateSubmissionStatus,
-    updateTeamMember,
-    uploadCertificateSignature,
-    uploadCertificateTemplate,
-    url,
-    users,
-    value,
-    visibleTabs,
-  } = ctx;
-  return (<>
-{activeTab === "certificates" && isFullAdmin && (
-        <div className="space-y-6">
-          <BrutalCard color="bg-white">
-            <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>
-              {editingCertificateId ? "Edit Certificate" : "Certificate Studio"}
-            </h2>
-            {!isCertificateAdmin ? (
-              <div className="border-2 border-[#171717] bg-[#FFE800] p-4">
-                <p className="text-sm font-bold">
-                  Only admins can issue certificates.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleIssueCertificate}>
-                <div className="mb-5 border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Step 1</p>
-                  <h3 className="font-bold uppercase tracking-widest text-sm">Select the event</h3>
-                  <p className="mt-1 text-xs font-mono text-slate-500">
-                    Certificates are issued from an event attendance list. Check-in must happen first, then the certificate can be sent.
-                  </p>
-                </div>
-                <BrutalSelect
-                  label="Certificate Event"
-                  value={certificateForm.eventId}
-                  onChange={(event: any) => applyCertificateEvent(event.target.value)}
-                  disabled={Boolean(editingCertificateId)}
-                  options={[
-                    { value: "", label: "Select event" },
-                    ...events.map((event) => ({
-                      value: event.id,
-                      label: event.title,
-                    })),
-                  ]}
-                />
-                {selectedCertificateEvent && (
-                  <div className="mb-5 grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <div className="border-2 border-[#171717] bg-white p-3">
-                      <p className="text-xl font-bold">{certificateEventRegistrations.length}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Registered</p>
-                    </div>
-                    <div className="border-2 border-[#171717] bg-[#DBEAFE] p-3">
-                      <p className="text-xl font-bold">{certificateEventAttendees.length}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Checked In</p>
-                    </div>
-                    <div className="border-2 border-[#171717] bg-[#DCFCE7] p-3">
-                      <p className="text-xl font-bold">{eligibleCertificateAttendees.length}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Ready</p>
-                    </div>
-                    <div className="border-2 border-[#171717] bg-[#FFE800] p-3">
-                      <p className="text-xl font-bold">{alreadyIssuedCertificateAttendees.length}</p>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Issued</p>
-                    </div>
-                  </div>
-                )}
-                <div className="mb-6 border-4 border-[#171717] bg-[#171717] text-white brutal-shadow-lg">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b-4 border-[#171717] bg-[#2563EB] p-4">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Certificate Draft Editor</p>
-                      <h3 className="text-2xl uppercase leading-none" style={fonts.display}>Design the certificate before issuing</h3>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{certificateForm.templateStyle}</BrutalBadge>
-                      <BrutalBadge color="bg-white" text="text-[#171717]">Live Preview</BrutalBadge>
-                    </div>
-                  </div>
+type CertificateRow = {
+  id: string;
+  certificate_id: string;
+  recipient_name: string;
+  recipient_email: string;
+  certificate_type: string;
+  event_id?: string | null;
+  event_name: string;
+  issued_at: string;
+  created_at: string;
+};
 
-                  <div className="grid 2xl:grid-cols-[520px_1fr] gap-0 bg-white text-[#171717]">
-                    <div className="border-b-4 2xl:border-b-0 2xl:border-r-4 border-[#171717] p-4 md:p-5 space-y-5">
-                      <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                        <div className="mb-4 flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Content</p>
-                            <h4 className="font-bold uppercase tracking-widest text-sm">Text printed on certificate</h4>
-                          </div>
-                          <FileText size={18} className="text-[#2563EB]" />
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3">
-                          <BrutalInput
-                            label="Printed Recipient Name"
-                            value={certificateForm.recipientNameSnapshot}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, recipientNameSnapshot: event.target.value })}
-                            placeholder="Name shown on certificate"
-                            required
-                          />
-                          <BrutalInput
-                            label="Printed Event Name"
-                            value={certificateForm.eventTitleSnapshot}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, eventTitleSnapshot: event.target.value })}
-                            placeholder="Event shown on certificate"
-                            required
-                          />
-                        </div>
-                        <BrutalInput
-                          label="Certificate Title"
-                          value={certificateForm.title}
-                          onChange={(event: any) => setCertificateForm({ ...certificateForm, title: event.target.value })}
-                          placeholder="Certificate of Participation"
-                          required
-                        />
-                        <BrutalTextarea
-                          label="Certificate Description"
-                          value={certificateForm.description}
-                          onChange={(event: any) => setCertificateForm({ ...certificateForm, description: event.target.value })}
-                          placeholder="For actively participating in this program..."
-                          rows={5}
-                        />
-                      </div>
+type CsvRow = {
+  required_email: string;
+  required_name: string;
+  required_certificate_id: string;
+};
 
-                      <div className="border-2 border-[#171717] bg-white p-4">
-                        <div className="mb-4 flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Design</p>
-                            <h4 className="font-bold uppercase tracking-widest text-sm">Template and metadata</h4>
-                          </div>
-                          <Settings size={18} className="text-[#7C3AED]" />
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-3">
-                          <BrutalSelect
-                            label="Type"
-                            value={certificateForm.certificateType}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateType: event.target.value })}
-                            options={[
-                              { value: "Workshop", label: "Workshop" },
-                              { value: "Competition", label: "Competition" },
-                              { value: "Course", label: "Course" },
-                              { value: "Participation", label: "Participation" },
-                            ]}
-                          />
-                          <BrutalSelect
-                            label="Template"
-                            value={certificateForm.templateStyle}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, templateStyle: event.target.value })}
-                            options={certificateTemplateOptions.map((template) => ({
-                              value: template.value,
-                              label: template.label,
-                            }))}
-                          />
-                          <BrutalInput
-                            label="Issuer"
-                            value={certificateForm.issuerName}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, issuerName: event.target.value })}
-                            required
-                          />
-                          <BrutalInput
-                            label="Issued Date"
-                            type="date"
-                            value={certificateForm.issuedAt}
-                            onChange={(event: any) => setCertificateForm({ ...certificateForm, issuedAt: event.target.value })}
-                          />
-                        </div>
-                        <BrutalInput
-                          label="Optional External PDF Link"
-                          value={certificateForm.certificateUrl}
-                          onChange={(event: any) => setCertificateForm({ ...certificateForm, certificateUrl: event.target.value })}
-                          placeholder="https://..."
-                        />
-                        {certificateForm.templateStyle === "custom-image" && (
-                          <div className="mt-4 border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                            <div className="mb-3">
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Blank Template Overlay</p>
-                              <p className="mt-1 text-xs font-mono text-slate-600">
-                                Add a blank certificate image URL. The website writes the recipient name and details on top.
-                              </p>
-                            </div>
-                            <BrutalInput
-                              label="Blank Template Image URL"
-                              value={certificateForm.templateBackgroundUrl}
-                              onChange={(event: any) => setCertificateForm({ ...certificateForm, templateBackgroundUrl: event.target.value })}
-                              placeholder="https://.../blank-certificate.png"
-                            />
-                            <div className="mb-4">
-                              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                                Upload Blank Template
-                              </label>
-                              <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp"
-                                onChange={(event) => uploadCertificateTemplate(event.target.files?.[0])}
-                                className="w-full border-2 border-[#171717] bg-white p-2 font-mono text-xs"
-                              />
-                              {certificateForm.templateBackgroundUrl && (
-                                <img loading="lazy"
-                                  src={certificateForm.templateBackgroundUrl}
-                                  alt="Certificate template preview"
-                                  className="mt-3 aspect-[1.414/1] w-full max-w-lg border-2 border-[#171717] bg-white object-cover"
-                                />
-                              )}
-                            </div>
-                            <div className="grid md:grid-cols-3 gap-3">
-                              <BrutalInput
-                                label="Name X %"
-                                type="number"
-                                value={certificateForm.templateNameX}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameX: Number(event.target.value) })}
-                              />
-                              <BrutalInput
-                                label="Name Y %"
-                                type="number"
-                                value={certificateForm.templateNameY}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameY: Number(event.target.value) })}
-                              />
-                              <BrutalInput
-                                label="Name Size"
-                                type="number"
-                                value={certificateForm.templateNameSize}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameSize: Number(event.target.value) })}
-                              />
-                              <BrutalInput
-                                label="Detail Y %"
-                                type="number"
-                                value={certificateForm.templateDetailY}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateDetailY: Number(event.target.value) })}
-                              />
-                              <BrutalInput
-                                label="Name Color"
-                                type="color"
-                                value={certificateForm.templateNameColor}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateNameColor: event.target.value })}
-                              />
-                              <BrutalInput
-                                label="Detail Color"
-                                type="color"
-                                value={certificateForm.templateDetailColor}
-                                onChange={(event: any) => setCertificateForm({ ...certificateForm, templateDetailColor: event.target.value })}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
+type EventOption = {
+  id: string;
+  title: string;
+};
 
-                      <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
-                        <div className="mb-4 flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Signatures</p>
-                            <h4 className="font-bold uppercase tracking-widest text-sm">Add up to 3 signers</h4>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={addCertificateSignature}
-                            className="px-3 py-2 border-2 border-[#171717] bg-[#FFE800] font-bold uppercase tracking-widest text-[10px]"
-                          >
-                            Add Signer
-                          </button>
-                        </div>
-                        <div className="space-y-3">
-                          {certificateForm.signatures.map((signature, index) => (
-                            <div key={index} className="border-2 border-[#171717] bg-white p-3">
-                              <div className="mb-2 flex items-center justify-between gap-3">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Signer {index + 1}</p>
-                                <button
-                                  type="button"
-                                  onClick={() => removeCertificateSignature(index)}
-                                  className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase tracking-widest text-[10px]"
-                                  disabled={certificateForm.signatures.length === 1}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                              <div className="grid md:grid-cols-2 gap-2">
-                                <input
-                                  className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
-                                  value={signature.name}
-                                  onChange={(event) => updateCertificateSignature(index, "name", event.target.value)}
-                                  placeholder="Signer name"
-                                />
-                                <input
-                                  className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
-                                  value={signature.title}
-                                  onChange={(event) => updateCertificateSignature(index, "title", event.target.value)}
-                                  placeholder="Role / title"
-                                />
-                              </div>
-                              <div className="mt-3 grid md:grid-cols-[1fr_auto] gap-3 items-center">
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={(event) => uploadCertificateSignature(index, event.target.files?.[0])}
-                                  className="w-full border-2 border-[#171717] p-2 font-mono text-xs"
-                                />
-                                {signature.signature_image_url && (
-                                  <img loading="lazy" src={signature.signature_image_url} alt={`${signature.name} signature`} className="h-12 max-w-40 object-contain border-2 border-[#171717] bg-white p-1" />
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+const certificateTypes = [
+  "Certificate of Participation",
+  "Certificate of Completion",
+  "Certificate of Achievement",
+  "Certificate of Excellence",
+];
+const pageSize = 10;
 
-                    <div className="bg-[#F4EFEB] p-4 md:p-6">
-                      <div className="sticky top-28">
-                        <div className="mb-4 flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Final draft</p>
-                            <h4 className="font-bold uppercase tracking-widest text-sm">Preview before issue</h4>
-                          </div>
-                          <BrutalBadge color="bg-[#2563EB]">{certificateForm.certificateType}</BrutalBadge>
-                        </div>
-                        <div className="overflow-x-auto border-2 border-[#171717] bg-white p-3 brutal-shadow">
-                          <div className="min-w-[760px]">
-                            <CertificateRenderer certificate={certificatePreviewRecord} />
-                          </div>
-                        </div>
-                        {certificateForm.eventId && (
-                          <p className="mt-4 text-xs font-mono text-slate-500">
-                            Bulk issue will send this same draft to {eligibleCertificateAttendees.length} checked-in attendee{eligibleCertificateAttendees.length === 1 ? "" : "s"} who {eligibleCertificateAttendees.length === 1 ? "does" : "do"} not already have one.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+function parseCsvLine(line: string) {
+  const cells: string[] = [];
+  let value = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+    if (char === '"' && quoted && next === '"') {
+      value += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === "," && !quoted) {
+      cells.push(value.trim());
+      value = "";
+    } else {
+      value += char;
+    }
+  }
+  cells.push(value.trim());
+  return cells;
+}
 
-                {selectedCertificateEvent && (
-                  <div className="mb-5 border-2 border-[#171717] bg-white p-4">
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Issuing Queue</p>
-                        <h3 className="font-bold uppercase tracking-widest text-sm">{selectedCertificateEvent.title}</h3>
-                      </div>
-                      <BrutalBadge color="bg-[#DCFCE7]">{eligibleCertificateAttendees.length} ready</BrutalBadge>
-                    </div>
-                    {certificateEventRegistrations.length === 0 ? (
-                      <p className="text-xs font-mono text-slate-500">No registrations found for this event yet.</p>
-                    ) : (
-                      <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
-                        {certificateEventRegistrations.map((registration) => {
-                          const profile = Array.isArray(registration.profiles) ? registration.profiles[0] : registration.profiles;
-                          const isCheckedIn = registration.status === "checked_in" || registration.checked_in_at;
-                          const isIssued = registration.user_id && issuedRecipientIdsForEvent.has(registration.user_id);
-                          const statusColor = isIssued ? "bg-[#FFE800]" : isCheckedIn ? "bg-[#DCFCE7]" : "bg-slate-200";
-                          const statusText = isIssued ? "Issued" : isCheckedIn ? "Ready" : "Not checked in";
-                          return (
-                            <div key={registration.id || registration.user_id} className="flex items-center justify-between gap-3 border-2 border-[#171717] p-2">
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold uppercase truncate">{profile?.full_name || profile?.email || "Member"}</p>
-                                <p className="text-[10px] font-mono text-slate-500 truncate">{profile?.email || registration.user_id}</p>
-                              </div>
-                              <BrutalBadge color={statusColor} text="text-[#171717]">{statusText}</BrutalBadge>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {uncheckedCertificateAttendees.length > 0 && (
-                      <p className="mt-3 text-[10px] font-mono text-slate-500">
-                        {uncheckedCertificateAttendees.length} registered attendee{uncheckedCertificateAttendees.length === 1 ? "" : "s"} still need check-in before certificate issuing.
-                      </p>
-                    )}
-                  </div>
-                )}
-                {certificateStatus && (
-                  <p className="mb-4 text-xs font-bold text-[#2563EB]">{certificateStatus}</p>
-                )}
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <BrutalButton
-                    type="submit"
-                    color="bg-[#2563EB]"
-                    text="text-white"
-                    className="w-full text-xs"
-                    disabled={
-                      !certificateForm.eventId ||
-                      (!editingCertificateId && (!certificateForm.recipientId || !isSelectedRecipientCheckedIn || isSelectedRecipientAlreadyIssued))
-                    }
-                >
-                    <Award size={16} className="inline mr-2" /> {editingCertificateId ? "Save Certificate" : "Issue Single"}
-                  </BrutalButton>
-                  <BrutalButton
+function parseCsv(text: string) {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim());
+  if (lines.length === 0) return { headers: [] as string[], rows: [] as CsvRow[] };
+  const headers = parseCsvLine(lines[0]).map((header) => header.trim());
+  const headerMap = new Map(headers.map((header, index) => [header, index]));
+  const rows = lines.slice(1).map((line) => {
+    const cells = parseCsvLine(line);
+    return {
+      required_email: cells[headerMap.get("required_email") ?? -1] || "",
+      required_name: cells[headerMap.get("required_name") ?? -1] || "",
+      required_certificate_id: cells[headerMap.get("required_certificate_id") ?? -1] || "",
+    };
+  }).filter((row) => row.required_email || row.required_name || row.required_certificate_id);
+  return { headers, rows };
+}
+
+function downloadCsv(filename: string, rows: string[][]) {
+  const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadText(filename: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function relativeTime(value?: string) {
+  if (!value) return "Never";
+  const diff = Date.now() - new Date(value).getTime();
+  const days = Math.floor(diff / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "1 day ago";
+  return `${days} days ago`;
+}
+
+export function CertificatesTab() {
+  const [certificates, setCertificates] = useState<CertificateRow[]>([]);
+  const [events, setEvents] = useState<EventOption[]>([]);
+  const [eventQuery, setEventQuery] = useState("");
+  const [eventId, setEventId] = useState<string | null>(null);
+  const [eventName, setEventName] = useState("");
+  const [certificateType, setCertificateType] = useState(certificateTypes[0]);
+  const [issuedAt, setIssuedAt] = useState(new Date().toISOString().slice(0, 10));
+  const [csvRows, setCsvRows] = useState<CsvRow[]>([]);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvError, setCsvError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [editRow, setEditRow] = useState<CertificateRow | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const loadCertificates = async () => {
+    setLoading(true);
+    try {
+      setCertificates(await apiGet<CertificateRow[]>("/api/admin/certificates", { auth: true }));
+    } catch (error) {
+      toast.error(userFriendlyErrorMessage(error, "Could not load certificates."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadEvents = async () => {
+    if (events.length) return;
+    try {
+      const rows = await apiGet<EventOption[]>("/api/admin/resources/events", { auth: true });
+      setEvents(rows);
+    } catch {
+      setEvents([]);
+    }
+  };
+
+  useEffect(() => {
+    loadCertificates();
+    loadEvents();
+  }, []);
+
+  const matchingEvents = events
+    .filter((event) => event.title.toLowerCase().startsWith(eventQuery.trim().toLowerCase()))
+    .slice(0, 8);
+
+  const validHeaders = ["required_email", "required_name", "required_certificate_id"];
+  const headersOk = validHeaders.every((header) => csvHeaders.includes(header));
+  const canImport = headersOk && csvRows.length > 0 && eventName.trim() && certificateType.trim();
+  const importBlocker = !headersOk
+    ? "Upload a CSV with the required headers first."
+    : csvRows.length === 0
+      ? "Upload a CSV with at least one certificate row."
+      : !eventName.trim()
+        ? "Choose or type an event name."
+        : !certificateType.trim()
+          ? "Enter a certificate type."
+          : "";
+
+  const stats = useMemo(() => {
+    const eventCount = new Set(certificates.map((row) => row.event_name).filter(Boolean)).size;
+    const lastImported = certificates
+      .map((row) => row.created_at)
+      .filter(Boolean)
+      .sort()
+      .at(-1);
+    return { eventCount, lastImported };
+  }, [certificates]);
+
+  const filteredCertificates = certificates.filter((row) => {
+    const haystack = `${row.certificate_id} ${row.recipient_name} ${row.recipient_email}`.toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
+  const pageCount = Math.max(1, Math.ceil(filteredCertificates.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const visibleCertificates = filteredCertificates.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const groupedCertificates = visibleCertificates.reduce<Record<string, CertificateRow[]>>((groups, row) => {
+    const key = row.event_name || "Unassigned";
+    groups[key] = [...(groups[key] || []), row];
+    return groups;
+  }, {});
+
+  const handleFile = async (file?: File) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      setCsvError("Upload a .csv file.");
+      return;
+    }
+    const parsed = parseCsv(await file.text());
+    setCsvHeaders(parsed.headers);
+    setCsvRows(parsed.rows);
+    if (!validHeaders.every((header) => parsed.headers.includes(header))) {
+      setCsvError(`Invalid columns. Expected: ${validHeaders.join(", ")}. Found: ${parsed.headers.join(", ") || "none"}`);
+    } else {
+      setCsvError("");
+    }
+  };
+
+  const importCertificates = async () => {
+    if (!canImport) return;
+    setImporting(true);
+    try {
+      const result = await apiPost<{ upserted: number; event_name: string }>(
+        "/api/admin/certificates/import",
+        {
+          rows: csvRows,
+          event_id: eventId,
+          event_name: eventName,
+          certificate_type: certificateType,
+          issued_at: issuedAt,
+        },
+        { auth: true }
+      );
+      toast.success(`Imported ${result.upserted} certificates for ${result.event_name}`);
+      setCsvRows([]);
+      setCsvHeaders([]);
+      setCsvError("");
+      await loadCertificates();
+    } catch (error) {
+      toast.error(userFriendlyErrorMessage(error, "Could not import certificates."));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editRow) return;
+    setSavingEdit(true);
+    try {
+      await apiPatch(`/api/admin/certificates/${editRow.id}`, {
+        data: {
+          recipient_name: editRow.recipient_name,
+          recipient_email: editRow.recipient_email,
+          certificate_type: editRow.certificate_type,
+          event_name: editRow.event_name,
+          issued_at: editRow.issued_at,
+        },
+      }, { auth: true });
+      toast.success("Certificate updated.");
+      setEditRow(null);
+      await loadCertificates();
+    } catch (error) {
+      toast.error(userFriendlyErrorMessage(error, "Could not update certificate."));
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const deleteCertificate = async (row: CertificateRow) => {
+    if (!window.confirm(`Delete certificate ${row.certificate_id} for ${row.recipient_name}?`)) return;
+    setDeletingId(row.id);
+    try {
+      await apiDelete(`/api/admin/certificates/${row.id}`, { auth: true });
+      toast.success("Certificate deleted.");
+      await loadCertificates();
+    } catch (error) {
+      toast.error(userFriendlyErrorMessage(error, "Could not delete certificate."));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-3 gap-4">
+        <BrutalCard>
+          <p className="text-4xl font-bold">{certificates.length}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Total certificates issued</p>
+        </BrutalCard>
+        <BrutalCard>
+          <p className="text-4xl font-bold">{stats.eventCount}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Events with certificates</p>
+        </BrutalCard>
+        <BrutalCard>
+          <p className="text-4xl font-bold">{relativeTime(stats.lastImported)}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Last imported</p>
+        </BrutalCard>
+      </div>
+
+      <BrutalCard>
+        <h2 className="text-3xl uppercase mb-6" style={fonts.display}>Import Certificates from CSV</h2>
+        <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
+          <BrutalButton
+            type="button"
+            className="inline-flex w-fit items-center gap-2 whitespace-nowrap px-3 py-2 text-xs"
+            onClick={() => downloadText(
+              "dsc-certificates-template.csv",
+              "required_email,required_name,required_certificate_id\nstudent@example.com,Full Name Here,DSC-2026-001\n"
+            )}
+          >
+            <Download size={16} /> Download CSV Template
+          </BrutalButton>
+          <div className="border-2 border-[#171717] bg-[#F4EFEB] p-3 font-mono text-xs">
+            Required headers: <b>required_email</b>, <b>required_name</b>, <b>required_certificate_id</b>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-4">
+          <div className="relative">
+            <BrutalInput
+              label="Event"
+              value={eventQuery}
+              onChange={(event: any) => {
+                setEventQuery(event.target.value);
+                setEventName(event.target.value);
+                setEventId(null);
+              }}
+              placeholder="Search or type event name"
+            />
+            {eventQuery && matchingEvents.length > 0 && (
+              <div className="absolute z-20 -mt-3 w-full border-2 border-[#171717] bg-white brutal-shadow max-h-64 overflow-y-auto">
+                {matchingEvents.map((event) => (
+                  <button
+                    key={event.id}
                     type="button"
-                    color="bg-[#FFE800]"
-                    className="w-full text-xs"
-                    onClick={issueEventCertificates}
-                    disabled={Boolean(editingCertificateId) || issuingBulkCertificates || !certificateForm.eventId || eligibleCertificateAttendees.length === 0}
+                    onClick={() => {
+                      setEventId(event.id);
+                      setEventName(event.title);
+                      setEventQuery(event.title);
+                    }}
+                    className="block w-full border-b-2 border-[#171717] px-3 py-2 text-left text-xs font-bold uppercase hover:bg-[#FFE800]"
                   >
-                    <Users size={16} className="inline mr-2" /> {issuingBulkCertificates ? "Issuing..." : "Issue Checked-In"}
-                  </BrutalButton>
+                    {event.title}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <BrutalInput
+              label="Certificate Type"
+              list="certificate-type-options"
+              value={certificateType}
+              onChange={(event: any) => setCertificateType(event.target.value)}
+            />
+            <datalist id="certificate-type-options">
+              {certificateTypes.map((type) => <option key={type} value={type} />)}
+            </datalist>
+          </div>
+          <BrutalInput
+            label="Issued Date"
+            type="date"
+            value={issuedAt}
+            onChange={(event: any) => setIssuedAt(event.target.value)}
+          />
+        </div>
+
+        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-[#171717] bg-[#F4EFEB] p-8 text-center brutal-shadow-hover">
+          <FileUp size={32} className="text-[#2563EB]" />
+          <span className="font-bold uppercase tracking-widest">Upload CSV</span>
+          <span className="font-mono text-xs text-slate-500">Click here and select a .csv file</span>
+          <input type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => handleFile(event.target.files?.[0])} />
+        </label>
+
+        {csvHeaders.length > 0 && (
+          <div className="mt-5">
+            {csvError ? (
+              <div className="border-2 border-[#171717] bg-[#FB7185] p-3 text-sm font-bold text-white">{csvError}</div>
+            ) : (
+              <div className="flex items-center gap-2 border-2 border-[#171717] bg-[#DCFCE7] p-3 text-sm font-bold">
+                <CheckCircle2 size={18} /> Columns look good
+              </div>
+            )}
+            <p className="mt-3 font-mono text-sm">{csvRows.length} certificates ready to import</p>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[680px] border-2 border-[#171717] text-sm">
+                <thead className="bg-[#171717] text-white">
+                  <tr>
+                    <th className="p-2 text-left">Name</th>
+                    <th className="p-2 text-left">Email</th>
+                    <th className="p-2 text-left">Cert ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {csvRows.slice(0, 5).map((row, index) => (
+                    <tr key={`${row.required_certificate_id}-${index}`} className="border-t-2 border-[#171717]">
+                      <td className="p-2">{row.required_name}</td>
+                      <td className="p-2">{row.required_email}</td>
+                      <td className="p-2 font-mono">{row.required_certificate_id}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {importBlocker && (
+          <p className="mt-4 border-2 border-[#171717] bg-[#FFE800] p-3 text-xs font-bold uppercase tracking-widest">
+            {importBlocker}
+          </p>
+        )}
+        <BrutalButton
+          type="button"
+          className={`mt-5 w-full ${!canImport || importing ? "cursor-not-allowed opacity-50 brutal-shadow-none hover:translate-x-0 hover:translate-y-0" : ""}`}
+          color="bg-[#2563EB]"
+          text="text-white"
+          onClick={importCertificates}
+          disabled={!canImport || importing}
+        >
+          {importing ? "Importing..." : `Import ${csvRows.length} Certificates`}
+        </BrutalButton>
+      </BrutalCard>
+
+      <BrutalCard>
+        <div className="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <h2 className="text-3xl uppercase" style={fonts.display}>Certificate List</h2>
+          <BrutalButton type="button" onClick={() => downloadCsv("dsc-certificates.csv", [
+            ["certificate_id", "recipient_name", "recipient_email", "certificate_type", "event_name", "issued_at"],
+            ...certificates.map((row) => [row.certificate_id, row.recipient_name, row.recipient_email, row.certificate_type, row.event_name, row.issued_at]),
+          ])}>
+            Export All as CSV
+          </BrutalButton>
+        </div>
+        <BrutalInput
+          label="Search"
+          value={search}
+          onChange={(event: any) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
+          placeholder="Search by name, email, or certificate ID"
+        />
+        {loading ? (
+          <p className="font-mono text-sm text-slate-500">Loading certificates...</p>
+        ) : certificates.length === 0 ? (
+          <div className="border-2 border-dashed border-[#171717] p-8 text-center">
+            <p className="font-bold uppercase tracking-widest text-sm">No certificates imported yet</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(groupedCertificates).map(([group, rows]) => (
+              <div key={group}>
+                <div className="mb-2 flex items-center gap-2">
+                  <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{group}</BrutalBadge>
+                  <span className="font-mono text-xs text-slate-500">{rows.length} certificate{rows.length === 1 ? "" : "s"}</span>
                 </div>
-                {editingCertificateId && (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[980px] border-2 border-[#171717] text-sm">
+                    <thead className="bg-[#171717] text-white">
+                      <tr>
+                        {["Certificate ID", "Recipient Name", "Email", "Type", "Event", "Issued Date", "Actions"].map((heading) => (
+                          <th key={heading} className="p-2 text-left">{heading}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row) => (
+                        <tr key={row.id} className="border-t-2 border-[#171717]">
+                          <td className="p-2 font-mono">{row.certificate_id}</td>
+                          <td className="p-2">{row.recipient_name}</td>
+                          <td className="p-2">{row.recipient_email}</td>
+                          <td className="p-2">{row.certificate_type}</td>
+                          <td className="p-2">{row.event_name}</td>
+                          <td className="p-2">{row.issued_at ? new Date(row.issued_at).toLocaleDateString() : ""}</td>
+                          <td className="p-2">
+                            <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              aria-label="Edit certificate"
+                              title="Edit certificate"
+                              onClick={() => setEditRow({ ...row, issued_at: row.issued_at?.slice(0, 10) || "" })}
+                              className="inline-flex size-8 items-center justify-center border-2 border-[#171717] bg-white hover:bg-[#FFE800]"
+                            >
+                              <Edit size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="Delete certificate"
+                              title="Delete certificate"
+                              onClick={() => deleteCertificate(row)}
+                              disabled={deletingId === row.id}
+                              className="inline-flex size-8 items-center justify-center border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+            {pageCount > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                <span className="font-mono text-xs">
+                  Page {currentPage} of {pageCount} - showing {visibleCertificates.length} of {filteredCertificates.length}
+                </span>
+                <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={resetCertificateForm}
-                    className="mt-3 w-full px-4 py-3 border-2 border-[#171717] bg-white font-bold uppercase tracking-widest text-xs"
+                    onClick={() => setPage((value) => Math.max(1, value - 1))}
+                    disabled={currentPage === 1}
+                    className="border-2 border-[#171717] bg-white px-3 py-1 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Cancel Edit
+                    Prev
                   </button>
-                )}
-              </form>
+                  <button
+                    type="button"
+                    onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                    disabled={currentPage === pageCount}
+                    className="border-2 border-[#171717] bg-white px-3 py-1 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             )}
-          </BrutalCard>
+          </div>
+        )}
+      </BrutalCard>
 
-          <BrutalCard color="bg-white">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
-              <div>
-                <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Credential Registry</h2>
-                <p className="text-xs font-mono text-slate-500 mt-1">
-                  {activeCredentialCount} active - {revokedCredentialCount} revoked
-                </p>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <BrutalBadge color="bg-[#2563EB]">{issuedCertificates.length} total</BrutalBadge>
-                <BrutalBadge color="bg-green-500">{activeCredentialCount} active</BrutalBadge>
-              </div>
+      {editRow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <BrutalCard className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h2 className="text-3xl uppercase" style={fonts.display}>Edit Certificate</h2>
+              <button type="button" onClick={() => setEditRow(null)} className="border-2 border-[#171717] bg-white p-2">
+                <X size={18} />
+              </button>
             </div>
-            {certificateStatus && (
-              <div className="mb-4 border-2 border-[#171717] bg-[#FFE800] p-3 text-xs font-bold uppercase tracking-widest">
-                {certificateStatus}
-              </div>
-            )}
-            {issuedCertificates.length === 0 ? (
-              <div className="border-2 border-dashed border-[#171717] p-8 text-center">
-                <Award size={32} className="mx-auto mb-3 text-[#2563EB]" />
-                <p className="font-bold uppercase tracking-widest text-sm">No certificates issued yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {issuedCertificates.map((certificate) => {
-                  const recipient = Array.isArray(certificate.profiles) ? certificate.profiles[0] : certificate.profiles;
-                  const isRevoked = Boolean(certificate.status === "revoked" || certificate.status === "archived");
-                  const verifyUrl = certificate.verification_code ? `${window.location.origin}/verify/${certificate.verification_code}` : "";
-                  return (
-                    <div key={certificate.id} className={`border-2 border-[#171717] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 ${isRevoked ? "bg-slate-100 opacity-80" : "bg-white"}`}>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="font-bold uppercase">{certificate.certificate_title || certificate.title}</h3>
-                          <BrutalBadge color={isRevoked ? "bg-slate-500" : "bg-green-500"}>
-                            {isRevoked ? "Revoked" : "Verified"}
-                          </BrutalBadge>
-                        </div>
-                        <p className="text-xs font-mono text-slate-500">
-                          Recipient: {certificate.recipient_name_snapshot || recipient?.full_name || recipient?.email || "Member"} - issued {certificate.issued_date || certificate.issued_at || "date pending"}
-                        </p>
-                        <p className="text-xs font-mono text-slate-500">
-                          Issuer: {certificate.issuer_name || "Data Science Club"} - Created: {certificate.created_at ? new Date(certificate.created_at).toLocaleString() : "unknown"}
-                        </p>
-                        {certificate.events && (
-                          <p className="text-xs font-mono text-slate-500">
-                            Event: {certificate.event_title_snapshot || (Array.isArray(certificate.events) ? certificate.events[0]?.title : certificate.events.title)}
-                          </p>
-                        )}
-                        <p className="text-xs font-mono text-slate-500">
-                          Verify code: {certificate.verification_code || "Pending migration"}
-                        </p>
-                        {verifyUrl && <p className="text-xs font-mono text-slate-500 break-all">Verify URL: {verifyUrl}</p>}
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <BrutalBadge color="bg-[#7C3AED]">{certificate.certificate_type}</BrutalBadge>
-                        <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{certificate.template || certificate.template_style || "legacy"}</BrutalBadge>
-                        <button
-                          type="button"
-                          onClick={() => setCertificateModal(certificate)}
-                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
-                        >
-                          View
-                        </button>
-                        {certificate.verification_code && (
-                          <button
-                            type="button"
-                            onClick={() => copyCertificateLink(certificate)}
-                            className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
-                          >
-                            Copy Link
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => editCertificate(certificate)}
-                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCertificateRevoked(certificate, !isRevoked)}
-                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#7C3AED] hover:text-white transition-all font-bold uppercase text-xs"
-                        >
-                          {isRevoked ? "Restore" : "Revoke"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteCertificate(certificate.id)}
-                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs"
-                          disabled={!isRevoked}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <BrutalInput label="Recipient Name" value={editRow.recipient_name} onChange={(event: any) => setEditRow({ ...editRow, recipient_name: event.target.value })} />
+            <BrutalInput label="Recipient Email" value={editRow.recipient_email} onChange={(event: any) => setEditRow({ ...editRow, recipient_email: event.target.value })} />
+            <BrutalInput label="Certificate Type" value={editRow.certificate_type} onChange={(event: any) => setEditRow({ ...editRow, certificate_type: event.target.value })} />
+            <BrutalInput label="Event Name" value={editRow.event_name} onChange={(event: any) => setEditRow({ ...editRow, event_name: event.target.value })} />
+            <BrutalInput label="Issued Date" type="date" value={editRow.issued_at} onChange={(event: any) => setEditRow({ ...editRow, issued_at: event.target.value })} />
+            <BrutalButton type="button" color="bg-[#2563EB]" text="text-white" className="w-full" onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit ? "Saving..." : "Save Certificate"}
+            </BrutalButton>
           </BrutalCard>
         </div>
       )}
-  </>);
+    </div>
+  );
 }

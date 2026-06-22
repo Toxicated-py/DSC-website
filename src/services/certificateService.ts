@@ -10,13 +10,18 @@ import type {
 
 const normalizeCertificate = (row: any): Certificate => ({
   ...row,
-  certificate_title: row.certificate_title || row.title || "Certificate",
+  certificate_title: row.certificate_title || row.certificate_type || row.title || "Certificate",
   template: row.template || row.template_style || "modern",
   issued_date: row.issued_date || row.issued_at || row.created_at,
   external_pdf_url: row.external_pdf_url || row.certificate_url || null,
   signature_data: Array.isArray(row.signature_data) ? row.signature_data : [],
   template_data: row.template_data && typeof row.template_data === "object" ? row.template_data : {},
-  member_id: row.member_id || row.recipient_id,
+  member_id: row.member_id || row.recipient_id || row.recipient_email,
+  verification_code: row.verification_code || row.certificate_id,
+  event_title_snapshot: row.event_title_snapshot || row.event_name,
+  recipient_name_snapshot: row.recipient_name_snapshot || row.recipient_name,
+  issuer_name: row.issuer_name || "Data Science Club",
+  status: row.status || "valid",
 });
 
 const normalizePublicCertificate = (row: any): PublicCertificate => ({

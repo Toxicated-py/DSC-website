@@ -17,6 +17,7 @@ from .config import Settings, get_settings
 from .schemas import (
     ApiStatus,
     BlogPostCreate,
+    CertificateImportPayload,
     ContactMessageCreate,
     EventStaffUpdate,
     EventProposalCreate,
@@ -36,7 +37,7 @@ rate_limit_hits: dict[str, list[float]] = {}
 REGISTRATION_COLUMNS = "id,event_id,user_id,ticket_code,status,registered_at,checked_in_at"
 
 
-def check_public_post_rate_limit(request: Request, bucket: str) -> None:
+def check_public_post_rate_limit(request: Request, bucket: str, max_requests: int = RATE_LIMIT_MAX_REQUESTS) -> None:
     now = time.time()
     cutoff = now - RATE_LIMIT_WINDOW_SECONDS
 
@@ -55,7 +56,7 @@ def check_public_post_rate_limit(request: Request, bucket: str) -> None:
     key = f"{bucket}:{ip}"
     
     hits = [timestamp for timestamp in rate_limit_hits.get(key, []) if timestamp > cutoff]
-    if len(hits) >= RATE_LIMIT_MAX_REQUESTS:
+    if len(hits) >= max_requests:
         raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
     hits.append(now)
     rate_limit_hits[key] = hits
@@ -388,11 +389,25 @@ async def backfill_profiles_from_auth(client: SupabaseRestClient) -> None:
 
 
 def normalize_certificate(row: dict[str, Any]) -> dict[str, Any]:
+    row["certificate_title"] = row.get("certificate_type") or "Certificate"
+    row["issued_date"] = row.get("issued_at")
+    row["verification_code"] = row.get("certificate_id")
+    row["event_title_snapshot"] = row.get("event_name") or "Event"
+    row["recipient_name_snapshot"] = row.get("recipient_name") or "Participant"
+    row["issuer_name"] = "Data Science Club"
+    row["status"] = row.get("status") or "valid"
     if not isinstance(row.get("signature_data"), list):
         row["signature_data"] = []
     if not isinstance(row.get("template_data"), dict):
         row["template_data"] = {}
     return row
+
+
+def mask_email(email: str) -> str:
+    if "@" not in email:
+        return email
+    local, domain = email.split("@", 1)
+    return f"{local[:3] if len(local) > 3 else local}****@{domain}"
 
 
 async def optional_profile(
@@ -1086,24 +1101,137 @@ async def create_contact_message(
 async def verify_certificate(
     request: Request,
     code: str,
+    email: str = Query(min_length=3),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
-    check_public_post_rate_limit(request, "verify_cert")
+    check_public_post_rate_limit(request, "cert-verify", 10)
     client = get_privileged_supabase(settings)
     try:
-        row = await client.select(
-            "public_certificates",
-            filters={"verification_code": f"eq.{code}"},
-            single=True,
+        rows = await client.select(
+            "certificates",
+            filters={
+                "certificate_id": f"eq.{code.strip()}",
+                "recipient_email": f"eq.{email.strip().lower()}",
+            },
+            limit=1,
         )
     except SupabaseRestError as exc:
-        if exc.status_code == 406:
-            raise HTTPException(status_code=404, detail="Certificate not found.") from exc
         if exc.status_code in {401, 403}:
             raise HTTPException(status_code=503, detail="Certificate verification is temporarily unavailable. Please try again later.") from exc
         raise supabase_http_error(exc) from exc
 
+    if not rows:
+        raise HTTPException(status_code=404, detail="Certificate not found or email does not match.")
+    row = rows[0]
+    row["masked_email"] = mask_email(str(row.get("recipient_email") or ""))
+    row.pop("recipient_email", None)
     return row
+
+
+@app.get("/api/admin/certificates")
+async def admin_list_certificates(
+    profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
+) -> list[dict[str, Any]]:
+    if not (is_full_admin(profile) or is_organizer(profile)):
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
+    return await client.select("certificates", order="issued_at.desc")
+
+
+@app.post("/api/admin/certificates/import")
+async def admin_import_certificates(
+    payload: CertificateImportPayload,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    if not is_full_admin(profile):
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    event_name = payload.event_name.strip()
+    certificate_type = payload.certificate_type.strip()
+    if not event_name:
+        raise HTTPException(status_code=400, detail="Event name is required.")
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
+    issued_at = payload.issued_at or datetime.now(timezone.utc).isoformat()
+    certificates = []
+    for row in payload.rows:
+        certificate = {
+            "certificate_id": row.required_certificate_id.strip(),
+            "recipient_name": row.required_name.strip(),
+            "recipient_email": row.required_email.strip().lower(),
+            "certificate_type": certificate_type,
+            "event_id": payload.event_id or None,
+            "event_name": event_name,
+            "issued_at": issued_at,
+            "imported_by": profile["id"],
+        }
+        if not certificate["certificate_id"] or not certificate["recipient_name"] or not certificate["recipient_email"]:
+            continue
+        certificates.append(certificate)
+    rows = await client.upsert("certificates", certificates, on_conflict="certificate_id") if certificates else []
+    upserted = len(rows or [])
+    await write_audit_log(
+        client,
+        profile,
+        action="import",
+        resource="certificates",
+        summary=f"Imported {upserted} certificates for {event_name}",
+        metadata={"event_name": event_name, "certificate_type": certificate_type},
+    )
+    return {"upserted": upserted, "event_name": event_name, "certificate_type": certificate_type}
+
+
+@app.patch("/api/admin/certificates/{certificate_id_uuid}")
+async def admin_update_certificate(
+    certificate_id_uuid: str,
+    payload: GenericPayload,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    if not is_full_admin(profile):
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    allowed = {"recipient_name", "recipient_email", "certificate_type", "event_name", "issued_at"}
+    updates = {key: value for key, value in payload.data.items() if key in allowed}
+    if "recipient_email" in updates:
+        updates["recipient_email"] = str(updates["recipient_email"]).strip().lower()
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
+    rows = await client.update("certificates", updates, filters={"id": f"eq.{certificate_id_uuid}"})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Certificate not found.")
+    row = rows[0]
+    await write_audit_log(
+        client,
+        profile,
+        action="update",
+        resource="certificates",
+        resource_id=certificate_id_uuid,
+        summary=f"Updated certificate {row.get('certificate_id') or certificate_id_uuid}",
+    )
+    return row
+
+
+@app.delete("/api/admin/certificates/{certificate_id_uuid}")
+async def admin_delete_certificate(
+    certificate_id_uuid: str,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, str]:
+    if not is_full_admin(profile):
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
+    rows = await client.delete("certificates", filters={"id": f"eq.{certificate_id_uuid}"})
+    if not rows:
+        raise HTTPException(status_code=404, detail="Certificate not found.")
+    row = rows[0]
+    await write_audit_log(
+        client,
+        profile,
+        action="delete",
+        resource="certificates",
+        resource_id=certificate_id_uuid,
+        summary=f"Deleted certificate {row.get('certificate_id') or certificate_id_uuid}",
+    )
+    return {"message": "Deleted."}
 
 
 @app.get("/api/certificates/{certificate_id}")
@@ -1117,7 +1245,9 @@ async def get_certificate(
     if not row:
         raise HTTPException(status_code=404, detail="Certificate not found.")
     is_admin = profile.get("role") in {"admin", "president"} or "admin" in (profile.get("roles") or [])
-    if not is_admin and row.get("member_id") != profile["id"] and row.get("recipient_id") != profile["id"]:
+    profile_email = str(profile.get("email") or "").lower()
+    recipient_email = str(row.get("recipient_email") or "").lower()
+    if not is_admin and recipient_email != profile_email:
         raise HTTPException(status_code=403, detail="You do not have access to this certificate.")
     return normalize_certificate(row)
 
@@ -1172,7 +1302,7 @@ async def get_my_submissions(
     blog_posts = await client.select("blog_posts", filters={"author_id": f"eq.{user_id}"}, order="published_at.desc")
     proposals = await client.select("event_proposals", filters={"proposed_by": f"eq.{user_id}"}, order="submitted_at.desc")
     gallery = await client.select("gallery_submissions", filters={"submitted_by": f"eq.{user_id}"}, order="created_at.desc")
-    certificates = await client.select("certificates", filters={"member_id": f"eq.{user_id}"}, order="created_at.desc")
+    certificates = await client.select("certificates", filters={"recipient_email": f"eq.{str(profile.get('email') or '').lower()}"}, order="created_at.desc")
     return {
         "projects": projects,
         "blog_posts": blog_posts,
@@ -1190,15 +1320,9 @@ async def get_my_certificates(
     client = get_privileged_supabase(settings, profile.get("_auth_token"))
     rows = await client.select(
         "certificates",
-        filters={"member_id": f"eq.{profile['id']}"},
+        filters={"recipient_email": f"eq.{str(profile.get('email') or '').lower()}"},
         order="created_at.desc",
     )
-    if not rows:
-        rows = await client.select(
-            "certificates",
-            filters={"recipient_id": f"eq.{profile['id']}"},
-            order="created_at.desc",
-        )
     return [normalize_certificate(row) for row in rows]
 
 
