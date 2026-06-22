@@ -20,6 +20,7 @@ export function NewLoginPage() {
   const isSignup = location.pathname === "/register";
   const isResetPassword = location.pathname === "/reset-password";
   const [email, setEmail] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -28,6 +29,7 @@ export function NewLoginPage() {
   const [studentEmail, setStudentEmail] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [resetStatus, setResetStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -72,6 +74,7 @@ export function NewLoginPage() {
     e.preventDefault();
     setError("");
     setNotice("");
+    setResetStatus("");
     setIsSubmitting(true);
 
     try {
@@ -160,26 +163,28 @@ export function NewLoginPage() {
 
   const handlePasswordResetRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+    const targetEmail = (showForgotPassword && !isResetPassword ? resetEmail : email).trim();
     setError("");
     setNotice("");
+    setResetStatus("");
     setIsSubmitting(true);
 
     try {
       if (!isSupabaseConfigured || !supabase) {
-        setError("Password reset is temporarily unavailable.");
+        setResetStatus("Password reset is temporarily unavailable.");
         return;
       }
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
-        setError(userFriendlyErrorMessage(error, "Could not send reset email. Please try again."));
+        setResetStatus(userFriendlyErrorMessage(error, "Could not send reset email. Please try again."));
         return;
       }
 
-      setNotice("Password reset link sent. Check your email.");
+      setResetStatus("Password reset link sent. Check your email.");
     } finally {
       setIsSubmitting(false);
     }
@@ -506,12 +511,17 @@ export function NewLoginPage() {
               <p className="text-xs font-bold uppercase tracking-widest">Reset Password</p>
               <input
                 type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                value={resetEmail}
+                onChange={e => setResetEmail(e.target.value)}
                 placeholder="your.email@example.com"
                 className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 bg-white"
                 required
               />
+              {resetStatus && (
+                <p className={`text-xs font-bold ${resetStatus.toLowerCase().includes("sent") ? "text-[#2563EB]" : "text-[#FB7185]"}`}>
+                  {resetStatus}
+                </p>
+              )}
               <BrutalButton type="submit" color="bg-[#FFE800]" text="text-[#171717]" className="w-full disabled:opacity-50" disabled={isSubmitting}>
                 {isSubmitting ? "Sending..." : "Send Reset Link"}
               </BrutalButton>
