@@ -229,7 +229,7 @@ def is_full_admin(profile: dict[str, Any]) -> bool:
 
 
 def is_organizer(profile: dict[str, Any]) -> bool:
-    return bool(profile_roles(profile) & {"organizer", "event_manager"})
+    return is_event_manager(profile)
 
 
 def is_event_manager(profile: dict[str, Any]) -> bool:
@@ -306,7 +306,7 @@ async def require_resource_access(
     if is_full_admin(profile):
         return None
     if not is_organizer(profile):
-        raise HTTPException(status_code=403, detail="Admin or organizer access required.")
+        raise HTTPException(status_code=403, detail="Admin or event manager access required.")
     if resource in ADMIN_ONLY_RESOURCES:
         raise HTTPException(status_code=403, detail="This area is restricted to admins.")
 

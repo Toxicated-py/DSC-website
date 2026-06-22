@@ -349,9 +349,9 @@ export function UsersTab({ ctx }: { ctx: any }) {
             </BrutalCard>
             <BrutalCard color="bg-[#7C3AED]" className="text-white">
               <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>
-                {users.filter(u => u.role === "organizer").length}
+                {users.filter(u => u.role === "event_manager").length}
               </div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Organizers</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Event Managers</div>
             </BrutalCard>
             <BrutalCard color="bg-slate-400" className="text-white">
               <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>

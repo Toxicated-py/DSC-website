@@ -136,7 +136,7 @@ export function DashboardPage() {
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div>
             <div className="flex flex-wrap items-center gap-3 mb-5">
-              <BrutalBadge color="bg-[#2563EB]" text="text-white">Club Member</BrutalBadge>
+              <BrutalBadge color="bg-[#2563EB]" text="text-white">Member</BrutalBadge>
               {member.batchYear && <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Batch {member.batchYear}</BrutalBadge>}
               <span className="font-mono text-xs text-slate-400">Member since {member.memberSince}</span>
             </div>

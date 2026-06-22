@@ -46,7 +46,7 @@ export function BlogPage() {
           date: date ? new Date(date).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" }) : "",
           dateSort: date ? new Date(date).toISOString().slice(0, 10) : "",
           category: (post.tags?.[0] || "NEWS").toUpperCase(),
-          author: author?.full_name || author?.email || "Club Member",
+          author: author?.full_name || author?.email || "Member",
           readTime: `${Math.max(1, Math.ceil(words / 220))} min`,
           excerpt: post.summary || post.content?.slice(0, 180) || "Post details will be updated soon.",
           coverImageUrl: post.cover_image_url,

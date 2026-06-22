@@ -51,7 +51,7 @@ export function ProjectsPage() {
           slug: project.slug,
           title: project.title,
           tags: project.technologies?.length ? project.technologies : [project.category || "Project"],
-          author: "Club Member",
+          author: "Member",
           year: date ? new Date(date).getFullYear() : new Date().getFullYear(),
           imageUrl: project.thumbnail_url,
           color: style.color,

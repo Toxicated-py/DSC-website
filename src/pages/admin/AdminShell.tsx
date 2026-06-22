@@ -13,7 +13,7 @@ export function AdminAccessDenied({ navigate }: any) {
           Admin access required
         </h1>
         <p className="mt-4 text-slate-600">
-          Your account is logged in, but it does not have an admin, president, or organizer role yet.
+          Your account is logged in, but it does not have an admin, president, or event manager role yet.
         </p>
         <div className="mt-6 flex gap-3 flex-wrap">
           <button
@@ -39,10 +39,10 @@ export function AdminShellHeader({ isFullAdmin, navigate }: any) {
     <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div>
         <BrutalBadge color="bg-[#FB7185]" className="mb-4 inline-flex items-center gap-1">
-          <Shield size={10} /> {isFullAdmin ? "ADMIN ACCESS" : "ORGANIZER ACCESS"}
+          <Shield size={10} /> {isFullAdmin ? "ADMIN ACCESS" : "EVENT MANAGER ACCESS"}
         </BrutalBadge>
         <h1 className="text-4xl md:text-6xl lg:text-7xl uppercase leading-none" style={fonts.display}>
-          {isFullAdmin ? "Admin Panel" : "Organizer Panel"}
+          {isFullAdmin ? "Admin Panel" : "Event Manager Panel"}
         </h1>
         <p className="mt-4 font-mono text-xs md:text-sm text-slate-500">
           {isFullAdmin ? "Manage all aspects of your Data Science Club website" : "Manage your events, projects, blogs, and check-ins"}
