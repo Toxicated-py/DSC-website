@@ -170,7 +170,7 @@ export function NewLoginPage() {
               captchaToken: authCaptchaToken || undefined,
               data: {
                 full_name: name,
-                phone: phone.trim(),
+                phone: `+977${phone.trim()}`,
                 is_sms_student: isSmsStudent,
                 student_email: isSmsStudent ? studentEmail.trim().toLowerCase() : "",
               },
@@ -442,15 +442,22 @@ export function NewLoginPage() {
             )}
             {isSignup && (
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest mb-2">Phone Number</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  placeholder="+977 98XXXXXXXX"
-                  className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30 transition-all"
-                  required
-                />
+                <label className="block text-xs font-bold uppercase tracking-widest mb-2">Phone</label>
+                <div className="flex border-2 border-[#171717] focus-within:ring-4 focus-within:ring-[#FB7185]/30 transition-all">
+                  <span className="border-r-2 border-[#171717] bg-[#F4EFEB] px-3 py-3 font-mono text-sm text-slate-500">
+                    +977
+                  </span>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="98XXXXXXXX"
+                    className="min-w-0 flex-1 p-3 font-mono text-sm focus:outline-none"
+                    inputMode="numeric"
+                    pattern="[0-9]{10}"
+                    required
+                  />
+                </div>
               </div>
             )}
             <div>
