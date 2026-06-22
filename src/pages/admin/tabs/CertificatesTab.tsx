@@ -475,18 +475,22 @@ export function CertificatesTab() {
                             <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
+                              aria-label="Edit certificate"
+                              title="Edit certificate"
                               onClick={() => setEditRow({ ...row, issued_at: row.issued_at?.slice(0, 10) || "" })}
-                              className="border-2 border-[#171717] bg-white px-3 py-1 font-bold uppercase hover:bg-[#FFE800]"
+                              className="inline-flex size-8 items-center justify-center border-2 border-[#171717] bg-white hover:bg-[#FFE800]"
                             >
-                              <Edit size={14} className="inline mr-1" /> Edit
+                              <Edit size={15} />
                             </button>
                             <button
                               type="button"
+                              aria-label="Delete certificate"
+                              title="Delete certificate"
                               onClick={() => deleteCertificate(row)}
                               disabled={deletingId === row.id}
-                              className="border-2 border-[#171717] bg-[#FB7185] px-3 py-1 font-bold uppercase text-white hover:bg-[#F43F5E] disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex size-8 items-center justify-center border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              <Trash2 size={14} className="inline mr-1" /> {deletingId === row.id ? "Deleting" : "Delete"}
+                              <Trash2 size={15} />
                             </button>
                             </div>
                           </td>
