@@ -766,7 +766,12 @@ export function ComprehensiveAdminPanel() {
       setUsers(users.filter((row) => row.id !== user.id));
       setAdminStatus("Profile deleted. Auth user was not deleted.");
     } catch (error: any) {
-      setAdminStatus(error.message || "Could not delete profile.");
+      const message = String(error.message || "");
+      setAdminStatus(
+        message.toLowerCase().includes("foreign key")
+          ? "This profile has related events, tickets, projects, or certificates. Remove or reassign those records before deleting it."
+          : message || "Could not delete profile."
+      );
     }
   };
 

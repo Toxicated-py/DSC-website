@@ -13,7 +13,6 @@ const ContactPage = lazy(() => import("../pages/ContactPage").then((module) => (
 const ResourcesPage = lazy(() => import("../pages/ResourcesPage").then((module) => ({ default: module.ResourcesPage })));
 const GalleryPage = lazy(() => import("../pages/GalleryPage").then((module) => ({ default: module.GalleryPage })));
 const UserProfilePage = lazy(() => import("../pages/UserProfilePage").then((module) => ({ default: module.UserProfilePage })));
-const AchievementsPage = lazy(() => import("../pages/AchievementsPage").then((module) => ({ default: module.AchievementsPage })));
 const PartnersPage = lazy(() => import("../pages/PartnersPage").then((module) => ({ default: module.PartnersPage })));
 const ComprehensiveAdminPanel = lazy(() => import("../pages/AdminPage").then((module) => ({ default: module.ComprehensiveAdminPanel })));
 const EventsPage = lazy(() => import("../pages/EventsPage").then((module) => ({ default: module.EventsPage })));
@@ -55,7 +54,6 @@ function App() {
             ResourcesPage,
             GalleryPage,
             UserProfilePage,
-            AchievementsPage,
             PartnersPage,
             TicketPage,
             ScannerPage,

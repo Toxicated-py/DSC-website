@@ -1,7 +1,7 @@
 create extension if not exists "pgcrypto";
 create schema if not exists private;
 
-create type public.user_role as enum ('student', 'member', 'organizer', 'admin');
+create type public.user_role as enum ('student', 'member', 'teacher', 'event_manager', 'president', 'admin');
 create type public.review_status as enum ('draft', 'submitted', 'pending', 'approved', 'rejected', 'published', 'archived');
 create type public.event_type as enum ('WORKSHOP', 'SEMINAR', 'COMPETITION', 'COMMUNITY');
 
@@ -12,7 +12,7 @@ create table public.profiles (
   avatar_url text,
   phone text,
   batch_year int,
-  role public.user_role not null default 'student',
+  role public.user_role not null default 'member',
   roles text[] not null default array['member'],
   membership_status public.review_status not null default 'pending',
   is_sms_student boolean not null default false,
@@ -502,13 +502,6 @@ create policy "Staff can read own event staff row" on public.event_staff
     or lower(email) = lower((select email from auth.users where id = auth.uid()))
     or (select private.current_user_is_admin())
   );
-
-create policy "Event managers can read event staff" on public.event_staff
-  for select using (private.current_user_can_manage_event(event_id));
-
-create policy "Event managers can manage event staff" on public.event_staff
-  for all using (private.current_user_can_manage_event(event_id))
-  with check (private.current_user_can_manage_event(event_id));
 
 create policy "Public and owners can read projects" on public.projects
   for select using (status = 'published' or (select auth.uid()) = author_id);

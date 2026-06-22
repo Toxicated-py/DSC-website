@@ -1553,7 +1553,15 @@ async def admin_delete_resource(
     if not is_full_admin(profile) and resource not in {"events", "projects", "blog-posts", "gallery"}:
         raise HTTPException(status_code=403, detail="Only admins can delete this item.")
     table = table_for_resource(resource)
-    await user_client.delete(table, filters={"id": f"eq.{item_id}"})
+    try:
+        await user_client.delete(table, filters={"id": f"eq.{item_id}"})
+    except SupabaseRestError as exc:
+        if resource == "profiles" and "foreign key" in str(exc).lower():
+            raise HTTPException(
+                status_code=409,
+                detail="This profile has related events, tickets, projects, or certificates. Remove or reassign those records before deleting it.",
+            ) from exc
+        raise supabase_http_error(exc) from exc
     await write_audit_log(
         user_client,
         profile,
