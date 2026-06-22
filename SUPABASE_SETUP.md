@@ -34,17 +34,17 @@ Fill in:
 
 ```env
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 Find these in Supabase:
 
-Project Settings -> API -> Project URL and publishable key.
+Project Settings -> API -> Project URL and anon key.
 
 ## 4. Restart Dev Server
 
-```powershell
-& 'C:\Program Files\nodejs\node.exe' .\node_modules\vite\bin\vite.js --host 127.0.0.1 --port 5173
+```bash
+npm run dev
 ```
 
 ## Current Connected Forms
@@ -55,4 +55,4 @@ These forms now save to Supabase when env keys are configured:
 - `/projects/submit` -> `projects`
 - `/blog/write` -> `blog_posts`
 
-Without Supabase keys, they fall back to local browser storage for development.
+Without Supabase keys, authenticated submissions are disabled. Do not store student data in browser localStorage as a fallback.

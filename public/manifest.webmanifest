@@ -1,0 +1,21 @@
+{
+  "name": "Data Sarathi",
+  "short_name": "DSC",
+  "description": "Official website for the Data Science Club at SMS TU.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4EFEB",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/assets/dsc-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/dsc-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
