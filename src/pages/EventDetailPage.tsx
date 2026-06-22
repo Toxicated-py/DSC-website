@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { Database, Users, ArrowRight, ArrowLeft, Search, Camera, Check, Calendar, MapPin, Tag, QrCode, Trophy, TrendingUp, Bell, Zap, Target, Star, Award, Clock, BookOpen, Code, GitBranch, Home, Mail, UserCheck, GraduationCap, User, FileText } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Users, ArrowLeft, Check, Calendar, MapPin, QrCode } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
-import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
-import { getPersistenceLabel, publishBlogPost, submitEventProposal, submitProject } from "../lib/contentApi";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
+
+
+
+
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
-import { requireLoginForAction } from "../utils/authNavigation";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from "../components/ui/brutal";
 import { fonts } from "../config/fonts";
 
 const formatEventDate = (date: Date) =>
@@ -29,6 +30,17 @@ const eventTimeLabel = (startDate: Date, endDate?: Date | null) => {
   return "ended";
 };
 
+const googleFormEmbedUrl = (url?: string | null) => {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("embedded", "true");
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+};
+
 export function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -40,6 +52,8 @@ export function EventDetailPage() {
   const [managerStatus, setManagerStatus] = useState("");
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [reservingSpot, setReservingSpot] = useState(false);
+  const [showReserveChoice, setShowReserveChoice] = useState(false);
+  const [showGuestForm, setShowGuestForm] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -112,14 +126,23 @@ export function EventDetailPage() {
   const reserveSpot = async () => {
     if (reservingSpot) return;
     setReserveStatus("");
-    if (!(await requireLoginForAction(navigate, `/events/${id}`))) return;
-    if (!id) {
+    const eventApiId = eventInfo?.id || id;
+    if (!eventApiId) {
       setReserveStatus("Invalid event.");
       return;
     }
+
+    const user = isSupabaseConfigured && supabase
+      ? (await supabase.auth.getUser()).data.user
+      : null;
+    if (!user) {
+      setShowReserveChoice(true);
+      return;
+    }
+
     try {
       setReservingSpot(true);
-      const result = await apiPost<any>(`/api/events/${id}/reserve`, {}, { auth: true });
+      const result = await apiPost<any>(`/api/events/${eventApiId}/reserve`, {}, { auth: true });
       setMyRegistration(result.registration || null);
       if (result.message === "Already registered.") {
         setReserveStatus("You already reserved this event.");
@@ -175,6 +198,7 @@ export function EventDetailPage() {
   const registrationClosedByDeadline = Boolean(registrationDeadline && registrationDeadline.getTime() < Date.now());
   const registrationClosed = !displayEvent.registration_open || registrationClosedByDeadline;
   const isReserved = Boolean(myRegistration?.id);
+  const guestGoogleFormUrl = googleFormEmbedUrl(displayEvent.google_form_url);
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
@@ -218,14 +242,34 @@ export function EventDetailPage() {
                 <BrutalButton disabled className="w-full cursor-not-allowed opacity-80" color="bg-green-500" text="text-white">
                   <Check size={16} /> Reserved
                 </BrutalButton>
-                <BrutalButton onClick={() => navigate(`/ticket/${myRegistration.id}`, { state: { from: `/events/${id}` } })} className="w-full" color="bg-[#FFE800]" text="text-[#171717]">
-                  <QrCode size={16} /> View Ticket
-                </BrutalButton>
+                {myRegistration.user_id ? (
+                  <BrutalButton onClick={() => navigate(`/ticket/${myRegistration.id}`, { state: { from: `/events/${id}` } })} className="w-full" color="bg-[#FFE800]" text="text-[#171717]">
+                    <QrCode size={16} /> View Ticket
+                  </BrutalButton>
+                ) : (
+                  <div className="border-2 border-[#171717] bg-white p-4 text-center">
+                    {myRegistration.ticket_code && <QRCodeCanvas value={myRegistration.ticket_code} size={140} className="mx-auto mb-3" />}
+                    <p className="text-xs font-bold uppercase tracking-widest">Guest ticket code</p>
+                    <p className="break-all font-mono text-xs">{myRegistration.ticket_code}</p>
+                  </div>
+                )}
               </div>
             ) : (
-              <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white" disabled={registrationClosed || reservingSpot}>
-                {registrationClosed ? "Registration Closed" : reservingSpot ? "Reserving..." : "Reserve Spot"}
-              </BrutalButton>
+              <div className="space-y-4">
+                <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white" disabled={registrationClosed || reservingSpot}>
+                  {registrationClosed ? "Registration Closed" : reservingSpot ? "Reserving..." : "Reserve Spot"}
+                </BrutalButton>
+                {showReserveChoice && !registrationClosed && (
+                  <div className="grid gap-3">
+                    <BrutalButton onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/events/${id}`)}`)} className="w-full" color="bg-[#171717]" text="text-white">
+                      Login Now
+                    </BrutalButton>
+                    <BrutalButton onClick={() => setShowGuestForm((current) => !current)} className="w-full" color="bg-[#FFE800]" text="text-[#171717]">
+                      Direct Registration
+                    </BrutalButton>
+                  </div>
+                )}
+              </div>
             )}
             {canManageEvent && (
               <div className="mt-4 pt-4 border-t-2 border-[#171717] space-y-3">
@@ -237,6 +281,55 @@ export function EventDetailPage() {
           </BrutalCard>
         </div>
       </div>
+
+      {showGuestForm && !isReserved && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-6 pt-24 md:items-center md:py-12">
+          <div className="w-full max-w-4xl border-2 border-[#171717] bg-white p-5 brutal-shadow-lg md:p-7">
+            <div className="mb-6 flex flex-col gap-4 border-b-2 border-[#171717] pb-5 md:flex-row md:items-start md:justify-between">
+              <div>
+                <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Google Form</BrutalBadge>
+                <h2 className="mt-4 text-3xl uppercase md:text-5xl" style={fonts.display}>
+                  Guest Registration Form
+                </h2>
+                <p className="mt-2 max-w-xl text-sm font-mono text-slate-600">
+                  Fill the embedded Google Form below.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGuestForm(false)}
+                disabled={reservingSpot}
+                className="self-start border-2 border-[#171717] bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-slate-100 disabled:opacity-60"
+              >
+                Close
+              </button>
+            </div>
+
+            {guestGoogleFormUrl ? (
+              <div>
+                <iframe
+                  title="Guest registration form"
+                  src={guestGoogleFormUrl}
+                  className="h-[70vh] min-h-[520px] w-full border-2 border-[#171717]"
+                />
+                <a
+                  href={displayEvent.google_form_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex border-2 border-[#171717] bg-[#FFE800] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#171717]"
+                >
+                  Open Form In New Tab
+                </a>
+              </div>
+            ) : (
+              <div className="border-2 border-[#171717] bg-[#F4EFEB] p-5">
+                <p className="font-bold uppercase tracking-widest text-red-700">Sorry, Guest registration is not available for this event.</p>
+                <p className="mt-2 text-sm text-red-700">Login and register for the event.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {canManageEvent && (
         <BrutalCard color="bg-white" className="mt-10">
@@ -258,9 +351,12 @@ export function EventDetailPage() {
               <tbody>
                 {attendees.map((attendee) => {
                   const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles;
+                  const attendeeName = profile?.full_name || profile?.email || "Member";
                   return (
                     <tr key={attendee.id} className="border-b border-slate-200">
-                      <td className="p-3 font-bold">{profile?.full_name || profile?.email || "Member"}</td>
+                      <td className="p-3 font-bold">
+                        {attendeeName}
+                      </td>
                       <td className="p-3 font-mono text-xs">{attendee.ticket_code}</td>
                       <td className="p-3">{attendee.checked_in_at ? "Checked in" : attendee.status}</td>
                       <td className="p-3 text-right">

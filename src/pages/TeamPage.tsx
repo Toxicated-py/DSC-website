@@ -38,30 +38,30 @@ export function TeamPage() {
     const inverted = color.includes("7C3AED");
 
     return (
-      <BrutalCard key={member.id} color={color} className="flex h-full min-h-[420px] flex-col">
-        <div className="mb-4 aspect-[4/3] overflow-hidden border-2 border-[#171717] bg-slate-200">
+      <BrutalCard key={member.id} color={color} className="flex h-full min-h-[300px] w-full max-w-xs flex-col !p-3">
+        <div className="mb-3 aspect-square overflow-hidden border-2 border-[#171717] bg-slate-200">
           <img loading="lazy" src={member.image || DSC_LOGO_SRC} alt={member.name} className="h-full w-full object-cover" />
         </div>
-        <BrutalBadge color={inverted ? "bg-white" : "bg-[#2563EB]"} text={inverted ? "text-[#171717]" : "text-white"} className="mb-3 w-max">
+        <BrutalBadge color={inverted ? "bg-white" : "bg-[#2563EB]"} text={inverted ? "text-[#171717]" : "text-white"} className="mb-2 w-max text-xs">
           {member.position}
         </BrutalBadge>
-        <h3 className="mb-1 text-2xl font-bold uppercase leading-tight" style={fonts.display}>{member.name}</h3>
-        {member.meta && <p className={`mb-3 text-sm ${inverted ? "opacity-90" : "text-slate-600"}`}>{member.meta}</p>}
-        {member.bio && <p className={`mb-5 line-clamp-4 text-sm ${inverted ? "opacity-90" : "text-slate-700"}`}>{member.bio}</p>}
-        <div className="mt-auto flex gap-2 border-t-2 border-slate-200 pt-4">
+        <h3 className="mb-1 text-lg font-bold uppercase leading-tight" style={fonts.display}>{member.name}</h3>
+        {member.meta && <p className={`mb-2 text-sm ${inverted ? "opacity-90" : "text-slate-600"}`}>{member.meta}</p>}
+        {member.bio && <p className={`mb-3 line-clamp-2 text-sm ${inverted ? "opacity-90" : "text-slate-700"}`}>{member.bio}</p>}
+        <div className="mt-auto flex gap-2 border-t-2 border-slate-200 pt-3">
           {member.email && (
             <a href={`mailto:${member.email}`} className="border-2 border-[#171717] bg-[#FFE800] p-2 text-[#171717]" title="Email">
-              <Mail size={16} />
+              <Mail size={14} />
             </a>
           )}
         {member.linkedin && (
           <a href={profileUrl(member.linkedin, "linkedin")} target="_blank" rel="noopener noreferrer" className="border-2 border-[#171717] bg-[#2563EB] p-2 text-white" title="LinkedIn">
-            <ExternalLink size={16} />
+            <ExternalLink size={14} />
           </a>
         )}
         {member.github && (
           <a href={profileUrl(member.github, "github")} target="_blank" rel="noopener noreferrer" className="border-2 border-[#171717] bg-[#171717] p-2 text-white" title="GitHub">
-            <Github size={16} />
+            <Github size={14} />
           </a>
         )}
         {(member.profileLinks || []).map((link: any, index: number) => (
@@ -73,7 +73,7 @@ export function TeamPage() {
             className="border-2 border-[#171717] bg-white p-2 text-[#171717]"
             title={link.label || "Link"}
           >
-            <ExternalLink size={16} />
+            <ExternalLink size={14} />
           </a>
         ))}
       </div>
@@ -104,7 +104,7 @@ export function TeamPage() {
             <h2 className="text-3xl md:text-4xl uppercase mb-8" style={fonts.display}>
               {group.title}
             </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+            <div className="grid justify-items-start gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {members.map((member) => renderTeamMember(member, group.color))}
             </div>
           </section>

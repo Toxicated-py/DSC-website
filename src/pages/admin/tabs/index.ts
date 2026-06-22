@@ -7,7 +7,6 @@ export { BlogsTab } from './BlogsTab';
 export { GalleryTab } from './GalleryTab';
 export { PartnersTab } from './PartnersTab';
 export { ResourcesTab } from './ResourcesTab';
-export { CertificatesTab } from './CertificatesTab';
 export { ContentTab } from './ContentTab';
 export { ContactsTab } from './ContactsTab';
 export { SettingsTab } from './SettingsTab';

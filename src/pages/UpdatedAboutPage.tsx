@@ -13,8 +13,14 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Github, Linkedin, Mail } from "lucide-react";
 import { useSiteSettings } from "../lib/siteSettings";
-import { BrutalCard, BrutalBadge } from "../components/ui/brutal";
+import { BrutalCard } from "../components/ui/brutal";
 import { fonts } from "../config/fonts";
+
+const DiscordIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.12-.098.246-.198.372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+  </svg>
+);
 
 
 export function UpdatedAboutPage() {
@@ -23,6 +29,7 @@ export function UpdatedAboutPage() {
   const socialLinks = [
     { icon: <Github size={20} />, url: settings.socialLinks.github, label: "GitHub", color: "bg-[#171717]", textColor: "text-white" },
     { icon: <Linkedin size={20} />, url: settings.socialLinks.linkedin, label: "LinkedIn", color: "bg-[#2563EB]", textColor: "text-white" },
+    { icon: <DiscordIcon />, url: settings.socialLinks.discord || "#", label: "Discord", color: "bg-[#7C3AED]", textColor: "text-white" },
     { icon: <Mail size={20} />, url: `mailto:${settings.contactEmail}`, label: "Email", color: "bg-[#FFE800]", textColor: "text-[#171717]" },
   ].filter((social) => social.url && social.url !== "mailto:");
 
@@ -54,7 +61,7 @@ export function UpdatedAboutPage() {
         <BrutalCard color="bg-[#FFE800]">
           <h2 className="text-4xl md:text-5xl uppercase mb-4" style={fonts.display}>People Behind The Club</h2>
           <p className="mb-6 text-slate-700">
-            View the executive board, faculty advisors, and community members on the dedicated team page.
+            View the executive board, faculty advisors, and community members of the Data Science Club.
           </p>
           <Link
             to="/team"
@@ -71,15 +78,15 @@ export function UpdatedAboutPage() {
         <BrutalCard className="p-0 overflow-hidden">
           <div className="aspect-video bg-slate-200">
             <img loading="lazy"
-              src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=600&fit=crop"
-              alt="Data Science Club Team Photo"
-              className="w-full h-full object-cover"
+              src="/assets/logo reveal group.jpg"
+              alt="Data Science Club Team Photo at Logo reveal day"
+              className="w-full h-auto object-contain"
             />
           </div>
           <div className="p-6">
             <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>Our Amazing Team</h3>
             <p className="text-slate-600">
-              The incredible members of Data Science Club at our Annual Summit 2024. Together, we're building the future of data-driven innovation in Nepal.
+              The incredible members of Data Science Club at our Logo Revealing Ceremony - 30th May, 2026. Together, we're building the future of data-driven innovation in Nepal.
             </p>
           </div>
         </BrutalCard>

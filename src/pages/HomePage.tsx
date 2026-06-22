@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpen, Check, Code, Database, GitBranch, MapPin, Trophy, Users } from "lucide-react";
+import { ArrowRight, BookOpen, Code, GitBranch, MapPin, Trophy, Users } from "lucide-react";
 import { BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { apiGet } from "../lib/apiClient";
 import { defaultSiteSettings, loadSiteSettings } from "../lib/siteSettings";
@@ -104,24 +104,15 @@ export function HomePage() {
   return (
     <>
       <section className="relative overflow-hidden border-y-2 border-[#171717] bg-[#F4EFEB]">
-        <div className="pointer-events-none absolute left-0 top-0 h-[520px] w-[820px] max-w-[92vw] bg-[#E0DEF4]/80" style={{ clipPath: "polygon(0 0, 88% 0, 100% 76%, 0 58%)" }} />
-        <div className="pointer-events-none absolute left-0 top-0 h-[470px] w-[700px] max-w-[86vw] bg-white/60" style={{ clipPath: "polygon(0 0, 82% 0, 74% 100%, 0 80%)" }} />
+        <div className="pointer-events-none absolute left-0 top-0 h-[430px] w-[720px] max-w-[90vw] bg-[#E0DEF4]/80" style={{ clipPath: "polygon(0 0, 88% 0, 100% 76%, 0 58%)" }} />
+        <div className="pointer-events-none absolute left-0 top-0 h-[380px] w-[610px] max-w-[84vw] bg-white/60" style={{ clipPath: "polygon(0 0, 82% 0, 74% 100%, 0 80%)" }} />
 
-        <div className="relative mx-auto max-w-[1650px] px-5 py-10 sm:px-8 md:px-12 lg:px-20 lg:py-14">
-          <div className="mb-8 flex items-center gap-4">
-            <span className="inline-flex h-10 w-10 items-center justify-center border-2 border-[#171717] bg-[#2563EB] text-white">
-              <Database size={20} />
-            </span>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-500 sm:text-sm">
-              School of Mathematical Sciences - TU
-            </p>
-          </div>
-
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_430px] lg:items-start">
+        <div className="relative mx-auto max-w-[1450px] px-5 py-8 sm:px-8 md:px-12 lg:px-16 lg:py-12">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
             <div>
               <h1
-                className="relative max-w-[900px] text-7xl leading-[0.82] text-[#171717] sm:text-8xl md:text-[9rem] lg:text-[10rem] xl:text-[12rem]"
-                style={{ ...fonts.display, textShadow: "8px 8px 0 #2563EB, 16px 16px 0 #FB7185" }}
+                className="relative max-w-[760px] text-6xl leading-[0.84] text-[#171717] sm:text-7xl md:text-[7.5rem] lg:text-[8.5rem] xl:text-[10rem]"
+                style={{ ...fonts.display, textShadow: "6px 6px 0 #2563EB, 12px 12px 0 #FB7185" }}
               >
                 {heroTitleLines.map((line, index) => (
                   <React.Fragment key={`${line}-${index}`}>
@@ -130,43 +121,32 @@ export function HomePage() {
                 ))}
               </h1>
 
-              <div className="mt-12 max-w-2xl border-t-2 border-[#171717] pt-8">
-                <p className="text-2xl leading-snug text-[#171717] sm:text-3xl" style={fonts.serif}>
+              <div className="mt-8 max-w-2xl border-t-2 border-[#171717] pt-6">
+                <p className="text-xl leading-snug text-[#171717] sm:text-2xl" style={fonts.serif}>
                   <em className="text-[#FB7185]">Sarathi</em> means guide. We are the student community at SMS TU that turns data science <em className="text-[#2563EB]">from theory into practice.</em>
                 </p>
-                <p className="mt-4 font-mono text-sm text-slate-500">Open to all students at SMS, Tribhuvan University.</p>
-                <div className="mt-8 flex flex-wrap gap-4">
+                <p className="mt-4 font-mono text-sm text-slate-500">Open to all students at SMS, TU.</p>
+                <div className="mt-6 flex flex-wrap gap-4">
                   <Link to="/events"><BrutalButton color="bg-white">See Events</BrutalButton></Link>
                   <Link to="/about"><BrutalButton color="bg-[#171717]" text="text-white">Our Story</BrutalButton></Link>
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-5 lg:pt-10">
-              <div className="border-2 border-[#171717] bg-[#FB7185] p-6 text-white brutal-shadow rotate-1">
-                <div className="mb-5 flex items-center justify-between gap-4">
-                  <span className="text-xs font-bold uppercase tracking-widest text-white/80">{homeSettings.membershipLabel}</span>
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#171717] bg-white text-[#171717]">
-                    <Check size={20} strokeWidth={3} />
-                  </span>
-                </div>
-                <p className="text-3xl uppercase" style={fonts.display}>{homeSettings.membershipTitle}</p>
-                <p className="mt-2 font-mono text-sm text-white/80">{homeSettings.membershipDescription}</p>
-              </div>
-
+            <div className="grid gap-4 lg:pt-4">
               <Link
                 to={nextEvent ? `/events/${nextEvent.slug || nextEvent.id}` : "/events"}
-                className="block border-2 border-[#171717] bg-white p-6 brutal-shadow -rotate-1 transition-transform hover:-translate-y-1"
+                className="block border-2 border-[#171717] bg-white p-5 brutal-shadow -rotate-1 transition-transform hover:-translate-y-1"
               >
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Next Up</span>
                 <div className="mt-4 flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-5xl leading-none text-[#2563EB]" style={fonts.display}>{nextEvent?.num || "--"}</p>
+                    <p className="text-4xl leading-none text-[#2563EB]" style={fonts.display}>{nextEvent?.num || "--"}</p>
                     <p className="mt-1 text-sm font-bold uppercase tracking-widest text-slate-500">{nextEvent?.month || "No event yet"}</p>
                   </div>
                   <BrutalBadge color="bg-[#2563EB]">{nextEvent?.type || "Event"}</BrutalBadge>
                 </div>
-                <p className="mt-5 text-xl uppercase text-[#171717]" style={fonts.display}>{nextEvent?.label || "Approved events will appear here"}</p>
+                <p className="mt-5 text-xl uppercase text-[#171717]" style={fonts.display}>{nextEvent?.label || "No events yet"}</p>
                 <p className="mt-2 flex items-center gap-2 font-mono text-sm text-slate-400">
                   <Users size={16} /> {nextEvent?.capacity ? `${nextEvent.registeredCount || 0}/${nextEvent.capacity} spots` : "Club event"}
                 </p>
@@ -174,10 +154,10 @@ export function HomePage() {
 
               <Link
                 to={homeProject ? `/projects/${homeProject.slug || homeProject.id}` : "/projects"}
-                className="block border-2 border-[#171717] bg-[#7C3AED] p-6 text-white brutal-shadow rotate-1 transition-transform hover:-translate-y-1"
+                className="block border-2 border-[#171717] bg-[#7C3AED] p-5 text-white brutal-shadow rotate-1 transition-transform hover:-translate-y-1"
               >
                 <span className="text-xs font-bold uppercase tracking-widest text-white/70">Projects</span>
-                <p className="mt-5 text-3xl uppercase" style={fonts.display}>{homeProject?.title || "Published Projects"}</p>
+                <p className="mt-4 text-2xl uppercase" style={fonts.display}>{homeProject?.title || "No projects yet"}</p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {(homeProject?.technologies?.length ? homeProject.technologies : [homeProject?.category || "Admin approved"]).map((tag: string) => (
                     <span key={tag} className="border border-white/40 bg-white/10 px-3 py-1 text-xs font-bold uppercase">{tag}</span>
@@ -193,11 +173,11 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#F4EFEB] py-20 md:py-28">
-        <div className="mx-auto max-w-[1650px] px-5 sm:px-8 md:px-12 lg:px-20">
+      <section className="bg-[#F4EFEB] py-16 md:py-20">
+        <div className="mx-auto max-w-[1450px] px-5 sm:px-8 md:px-12 lg:px-16">
           <BrutalBadge color="bg-[#FB7185]">What we do</BrutalBadge>
           <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_620px] lg:items-end">
-            <h2 className="max-w-[560px] text-6xl leading-[0.92] text-[#171717] sm:text-7xl lg:text-8xl" style={fonts.display}>
+            <h2 className="max-w-[520px] text-5xl leading-[0.92] text-[#171717] sm:text-6xl lg:text-7xl" style={fonts.display}>
               THEORY ENDS IN CLASS.
             </h2>
             <p className="max-w-xl text-xl leading-relaxed text-slate-600">
@@ -205,24 +185,24 @@ export function HomePage() {
             </p>
           </div>
 
-          <div className="mt-14 grid border-2 border-[#171717] md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-10 grid border-2 border-[#171717] md:grid-cols-2 xl:grid-cols-4">
             {workCards.map((card, index) => (
-              <div key={card.title} className={`${card.color} min-h-[300px] border-b-2 border-[#171717] p-8 last:border-b-0 md:border-r-2 ${index % 2 === 1 ? "md:border-r-0" : ""} xl:border-b-0 xl:border-r-2 xl:last:border-r-0`}>
-                <div className="mb-8 inline-flex h-14 w-14 items-center justify-center border-2 border-current/40">{card.icon}</div>
-                <h3 className="text-3xl uppercase" style={fonts.display}>{card.title}</h3>
-                <p className="mt-5 text-lg leading-relaxed opacity-85">{card.body}</p>
+              <div key={card.title} className={`${card.color} min-h-[240px] border-b-2 border-[#171717] p-6 last:border-b-0 md:border-r-2 ${index % 2 === 1 ? "md:border-r-0" : ""} xl:border-b-0 xl:border-r-2 xl:last:border-r-0`}>
+                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center border-2 border-current/40">{card.icon}</div>
+                <h3 className="text-2xl uppercase" style={fonts.display}>{card.title}</h3>
+                <p className="mt-4 text-base leading-relaxed opacity-85">{card.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-[#171717] py-20 text-white md:py-28">
-        <div className="mx-auto max-w-[1650px] px-5 sm:px-8 md:px-12 lg:px-20">
-          <div className="mb-12 flex items-end justify-between gap-6">
+      <section className="bg-[#171717] py-16 text-white md:py-20">
+        <div className="mx-auto max-w-[1450px] px-5 sm:px-8 md:px-12 lg:px-16">
+          <div className="mb-10 flex items-end justify-between gap-6">
             <div>
               <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Upcoming</BrutalBadge>
-              <h2 className="mt-6 text-6xl leading-none sm:text-7xl lg:text-8xl" style={fonts.display}>EVENTS</h2>
+              <h2 className="mt-5 text-5xl leading-none sm:text-6xl lg:text-7xl" style={fonts.display}>EVENTS</h2>
             </div>
             <Link to="/events" className="hidden items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/55 hover:text-white sm:flex">
               All Events <ArrowRight size={16} />
@@ -234,16 +214,16 @@ export function HomePage() {
               <Link
                 key={event.id}
                 to={`/events/${event.slug || event.id}`}
-                className="min-h-[270px] border-b-2 border-white/15 p-8 transition-colors hover:bg-white/5 md:border-b-0 md:border-r-2 md:last:border-r-0"
+                className="min-h-[220px] border-b-2 border-white/15 p-6 transition-colors hover:bg-white/5 md:border-b-0 md:border-r-2 md:last:border-r-0"
               >
                 <div className="flex items-start justify-between gap-6">
                   <div>
-                    <p className="text-7xl leading-none" style={fonts.display}>{event.num}</p>
+                    <p className="text-6xl leading-none" style={fonts.display}>{event.num}</p>
                     <p className="mt-2 text-sm font-bold uppercase tracking-widest text-white/45">{event.month}</p>
                   </div>
                   <BrutalBadge color={event.color} text="text-white" className="text-xs">{event.type}</BrutalBadge>
                 </div>
-                <h3 className="mt-10 text-3xl uppercase" style={fonts.display}>{event.label}</h3>
+                <h3 className="mt-8 text-2xl uppercase" style={fonts.display}>{event.label}</h3>
                 <p className="mt-3 font-mono text-sm text-white/50">{event.time}</p>
                 <p className="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/50">
                   Register <ArrowRight size={15} />
@@ -252,7 +232,7 @@ export function HomePage() {
             )) : (
               <div className="p-8 md:col-span-3">
                 <p className="text-3xl uppercase" style={fonts.display}>No published events yet.</p>
-                <p className="mt-2 font-mono text-sm text-white/50">Approved events will appear here automatically.</p>
+                <p className="mt-2 font-mono text-sm text-white/50">New exicting events will be available soon.</p>
               </div>
             )}
           </div>
@@ -263,30 +243,30 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#F4EFEB] py-20 md:py-28">
-        <div className="mx-auto grid max-w-[1650px] gap-12 px-5 sm:px-8 md:px-12 lg:grid-cols-[0.9fr_1.1fr] lg:px-20">
+      <section className="bg-[#F4EFEB] py-12 md:py-16">
+        <div className="mx-auto grid max-w-[1320px] gap-8 px-5 sm:px-8 md:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:px-12">
           <div>
             <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Who we are</BrutalBadge>
-            <h2 className="mt-6 max-w-[620px] text-6xl leading-[0.92] text-[#171717] sm:text-7xl lg:text-8xl" style={fonts.display}>
+            <h2 className="mt-4 max-w-[470px] text-4xl leading-[0.92] text-[#171717] sm:text-5xl lg:text-6xl" style={fonts.display}>
               WE ARE THE STUDENTS WHO STAYED CURIOUS.
             </h2>
-            <p className="mt-8 max-w-2xl text-2xl leading-relaxed text-slate-600" style={fonts.serif}>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg" style={fonts.serif}>
               The BDS program at SMS gives you the foundation. Data Sarathi exists for everything else - the projects you want to build, the peers you want to learn with, and the portfolio that proves you can do the work. Anyone at SMS TU is welcome here.
             </p>
-            <Link to="/about" className="mt-10 inline-block">
+            <Link to="/about" className="mt-7 inline-block">
               <BrutalButton color="bg-[#FFE800]">Read Our Story</BrutalButton>
             </Link>
           </div>
 
-          <div className="space-y-6 lg:pt-12">
+          <div className="space-y-4 lg:pt-8">
             {identityCards.map((card) => (
-              <div key={card.title} className="flex gap-5 border-2 border-[#171717] bg-white p-6 brutal-shadow">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center border-2 border-[#171717] bg-[#FFE800]">
+              <div key={card.title} className="flex gap-4 border-2 border-[#171717] bg-white p-5 brutal-shadow">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center border-2 border-[#171717] bg-[#FFE800]">
                   {card.icon}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold uppercase tracking-widest">{card.title}</h3>
-                  <p className="mt-2 text-lg leading-relaxed text-slate-600">{card.body}</p>
+                  <h3 className="text-base font-bold uppercase tracking-widest">{card.title}</h3>
+                  <p className="mt-2 text-base leading-relaxed text-slate-600">{card.body}</p>
                 </div>
               </div>
             ))}
@@ -294,13 +274,13 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="relative border-y-2 border-[#171717] bg-[#2563EB] py-24 text-center text-white md:py-32">
+      <section className="relative border-y-2 border-[#171717] bg-[#2563EB] py-20 text-center text-white md:py-24">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
         <div className="relative z-10 mx-auto max-w-4xl px-5">
           <BrutalBadge color="bg-white" text="text-[#2563EB]">Open to all SMS TU students</BrutalBadge>
-          <h2 className="mt-8 text-6xl leading-[0.92] sm:text-7xl md:text-8xl" style={fonts.display}>YOUR SARATHI IS WAITING.</h2>
-          <p className="mx-auto mt-8 max-w-3xl text-2xl leading-relaxed opacity-90" style={fonts.serif}>
-            Data Sarathi is new. The community is still forming. The first events are being planned. This is the moment to show up - before it becomes something you wish you had joined earlier.
+          <h2 className="mt-6 text-5xl leading-[0.92] sm:text-6xl md:text-7xl" style={fonts.display}>YOUR SARATHI IS WAITING.</h2>
+          <p className="mx-auto mt-6 max-w-3xl text-xl leading-relaxed opacity-90" style={fonts.serif}>
+            Data Sarathi is new. The community is still forming. This is the moment to show up - before it becomes something you wish you had joined earlier.
           </p>
           <p className="mt-6 font-mono text-sm text-white/70">Free to join - Open to all SMS TU students - No prior experience needed.</p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">

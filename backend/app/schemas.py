@@ -80,55 +80,6 @@ class GallerySubmissionCreate(BaseModel):
     event_id: str | None = None
 
 
-class SignatureData(BaseModel):
-    name: str = ""
-    title: str = ""
-    signature_image_url: str = ""
-
-
-class CertificateIssue(BaseModel):
-    member_id: str
-    event_id: str
-    certificate_title: str
-    certificate_type: str = "Participation"
-    template: str = "modern"
-    description: str = ""
-    issuer_name: str
-    issued_date: str
-    external_pdf_url: str | None = None
-    signature_data: list[SignatureData] = []
-    template_data: dict[str, Any] = {}
-    event_title_snapshot: str | None = None
-    recipient_name_snapshot: str | None = None
-
-
-class CertificateBulkIssue(BaseModel):
-    event_id: str
-    certificate_title: str
-    certificate_type: str = "Participation"
-    template: str = "modern"
-    description: str = ""
-    issuer_name: str
-    issued_date: str
-    external_pdf_url: str | None = None
-    signature_data: list[SignatureData] = []
-    template_data: dict[str, Any] = {}
-
-
-class CertificateUpdate(BaseModel):
-    certificate_title: str | None = None
-    certificate_type: str | None = None
-    template: str | None = None
-    description: str | None = None
-    issuer_name: str | None = None
-    issued_date: str | None = None
-    external_pdf_url: str | None = None
-    signature_data: list[SignatureData] | None = None
-    template_data: dict[str, Any] | None = None
-    event_title_snapshot: str | None = None
-    recipient_name_snapshot: str | None = None
-
-
 class AdminResource(str):
     pass
 

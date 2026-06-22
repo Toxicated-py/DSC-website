@@ -17,9 +17,6 @@ from .config import Settings, get_settings
 from .schemas import (
     ApiStatus,
     BlogPostCreate,
-    CertificateBulkIssue,
-    CertificateIssue,
-    CertificateUpdate,
     ContactMessageCreate,
     EventStaffUpdate,
     EventProposalCreate,
@@ -36,6 +33,7 @@ from .supabase_rest import SupabaseRestClient, SupabaseRestError
 RATE_LIMIT_WINDOW_SECONDS = 10 * 60
 RATE_LIMIT_MAX_REQUESTS = 5
 rate_limit_hits: dict[str, list[float]] = {}
+REGISTRATION_COLUMNS = "id,event_id,user_id,ticket_code,status,registered_at,checked_in_at"
 
 
 def check_public_post_rate_limit(request: Request, bucket: str) -> None:
@@ -247,7 +245,6 @@ RESOURCE_OWNER_COLUMNS = {
 ADMIN_ONLY_RESOURCES = {
     "profiles",
     "designation-options",
-    "certificates",
     "gallery",
     "partners",
     "learning-materials",
@@ -322,7 +319,7 @@ async def require_resource_access(
         owner_column = RESOURCE_OWNER_COLUMNS.get(resource)
         if owner_column and row.get(owner_column) == profile["id"]:
             return row
-        if resource in {"certificates", "event-registrations"} and row.get("event_id") in await managed_event_ids(client, profile):
+        if resource in {"event-registrations"} and row.get("event_id") in await managed_event_ids(client, profile):
             return row
         raise HTTPException(status_code=403, detail="You can only manage your own items.")
     return None
@@ -350,7 +347,7 @@ async def list_accessible_resource(
     if owner_column:
         scoped_filters = {**(filters or {}), owner_column: f"eq.{profile['id']}"}
         return await client.select(table, filters=scoped_filters, order=RESOURCE_ORDER.get(table))
-    if resource in {"certificates", "event-registrations"}:
+    if resource in {"event-registrations"}:
         ids = await managed_event_ids(client, profile)
         if not ids:
             return []
@@ -430,72 +427,6 @@ async def can_manage_event(client: SupabaseRestClient, profile: dict[str, Any], 
     )
 
 
-async def generate_verification_code(client: SupabaseRestClient) -> str:
-    year = date.today().year
-    for attempt in range(10):
-        latest = await client.select(
-            "certificates",
-            columns="verification_code",
-            filters={"verification_code": f"like.CLUB-{year}-%"},
-            order="verification_code.desc",
-            limit=1,
-        )
-        latest_code = latest[0]["verification_code"] if latest else None
-        latest_number = int(str(latest_code).split("-")[-1]) if latest_code else 0
-        candidate = f"CLUB-{year}-{latest_number + 1 + attempt:05d}"
-        exists = await select_one(client, "certificates", {"verification_code": f"eq.{candidate}"})
-        if not exists:
-            return candidate
-    raise HTTPException(status_code=500, detail="Could not generate a unique verification code.")
-
-
-async def issue_certificate_row(client: SupabaseRestClient, payload: CertificateIssue) -> dict[str, Any]:
-    duplicate = await select_one(
-        client,
-        "certificates",
-        {"member_id": f"eq.{payload.member_id}", "event_id": f"eq.{payload.event_id}"},
-    )
-    if duplicate:
-        raise HTTPException(status_code=409, detail="Certificate already issued to this person for this event.")
-
-    event = await select_one(client, "events", {"id": f"eq.{payload.event_id}"})
-    profile = await select_one(client, "profiles", {"id": f"eq.{payload.member_id}"})
-    verification_code = await generate_verification_code(client)
-    recipient_name = (
-        payload.recipient_name_snapshot
-        or (profile or {}).get("full_name")
-        or (profile or {}).get("email")
-        or "Participant"
-    )
-    event_title = payload.event_title_snapshot or (event or {}).get("title") or "Event"
-    signature_data = [signature.model_dump() for signature in payload.signature_data]
-    data = payload.model_dump(exclude={"recipient_name_snapshot", "event_title_snapshot"})
-
-    row = {
-        **data,
-        "signature_data": signature_data,
-        "verification_code": verification_code,
-        "event_title_snapshot": event_title,
-        "recipient_name_snapshot": recipient_name,
-        "status": "valid",
-        # Legacy columns kept populated while older frontend code still exists.
-        "recipient_id": payload.member_id,
-        "title": payload.certificate_title,
-        "template_style": payload.template,
-        "certificate_url": payload.external_pdf_url,
-        "issued_at": payload.issued_date,
-    }
-
-    try:
-        inserted = await client.insert("certificates", row)
-    except SupabaseRestError as exc:
-        if "duplicate" in str(exc).lower() or "unique" in str(exc).lower():
-            raise HTTPException(status_code=409, detail="Certificate already issued to this person for this event.") from exc
-        raise supabase_http_error(exc) from exc
-
-    return normalize_certificate(inserted[0])
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
@@ -516,7 +447,6 @@ ADMIN_TABLES = {
     "learning-materials": "learning_materials",
     "profiles": "profiles",
     "designation-options": "designation_options",
-    "certificates": "certificates",
     "contact-messages": "contact_messages",
     "event-registrations": "event_registrations",
 }
@@ -531,7 +461,6 @@ RESOURCE_ORDER = {
     "learning_materials": "created_at.desc",
     "profiles": "created_at.desc",
     "designation_options": "sort_order.asc",
-    "certificates": "created_at.desc",
     "contact_messages": "created_at.desc",
     "event_registrations": "registered_at.desc",
 }
@@ -687,7 +616,7 @@ async def event_workspace(
     if profile:
         existing_registration = await service_client.select(
             "event_registrations",
-            columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+            columns=REGISTRATION_COLUMNS,
             filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
             limit=1,
         )
@@ -696,7 +625,7 @@ async def event_workspace(
     if manager:
         registrations = await service_client.select(
             "event_registrations",
-            columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+            columns=REGISTRATION_COLUMNS,
             filters={"event_id": f"eq.{event_id}"},
             order="registered_at.desc",
         )
@@ -740,7 +669,7 @@ async def reserve_event_spot(
         raise HTTPException(status_code=400, detail="Registration deadline has passed.")
     existing = await client.select(
         "event_registrations",
-        columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+        columns=REGISTRATION_COLUMNS,
         filters={"event_id": f"eq.{event_id}", "user_id": f"eq.{profile['id']}"},
         limit=1,
     )
@@ -770,7 +699,7 @@ async def get_my_tickets(
     user_client = SupabaseRestClient(settings, get_http_client(), auth_token=profile.get("_auth_token"))
     registrations = await user_client.select(
         "event_registrations",
-        columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+        columns=REGISTRATION_COLUMNS,
         filters={"user_id": f"eq.{profile['id']}"},
         order="registered_at.desc",
     )
@@ -872,7 +801,7 @@ async def scan_event_ticket(
         raise HTTPException(status_code=400, detail="Ticket code is required.")
     registrations = await service_client.select(
         "event_registrations",
-        columns="id,event_id,user_id,ticket_code,status,registered_at,checked_in_at",
+        columns=REGISTRATION_COLUMNS,
         filters={"event_id": f"eq.{event_id}", "ticket_code": f"eq.{ticket_code}"},
         limit=1,
     )
@@ -1713,222 +1642,5 @@ async def admin_delete_contact(
         resource="contact-messages",
         resource_id=message_id,
         summary=f"Deleted contact message {message_id}",
-    )
-    return {"message": "Deleted."}
-
-
-@app.get("/api/admin/events/{event_id}/certificate-queue")
-async def admin_certificate_queue(
-    event_id: str,
-    profile: dict[str, Any] = Depends(require_admin),
-    settings: Settings = Depends(get_settings),
-) -> dict[str, Any]:
-    client = get_privileged_supabase(settings, profile.get("_auth_token"))
-    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found.")
-    registrations = await client.select(
-        "event_registrations",
-        columns="id,event_id,user_id,status,checked_in_at,profiles:user_id(id,full_name,email)",
-        filters={"event_id": f"eq.{event_id}"},
-        order="registered_at.asc",
-    )
-    certs = await client.select(
-        "certificates",
-        columns="id,member_id,event_id,status,verification_code,recipient_name_snapshot",
-        filters={"event_id": f"eq.{event_id}"},
-    )
-    issued_by_member = {row.get("member_id"): row for row in certs if row.get("member_id")}
-    queue = []
-    for registration in registrations:
-        profile = registration.get("profiles") or {}
-        member_id = registration.get("user_id")
-        cert = issued_by_member.get(member_id)
-        checked_in = registration.get("status") == "checked_in" or bool(registration.get("checked_in_at"))
-        queue.append(
-            {
-                **registration,
-                "attendee_name": profile.get("full_name") or profile.get("email") or "Unknown attendee",
-                "queue_status": "issued" if cert else ("ready" if checked_in else "registered"),
-                "certificate": cert,
-            }
-        )
-    return {"event_id": event_id, "queue": queue, "certificates": [normalize_certificate(row) for row in certs]}
-
-
-@app.post("/api/admin/certificates/issue", status_code=201)
-async def admin_issue_certificate(
-    payload: CertificateIssue,
-    profile: dict[str, Any] = Depends(require_admin),
-    settings: Settings = Depends(get_settings),
-) -> dict[str, Any]:
-    client = get_privileged_supabase(settings, profile.get("_auth_token"))
-    event = await select_one(client, "events", {"id": f"eq.{payload.event_id}"})
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found.")
-    certificate = await issue_certificate_row(client, payload)
-    await write_audit_log(
-        client,
-        profile,
-        action="issue",
-        resource="certificates",
-        resource_id=str(certificate.get("id") or ""),
-        summary=f"Issued certificate {certificate.get('verification_code') or ''} to {certificate.get('recipient_name_snapshot') or payload.member_id}",
-        metadata={"event_id": payload.event_id, "member_id": payload.member_id},
-    )
-    return certificate
-
-
-@app.post("/api/admin/certificates/issue-checked-in")
-async def admin_issue_checked_in_certificates(
-    payload: CertificateBulkIssue,
-    profile: dict[str, Any] = Depends(require_admin),
-    settings: Settings = Depends(get_settings),
-) -> dict[str, Any]:
-    admin_profile = profile
-    client = get_privileged_supabase(settings, profile.get("_auth_token"))
-    event = await select_one(client, "events", {"id": f"eq.{payload.event_id}"})
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found.")
-    registrations = await client.select(
-        "event_registrations",
-        columns="user_id,status,checked_in_at,profiles:user_id(full_name,email)",
-        filters={"event_id": f"eq.{payload.event_id}"},
-    )
-    success: list[dict[str, Any]] = []
-    skipped: list[str] = []
-    failed: list[str] = []
-
-    for registration in registrations:
-        if not (registration.get("status") == "checked_in" or registration.get("checked_in_at")):
-            continue
-        member_id = registration.get("user_id")
-        attendee_profile = registration.get("profiles") or {}
-        label = attendee_profile.get("full_name") or attendee_profile.get("email") or member_id or "Unknown attendee"
-        if not member_id:
-            failed.append(f"{label}: missing member id")
-            continue
-        try:
-            cert = await issue_certificate_row(
-                client,
-                CertificateIssue(
-                    **payload.model_dump(),
-                    member_id=member_id,
-                    event_id=payload.event_id,
-                    recipient_name_snapshot=label,
-                ),
-            )
-            success.append(cert)
-        except HTTPException as exc:
-            if exc.status_code == 409:
-                skipped.append(label)
-            else:
-                failed.append(f"{label}: {exc.detail}")
-
-    await write_audit_log(
-        client,
-        admin_profile,
-        action="bulk_issue",
-        resource="certificates",
-        resource_id=payload.event_id,
-        summary=f"Bulk certificate issue: {len(success)} issued, {len(skipped)} skipped, {len(failed)} failed",
-        metadata={"event_id": payload.event_id, "issued": len(success), "skipped": skipped, "failed": failed},
-    )
-    return {"success": success, "skipped": skipped, "failed": failed}
-
-
-@app.get("/api/admin/events/{event_id}/certificates")
-async def admin_event_certificates(
-    event_id: str,
-    profile: dict[str, Any] = Depends(require_admin),
-    settings: Settings = Depends(get_settings),
-) -> list[dict[str, Any]]:
-    client = get_privileged_supabase(settings, profile.get("_auth_token"))
-    event = await select_one(client, "events", {"id": f"eq.{event_id}"})
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found.")
-    rows = await client.select(
-        "certificates",
-        filters={"event_id": f"eq.{event_id}"},
-        order="created_at.desc",
-    )
-    return [normalize_certificate(row) for row in rows]
-
-
-@app.patch("/api/admin/certificates/{certificate_id}")
-async def admin_update_certificate(
-    certificate_id: str,
-    payload: CertificateUpdate,
-    profile: dict[str, Any] = Depends(require_admin),
-    settings: Settings = Depends(get_settings),
-) -> dict[str, Any]:
-    client = get_privileged_supabase(settings, profile.get("_auth_token"))
-    certificate = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
-    if not certificate:
-        raise HTTPException(status_code=404, detail="Certificate not found.")
-    data = payload.model_dump(exclude_unset=True)
-    if "signature_data" in data and data["signature_data"] is not None:
-        data["signature_data"] = [signature.model_dump() for signature in payload.signature_data or []]
-    rows = await client.update("certificates", data, filters={"id": f"eq.{certificate_id}"})
-    if not rows:
-        raise HTTPException(status_code=404, detail="Certificate not found.")
-    certificate = normalize_certificate(rows[0])
-    await write_audit_log(
-        client,
-        profile,
-        action="update",
-        resource="certificates",
-        resource_id=certificate_id,
-        summary=f"Updated certificate {certificate.get('verification_code') or certificate_id}",
-        metadata={"changed_fields": sorted(data.keys())},
-    )
-    return certificate
-
-
-@app.post("/api/admin/certificates/{certificate_id}/revoke")
-async def admin_revoke_certificate(
-    certificate_id: str,
-    profile: dict[str, Any] = Depends(require_admin),
-    settings: Settings = Depends(get_settings),
-) -> dict[str, Any]:
-    client = get_privileged_supabase(settings, profile.get("_auth_token"))
-    certificate = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
-    if not certificate:
-        raise HTTPException(status_code=404, detail="Certificate not found.")
-    rows = await client.update("certificates", {"status": "revoked"}, filters={"id": f"eq.{certificate_id}"})
-    if not rows:
-        raise HTTPException(status_code=404, detail="Certificate not found.")
-    certificate = normalize_certificate(rows[0])
-    await write_audit_log(
-        client,
-        profile,
-        action="revoke",
-        resource="certificates",
-        resource_id=certificate_id,
-        summary=f"Revoked certificate {certificate.get('verification_code') or certificate_id}",
-    )
-    return certificate
-
-
-@app.delete("/api/admin/certificates/{certificate_id}")
-async def admin_delete_certificate(
-    certificate_id: str,
-    profile: dict[str, Any] = Depends(require_admin),
-    settings: Settings = Depends(get_settings),
-) -> dict[str, str]:
-    client = get_privileged_supabase(settings, profile.get("_auth_token"))
-    cert = await select_one(client, "certificates", {"id": f"eq.{certificate_id}"})
-    if not cert:
-        raise HTTPException(status_code=404, detail="Certificate not found.")
-    if cert.get("status") != "revoked":
-        raise HTTPException(status_code=400, detail="Only revoked certificates can be deleted.")
-    await client.delete("certificates", filters={"id": f"eq.{certificate_id}"})
-    await write_audit_log(
-        client,
-        profile,
-        action="delete",
-        resource="certificates",
-        resource_id=certificate_id,
-        summary=f"Deleted revoked certificate {cert.get('verification_code') or certificate_id}",
     )
     return {"message": "Deleted."}

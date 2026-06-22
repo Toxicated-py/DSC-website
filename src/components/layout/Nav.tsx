@@ -1,23 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  BookMarked,
-  BookOpen,
-  Calendar,
-  ChevronDown,
-  Code,
-  FileText,
-  Handshake,
-  Home,
-  Image,
-  LogOut,
-  Mail,
-  Menu,
-  Shield,
-  User,
-  Users,
-  X,
-} from "lucide-react";
+import { BookMarked, BookOpen, Calendar, ChevronDown, Code, FileText, Handshake, Home, Image, LogOut, Mail, Menu, Shield, User, Users, X } from "lucide-react";
 import { UserBadge } from "../auth/AuthAndAdmin";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
 import { canOpenAdminPanel } from "../../app/auth/AdminRoute";

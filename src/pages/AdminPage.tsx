@@ -14,73 +14,17 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  Check, User, UserCheck, GraduationCap, Settings, Search, Edit, Trash2, Crown,
-  Calendar, MapPin, Users, Trophy, TrendingUp, Save, X, Plus, Eye, EyeOff,
-  Mail, Phone, Globe, Github, Linkedin, Twitter, Instagram, Facebook,
-  Home, FileText, Award, Zap, BarChart3, Activity, Clock, Star, MessageSquare, ListFilter
-} from "lucide-react";
-import {
-  adminCreateResource,
-  adminCreateEventFromProposal,
-  adminDeleteContact,
-  adminDeleteResource,
-  adminListAuditLogs,
-  adminListContacts,
-  adminListResource,
-  adminListEventStaff,
-  adminReplaceEventStaff,
-  adminSaveSiteSettings,
-  adminUpdateContactStatus,
-  adminUpdateResource,
-  adminUpdateResourceStatus,
-} from "../lib/adminApi";
+import { User, UserCheck, GraduationCap, Settings, Edit, Crown, Calendar, Users, Trophy, Save, X, Eye, Mail, Phone, Globe, Home, FileText, BarChart3, ListFilter } from "lucide-react";
+import { adminCreateResource, adminCreateEventFromProposal, adminDeleteContact, adminDeleteResource, adminListAuditLogs, adminListContacts, adminListResource, adminListEventStaff, adminReplaceEventStaff, adminSaveSiteSettings, adminUpdateContactStatus, adminUpdateResource, adminUpdateResourceStatus } from "../lib/adminApi";
 import { apiGet } from "../lib/apiClient";
 import { ContactItem, defaultSiteSettings, FAQItem, mergeSiteSettings, TeamMember } from "../lib/siteSettings";
-import {
-  deleteCertificate as deleteCertificateRecord,
-  getCertificatesByEvent,
-  issueCheckedInBulk,
-  issueSingleCertificate,
-  revokeCertificate,
-  updateCertificate,
-  uploadCertificateTemplateImage,
-  uploadSignatureImage,
-} from "../services/certificateService";
+import { deleteCertificate as deleteCertificateRecord, getCertificatesByEvent, issueCheckedInBulk, issueSingleCertificate, revokeCertificate, updateCertificate, uploadCertificateTemplateImage, uploadSignatureImage } from "../services/certificateService";
 import { CertificateRenderer } from "../components/CertificateRenderer";
 import { fonts } from "../config/fonts";
 import { AdminAccessDenied, AdminShellHeader, AdminTabs } from "./admin/AdminShell";
-import {
-  OverviewTab,
-  UsersTab,
-  EventsTab,
-  ProposalsTab,
-  ProjectsTab,
-  BlogsTab,
-  GalleryTab,
-  PartnersTab,
-  ResourcesTab,
-  CertificatesTab,
-  ContentTab,
-  ContactsTab,
-  SettingsTab,
-  AnalyticsTab,
-  LogsTab
-} from "./admin/tabs";
+import { OverviewTab, UsersTab, EventsTab, ProposalsTab, ProjectsTab, BlogsTab, GalleryTab, PartnersTab, ResourcesTab, ContentTab, ContactsTab, SettingsTab, AnalyticsTab, LogsTab } from "./admin/tabs";
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, BrutalSelect, BrutalTextarea } from "./admin/AdminPrimitives";
-import {
-  assignableRoleOptions,
-  certificateTemplateOptions,
-  formatCertificateError,
-  fromDatetimeLocalValue,
-  hasDatePassed,
-  isEventRegistrationOpen,
-  isFullAdminProfile,
-  isOrganizerProfile,
-  isPastEvent,
-  slugify,
-  toDatetimeLocalValue,
-} from "./admin/adminUtils";
+import { assignableRoleOptions, certificateTemplateOptions, formatCertificateError, fromDatetimeLocalValue, hasDatePassed, isEventRegistrationOpen, isFullAdminProfile, isOrganizerProfile, isPastEvent, slugify, toDatetimeLocalValue } from "./admin/adminUtils";
 
 
 // âââ Reusable Components âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
@@ -179,6 +123,7 @@ export function ComprehensiveAdminPanel() {
     endTime: "",
     venue: "",
     bannerUrl: "",
+    googleFormUrl: "",
     capacity: "40",
     status: "approved",
     registrationOpen: true,
@@ -270,7 +215,6 @@ export function ComprehensiveAdminPanel() {
     { id: "gallery", label: "Gallery", icon: <Eye size={16} /> },
     { id: "partners", label: "Partners", icon: <Globe size={16} /> },
     { id: "resources", label: "Resources", icon: <Save size={16} /> },
-    { id: "certificates", label: "Certificates", icon: <Award size={16} /> },
     { id: "contacts", label: "Contact", icon: <Mail size={16} /> },
     { id: "settings", label: "Settings", icon: <Settings size={16} /> },
     { id: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
@@ -325,12 +269,10 @@ export function ComprehensiveAdminPanel() {
       const isAdmin = isFullAdminProfile(myProfile);
       const isOrganizer = isOrganizerProfile(myProfile);
       const canManage = isAdmin || isOrganizer;
-      setIsCertificateAdmin(isAdmin);
       if (!canManage) return;
 
       const [
         profileRows,
-        certs,
         projectRowsRaw,
         proposalRows,
         eventRowsRaw,
@@ -344,7 +286,6 @@ export function ComprehensiveAdminPanel() {
         auditRows,
       ] = await Promise.all([
         isAdmin ? safeList(adminListResource<any>("profiles"), "users") : Promise.resolve([myProfile]),
-        isAdmin ? safeList(adminListResource<any>("certificates"), "certificates") : Promise.resolve([]),
         safeList(adminListResource<any>("projects"), "projects"),
         safeList(adminListResource<any>("event-proposals"), "event proposals"),
         safeList(adminListResource<any>("events"), "events"),
@@ -364,7 +305,6 @@ export function ComprehensiveAdminPanel() {
       const projectRows = isAdmin ? projectRowsRaw : (projectRowsRaw || []).filter((project: any) => project.author_id === myProfile.id);
       const blogRows = isAdmin ? blogRowsRaw : (blogRowsRaw || []).filter((post: any) => post.author_id === myProfile.id);
       const eventRows = isAdmin ? eventRowsRaw : (eventRowsRaw || []).filter((event: any) => event.created_by === myProfile.id);
-      const certificateRows = certs || [];
       const mappedProfiles = (profiles || []).map((profile) => ({
         id: profile.id,
         name: profile.full_name || profile.email || "Member",
@@ -380,7 +320,6 @@ export function ComprehensiveAdminPanel() {
       }));
       setUsers(mappedProfiles);
       setProfileOptions(profiles || []);
-      setIssuedCertificates(certificateRows);
       setProjects((projectRows || []).map((project) => {
         const author = profileById.get(project.author_id);
         return {
@@ -996,6 +935,7 @@ export function ComprehensiveAdminPanel() {
       endTime: "",
       venue: "",
       bannerUrl: "",
+      googleFormUrl: "",
       capacity: "40",
       status: "approved",
       registrationOpen: true,
@@ -1045,6 +985,7 @@ export function ComprehensiveAdminPanel() {
       endTime: toDatetimeLocalValue(event?.end_time),
       venue: event?.venue || event?.location || "",
       bannerUrl: event?.banner_url || "",
+      googleFormUrl: event?.google_form_url || "",
       capacity: event?.capacity ? String(event.capacity) : "40",
       status: event?.status || "approved",
       registrationOpen: event?.registration_open ?? true,
@@ -1077,6 +1018,7 @@ export function ComprehensiveAdminPanel() {
       end_time: fromDatetimeLocalValue(eventForm.endTime),
       venue: eventForm.venue,
       banner_url: eventForm.bannerUrl || null,
+      google_form_url: eventForm.googleFormUrl || null,
       capacity: Number(eventForm.capacity) || 40,
       status: eventForm.status,
       registration_open: eventForm.registrationOpen,
@@ -2170,8 +2112,6 @@ export function ComprehensiveAdminPanel() {
         </div>
       )}
 
-      <CertificatesTab ctx={adminTabContext} />
-
       <ContentTab ctx={adminTabContext} />
 
       {/* âââ CONTACT INBOX TAB âââââââââââââââââââââââââââââââââââââââââââââââââââ */}
@@ -2356,6 +2296,7 @@ export function ComprehensiveAdminPanel() {
               <BrutalTextarea label="Description" value={eventForm.description} onChange={(event: any) => setEventForm({ ...eventForm, description: event.target.value })} required />
               <BrutalInput label="Short Description" value={eventForm.shortDescription} onChange={(event: any) => setEventForm({ ...eventForm, shortDescription: event.target.value })} />
               <BrutalInput label="Banner Image URL" value={eventForm.bannerUrl} onChange={(event: any) => setEventForm({ ...eventForm, bannerUrl: event.target.value })} placeholder="https://..." />
+              <BrutalInput label="Guest Google Form URL" value={eventForm.googleFormUrl} onChange={(event: any) => setEventForm({ ...eventForm, googleFormUrl: event.target.value })} placeholder="https://docs.google.com/forms/..." />
               <div className="grid md:grid-cols-2 gap-4">
                 <BrutalInput label="Start Time" type="datetime-local" value={eventForm.startTime} onChange={(event: any) => setEventForm({ ...eventForm, startTime: event.target.value })} />
                 <BrutalInput label="End Time" type="datetime-local" value={eventForm.endTime} onChange={(event: any) => setEventForm({ ...eventForm, endTime: event.target.value })} />

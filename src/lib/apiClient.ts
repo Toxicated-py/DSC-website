@@ -64,6 +64,8 @@ async function optionalAuthHeader(): Promise<Record<string, string>> {
 }
 
 export async function apiRequest<T>(path: string, options: ApiOptions = {}): Promise<T> {
+  const controller = options.signal ? null : new AbortController();
+  const timeoutId = controller ? window.setTimeout(() => controller.abort(), 20000) : null;
   const headers = {
     "Content-Type": "application/json",
     ...(options.auth === "optional" ? await optionalAuthHeader() : await authHeader(options.auth)),
@@ -75,12 +77,18 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
     response = await fetch(path, {
       ...options,
       headers,
+      signal: options.signal || controller?.signal,
     });
   } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiError("The request timed out. Please check your connection and try again.", 408);
+    }
     throw new ApiError(
       userFriendlyErrorMessage(error, "The server is not reachable right now. Please try again in a moment."),
       503
     );
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
   }
 
   if (!response.ok) {
