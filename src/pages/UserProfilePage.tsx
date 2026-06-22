@@ -16,6 +16,7 @@ export function UserProfilePage() {
   const [profile, setProfile] = useState({
     name: "Member",
     email: "",
+    phone: "",
     bio: "",
     designation: "",
     designationStatus: "pending",
@@ -63,6 +64,7 @@ export function UserProfilePage() {
           ...current,
           name: data?.full_name || fallbackName,
           email: data?.email || userData.user.email || "",
+          phone: data?.phone || "",
           bio: data?.bio || "",
           designation: data?.designation || "",
           designationStatus: data?.designation_status || "pending",
@@ -114,6 +116,7 @@ export function UserProfilePage() {
         await apiPatch("/api/me", {
           data: {
           full_name: profile.name,
+          phone: profile.phone,
           bio: profile.bio,
           batch_year: Number.isFinite(parsedYear) ? parsedYear : null,
           major: profile.major,
@@ -248,11 +251,18 @@ export function UserProfilePage() {
                       value={profile.email}
                       readOnly
                     />
+                    <BrutalInput
+                      label="Phone"
+                      value={profile.phone}
+                      onChange={(e: any) => setProfile({ ...profile, phone: e.target.value })}
+                      placeholder="+977 98XXXXXXXX"
+                    />
                   </>
                 ) : (
                   <>
                     <h2 className="text-3xl font-bold uppercase mb-1" style={fonts.display}>{profile.name}</h2>
                     <p className="text-slate-600 font-mono text-sm mb-2">{profile.email}</p>
+                    {profile.phone && <p className="text-slate-600 font-mono text-sm mb-2">{profile.phone}</p>}
                     <div className="flex gap-2">
                       <BrutalBadge color="bg-[#2563EB]">MEMBER</BrutalBadge>
                       <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">SIGNED IN</BrutalBadge>
@@ -293,6 +303,9 @@ export function UserProfilePage() {
                   </div>
                   <div>
                     <span className="font-bold">Major:</span> {profile.major}
+                  </div>
+                  <div>
+                    <span className="font-bold">Phone:</span> {profile.phone || "Not set"}
                   </div>
                   <div>
                     <span className="font-bold">Designation:</span>{" "}

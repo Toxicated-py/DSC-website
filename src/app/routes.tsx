@@ -23,7 +23,7 @@ function PageTitle({ title, children }: { title: string; children: React.ReactNo
   return (
     <>
       <Helmet>
-        <title>{title} — DSC</title>
+        <title>{title} — Data Science Club</title>
       </Helmet>
       {children}
     </>
@@ -94,6 +94,7 @@ export function AppRoutes({ pages }: { pages: AppRoutePages }) {
 
       <Route path="/login" element={<PageTitle title="Login"><NewLoginPage /></PageTitle>} />
       <Route path="/register" element={<PageTitle title="Register"><NewLoginPage /></PageTitle>} />
+      <Route path="/reset-password" element={<PageTitle title="Reset Password"><NewLoginPage /></PageTitle>} />
       <Route path="/scanner" element={<PageTitle title="Scanner"><AdminRoute><ScannerPage /></AdminRoute></PageTitle>} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

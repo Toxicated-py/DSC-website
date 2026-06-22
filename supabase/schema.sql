@@ -10,6 +10,7 @@ create table public.profiles (
   email text unique not null,
   full_name text not null default '',
   avatar_url text,
+  phone text,
   batch_year int,
   role public.user_role not null default 'student',
   roles text[] not null default array['member'],
@@ -216,12 +217,13 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, full_name, avatar_url, role, roles, membership_status, is_sms_student, student_email, student_email_status)
+  insert into public.profiles (id, email, full_name, avatar_url, phone, role, roles, membership_status, is_sms_student, student_email, student_email_status)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', new.email, ''),
     new.raw_user_meta_data->>'avatar_url',
+    nullif(new.raw_user_meta_data->>'phone', ''),
     'member',
     case
       when lower(new.email) like '%@sms.tu.edu.np' then array['member', 'student']
@@ -244,6 +246,7 @@ begin
     set email = excluded.email,
         full_name = coalesce(nullif(excluded.full_name, ''), public.profiles.full_name),
         avatar_url = coalesce(excluded.avatar_url, public.profiles.avatar_url),
+        phone = coalesce(excluded.phone, public.profiles.phone),
         role = case when public.profiles.role = 'student' then 'member'::public.user_role else public.profiles.role end,
         roles = array(select distinct unnest(public.profiles.roles || excluded.roles)),
         membership_status = case when public.profiles.membership_status = 'pending' then 'approved'::public.review_status else public.profiles.membership_status end,

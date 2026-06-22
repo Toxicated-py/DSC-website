@@ -121,6 +121,8 @@ https://www.dscsms.com/**
 
 After setup, test `/login`, click `Sign In with Google`, and confirm the app returns to `/dashboard` or the original protected route.
 
+Password reset uses the same Supabase redirect list. Make sure `/reset-password` is covered by the wildcard URLs above, then test `Forgot password?` from `/login`.
+
 ## Production Deployment
 
 Deploy the frontend and backend separately, with Supabase as the hosted database/auth provider.
