@@ -27,6 +27,7 @@ export function NewLoginPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
@@ -120,13 +121,17 @@ export function NewLoginPage() {
   };
 
   const handleGoogleAuth = async () => {
+    if (isGoogleSubmitting) return;
+
     setError("");
+    setNotice("");
 
     if (!isSupabaseConfigured || !supabase) {
       setError("Google sign in is temporarily unavailable.");
       return;
     }
 
+    setIsGoogleSubmitting(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -134,7 +139,10 @@ export function NewLoginPage() {
       },
     });
 
-    if (error) setError(userFriendlyErrorMessage(error, "Google sign in could not start. Please try again."));
+    if (error) {
+      setError(userFriendlyErrorMessage(error, "Google sign in could not start. Please try again."));
+      setIsGoogleSubmitting(false);
+    }
   };
 
   return (
@@ -353,8 +361,10 @@ export function NewLoginPage() {
           <div className="space-y-3">
             {/* Google Sign In */}
             <button
+              type="button"
               onClick={handleGoogleAuth}
-              className="w-full border-2 border-[#171717] p-3 bg-white hover:bg-[#F4EFEB] transition-all flex items-center justify-center gap-3 brutal-shadow brutal-shadow-hover font-bold uppercase tracking-widest text-sm"
+              disabled={isGoogleSubmitting || isSubmitting}
+              className="w-full border-2 border-[#171717] p-3 bg-white hover:bg-[#F4EFEB] transition-all flex items-center justify-center gap-3 brutal-shadow brutal-shadow-hover font-bold uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
@@ -362,7 +372,7 @@ export function NewLoginPage() {
                 <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9.002c0 1.454.348 2.829.957 4.045l3.007-2.335z" fill="#FBBC05"/>
                 <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.428 0 9.003 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
               </svg>
-              {isSignup ? "Sign Up with Google" : "Sign In with Google"}
+              {isGoogleSubmitting ? "Opening Google..." : isSignup ? "Sign Up with Google" : "Sign In with Google"}
             </button>
           </div>
         </div>
