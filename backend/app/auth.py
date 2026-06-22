@@ -91,6 +91,20 @@ async def get_current_profile(
         else:
             raise HTTPException(status_code=exc.status_code, detail="Could not load your account profile. Please try again.") from exc
 
+    metadata = user.get("user_metadata") or {}
+    phone = metadata.get("phone") or user.get("phone")
+    if phone and not profile.get("phone"):
+        try:
+            try:
+                write_client = SupabaseRestClient(settings, get_http_client(), use_service_role=True)
+            except SupabaseRestError:
+                write_client = client
+            rows = await write_client.update("profiles", {"phone": phone}, filters={"id": f"eq.{user_id}"})
+            if rows:
+                profile = rows[0]
+        except SupabaseRestError:
+            profile["phone"] = phone
+
     profile["_auth_token"] = token
     return profile
 
