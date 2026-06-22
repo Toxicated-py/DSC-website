@@ -145,6 +145,7 @@ export function CertificatesTab() {
 
   useEffect(() => {
     loadCertificates();
+    loadEvents();
   }, []);
 
   const matchingEvents = events
@@ -308,12 +309,10 @@ export function CertificatesTab() {
             <BrutalInput
               label="Event"
               value={eventQuery}
-              onFocus={loadEvents}
               onChange={(event: any) => {
                 setEventQuery(event.target.value);
                 setEventName(event.target.value);
                 setEventId(null);
-                loadEvents();
               }}
               placeholder="Search or type event name"
             />
