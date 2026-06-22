@@ -70,83 +70,6 @@ npm run supabase:migrations
 
 Migrations under `supabase/migrations` remain the source of truth for the hosted database structure. Apply production schema changes intentionally through the linked hosted project; do not start or reset a local Supabase database for this site.
 
-## Google Login
-
-Google login is handled through Supabase Auth. The frontend uses the existing Supabase client, so no Google client secret belongs in this repository.
-
-Supabase dashboard:
-
-1. Open `Authentication` -> `Providers` -> `Google`.
-2. Enable Google.
-3. Add the Google OAuth Client ID and Client Secret from Google Cloud Console.
-4. Save.
-
-Google Cloud Console:
-
-1. Create an OAuth Client ID with application type `Web application`.
-2. Add local JavaScript origins:
-
-```text
-http://localhost:5173
-http://127.0.0.1:5173
-```
-
-3. Add production JavaScript origins when the domain is final:
-
-```text
-https://dscsms.com
-https://www.dscsms.com
-```
-
-4. Add the Supabase callback URL:
-
-```text
-https://<your-project-ref>.supabase.co/auth/v1/callback
-```
-
-For the current Mumbai project, replace `<your-project-ref>` with the project ref from the Supabase dashboard.
-
-Supabase URL configuration:
-
-1. Set `Site URL` to the deployed frontend URL.
-2. Add redirect URLs:
-
-```text
-http://localhost:5173/**
-http://127.0.0.1:5173/**
-https://dscsms.com/**
-https://www.dscsms.com/**
-```
-
-After setup, test `/login`, click `Sign In with Google`, and confirm the app returns to `/dashboard` or the original protected route.
-
-Password reset uses the same Supabase redirect list. Make sure `/reset-password` is covered by the wildcard URLs above, then test `Forgot password?` from `/login`.
-
-## CAPTCHA Protection
-
-Auth forms support Cloudflare Turnstile when configured.
-
-Cloudflare:
-
-1. Create a Turnstile site for `dscsms.com`.
-2. Add `localhost` for local testing if needed.
-3. Copy the Site Key and Secret Key.
-
-Supabase dashboard:
-
-1. Open `Authentication` -> `Bot and Abuse Protection`.
-2. Enable CAPTCHA protection.
-3. Select Cloudflare Turnstile.
-4. Paste the Turnstile Secret Key and save.
-
-Frontend environment:
-
-```bash
-VITE_TURNSTILE_SITE_KEY=your-public-turnstile-site-key
-```
-
-Only the Turnstile Site Key is public. Never commit the Turnstile Secret Key.
-
 ## Production Deployment
 
 Deploy the frontend and backend separately, with Supabase as the hosted database/auth provider.
@@ -156,7 +79,6 @@ Frontend environment variables:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_BASE_URL` or the configured API base URL used by the frontend host
-- `VITE_TURNSTILE_SITE_KEY` for CAPTCHA on auth forms, if Supabase CAPTCHA is enabled
 
 Backend environment variables:
 
