@@ -95,8 +95,8 @@ http://127.0.0.1:5173
 3. Add production JavaScript origins when the domain is final:
 
 ```text
-https://datasarathi.org.np
-https://www.datasarathi.org.np
+https://dscsms.com
+https://www.dscsms.com
 ```
 
 4. Add the Supabase callback URL:
@@ -115,8 +115,8 @@ Supabase URL configuration:
 ```text
 http://localhost:5173/**
 http://127.0.0.1:5173/**
-https://datasarathi.org.np/**
-https://www.datasarathi.org.np/**
+https://dscsms.com/**
+https://www.dscsms.com/**
 ```
 
 After setup, test `/login`, click `Sign In with Google`, and confirm the app returns to `/dashboard` or the original protected route.
@@ -143,7 +143,7 @@ Backend environment variables:
 Example:
 
 ```bash
-ALLOWED_ORIGINS=https://datasarathi.org.np,https://www.datasarathi.org.np
+ALLOWED_ORIGINS=https://dscsms.com,https://www.dscsms.com
 ```
 
 Never expose service role keys, admin secrets, `.env` files, or private user data in frontend code, logs, commits, screenshots, or public hosting settings.
