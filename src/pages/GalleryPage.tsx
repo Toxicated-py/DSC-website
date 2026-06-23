@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, ChevronLeft, ChevronRight, Heart, Image, Search, Upload, X } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, Heart, MessageCircle, MoreHorizontal, Send, Upload, X, ZoomIn } from "lucide-react";
 import { apiGet, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { submitGallery } from "../lib/contentApi";
-import { DSC_LOGO_SRC } from "../config/assets";
 import { fonts } from "../config/fonts";
 
 type GalleryPhoto = {
@@ -12,21 +11,58 @@ type GalleryPhoto = {
   title: string;
   event: string;
   eventId: string;
+  type: string;
   date: string;
   likes: number;
   liked: boolean;
 };
 
-const TYPE_COLORS = ["bg-[#2563EB]", "bg-[#7C3AED]", "bg-[#FB7185]", "bg-[#171717]"];
+type GalleryPost = {
+  id: string;
+  event: string;
+  type: string;
+  date: string;
+  postedBy: string;
+  caption: string;
+  photos: GalleryPhoto[];
+};
+
+type LocalComment = {
+  id: number;
+  author: string;
+  role: string;
+  avatar: string;
+  text: string;
+  time: string;
+};
+
+const FILTERS = ["all", "workshop", "competition", "talk", "social"];
+const TYPE_COLORS: Record<string, string> = {
+  workshop: "bg-[#2563EB]",
+  competition: "bg-[#171717]",
+  talk: "bg-[#7C3AED]",
+  social: "bg-[#FB7185]",
+};
+
+const normalizeType = (value: string) => {
+  const type = String(value || "").toLowerCase();
+  if (type.includes("competition") || type.includes("hackathon")) return "competition";
+  if (type.includes("talk") || type.includes("seminar")) return "talk";
+  if (type.includes("workshop")) return "workshop";
+  return "social";
+};
 
 export function GalleryPage() {
   const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+  const [activeIndexes, setActiveIndexes] = useState<Record<string, number>>({});
   const [eventOptions, setEventOptions] = useState<any[]>([]);
   const [likedPhotos, setLikedPhotos] = useState<string[]>([]);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
+  const [commentsOpen, setCommentsOpen] = useState<Record<string, boolean>>({});
+  const [comments, setComments] = useState<Record<string, LocalComment[]>>({});
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [lightbox, setLightbox] = useState<{ postId: string; index: number } | null>(null);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
   const [submittingGallery, setSubmittingGallery] = useState(false);
@@ -41,16 +77,21 @@ export function GalleryPage() {
         apiGet<any[]>("/api/events").catch(() => []),
       ]);
       if (!mounted) return;
-      setPhotos((data || []).map((item) => ({
-        id: item.id,
-        url: item.image_url,
-        title: item.title,
-        event: item.event_name || "Community",
-        eventId: item.event_id || "",
-        date: item.created_at ? new Date(item.created_at).toLocaleDateString() : "",
-        likes: Number(item.likes_count || 0),
-        liked: Boolean(item.liked_by_me),
-      })));
+      const eventById = new Map((events || []).map((event) => [event.id, event]));
+      setPhotos((data || []).map((item) => {
+        const event = eventById.get(item.event_id);
+        return {
+          id: item.id,
+          url: item.image_url,
+          title: item.title,
+          event: item.event_name || event?.title || "Community",
+          eventId: item.event_id || "",
+          type: normalizeType(event?.event_type || item.event_type || item.event_name),
+          date: item.created_at ? new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "",
+          likes: Number(item.likes_count || 0),
+          liked: Boolean(item.liked_by_me),
+        };
+      }));
       setLikedPhotos((data || []).filter((item) => item.liked_by_me).map((item) => item.id));
       setEventOptions(events || []);
     }
@@ -61,14 +102,32 @@ export function GalleryPage() {
     };
   }, []);
 
-  const filters = useMemo(() => ["all", ...Array.from(new Set(photos.map((photo) => photo.event.toLowerCase())))], [photos]);
-  const filteredPhotos = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return photos
-      .filter((photo) => selectedFilter === "all" || photo.event.toLowerCase() === selectedFilter)
-      .filter((photo) => !query || [photo.title, photo.event, photo.date].some((value) => String(value || "").toLowerCase().includes(query)));
-  }, [photos, searchQuery, selectedFilter]);
-  const selectedPhoto = selectedPhotoIndex === null ? null : filteredPhotos[selectedPhotoIndex];
+  const posts = useMemo(() => {
+    const grouped = new Map<string, GalleryPhoto[]>();
+    for (const photo of photos) {
+      const key = photo.eventId || photo.event;
+      grouped.set(key, [...(grouped.get(key) || []), photo]);
+    }
+    return Array.from(grouped.entries()).map(([id, group]) => ({
+      id,
+      event: group[0].event,
+      type: group[0].type,
+      date: group[0].date,
+      postedBy: "clubteam",
+      caption: group.map((photo) => photo.title).join(" · "),
+      photos: group,
+    }));
+  }, [photos]);
+  const filteredPosts = selectedFilter === "all" ? posts : posts.filter((post) => post.type === selectedFilter);
+  const lightboxPost = lightbox ? posts.find((post) => post.id === lightbox.postId) : null;
+
+  const activePhoto = (post: GalleryPost) => post.photos[activeIndexes[post.id] || 0] || post.photos[0];
+  const movePost = (post: GalleryPost, direction: number) => {
+    setActiveIndexes((current) => {
+      const next = ((current[post.id] || 0) + direction + post.photos.length) % post.photos.length;
+      return { ...current, [post.id]: next };
+    });
+  };
 
   const toggleLike = async (photoId: string) => {
     try {
@@ -82,6 +141,17 @@ export function GalleryPage() {
       }
       setSubmitStatus(userFriendlyErrorMessage(error, "Could not update like. Please try again."));
     }
+  };
+
+  const submitComment = (postId: string) => {
+    const text = commentInputs[postId]?.trim();
+    if (!text) return;
+    setComments((current) => ({
+      ...current,
+      [postId]: [...(current[postId] || []), { id: Date.now(), author: "You", role: "Member", avatar: "YO", text, time: "Just now" }],
+    }));
+    setCommentInputs((current) => ({ ...current, [postId]: "" }));
+    setCommentsOpen((current) => ({ ...current, [postId]: true }));
   };
 
   const submitGalleryPhoto = async (event: React.FormEvent) => {
@@ -115,143 +185,157 @@ export function GalleryPage() {
     }
   };
 
-  const moveLightbox = (direction: number) => {
-    setSelectedPhotoIndex((current) => {
-      if (current === null) return current;
-      return Math.min(filteredPhotos.length - 1, Math.max(0, current + direction));
-    });
-  };
-
   return (
     <div className="min-h-screen bg-[#F4EFEB] pb-20">
-      <section className="border-b-2 border-[#171717] px-4 pt-24 pb-8 md:px-8">
-        <div className="mx-auto flex max-w-[980px] flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="h-14 w-14 shrink-0 rounded-full border-2 border-[#171717] bg-white p-[2px]">
-              <img src={DSC_LOGO_SRC} alt="Data Science Club logo" className="h-full w-full object-contain" />
-            </div>
-            <div>
-              <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">Data Science Club - SMS TU</p>
-              <h1 className="text-5xl uppercase leading-none text-[#171717] md:text-7xl" style={fonts.display}>Gallery</h1>
-              <p className="mt-2 text-sm text-slate-600">Moments from workshops, events, and community work.</p>
-            </div>
+      <header className="mx-auto max-w-[860px] px-5 pt-24 pb-8">
+        <div className="flex items-end justify-between gap-5">
+          <div>
+            <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">Data Sarathi · SMS TU</p>
+            <h1 className="text-6xl uppercase leading-none text-[#171717] md:text-8xl" style={fonts.display}>Gallery</h1>
+            <p className="mt-2 text-lg text-slate-600">Moments from our events &amp; community</p>
           </div>
-          <button
-            onClick={() => setShowSubmitForm((open) => !open)}
-            className="inline-flex items-center justify-center gap-2 border-2 border-[#171717] bg-[#171717] px-5 py-3 text-xs font-bold uppercase tracking-widest text-white brutal-shadow hover:bg-[#2563EB]"
-          >
-            <Upload size={14} /> Upload Photos
+          <button onClick={() => setShowSubmitForm((open) => !open)} className="hidden items-center gap-2 rounded-md bg-[#171717] px-6 py-3 text-xs font-bold uppercase tracking-widest text-white shadow-lg hover:bg-[#2563EB] sm:inline-flex">
+            <Upload size={15} /> Upload
           </button>
         </div>
-      </section>
+      </header>
 
-      <section className="sticky top-0 z-30 border-b-2 border-[#171717] bg-[#F4EFEB]/95 px-4 py-3 backdrop-blur md:px-8">
-        <div className="mx-auto grid max-w-[980px] gap-3 md:grid-cols-[1fr_auto]">
-          <div className="relative">
-            <Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search gallery..."
-              className="w-full border-2 border-[#171717] bg-white py-3 pl-11 pr-4 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/25"
-            />
-          </div>
-          <div className="flex gap-2 overflow-x-auto">
-            {filters.map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setSelectedFilter(filter)}
-                className={`whitespace-nowrap border-2 border-[#171717] px-4 py-3 text-xs font-bold uppercase tracking-widest ${
-                  selectedFilter === filter ? "bg-[#FFE800] text-[#171717]" : "bg-white text-slate-600 hover:bg-[#171717] hover:text-white"
-                }`}
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
+      <div className="sticky top-0 z-30 border-y border-slate-200 bg-[#F4EFEB]/90 px-5 backdrop-blur">
+        <div className="mx-auto flex max-w-[860px] gap-3 overflow-x-auto py-3">
+          {FILTERS.map((filter) => (
+            <button key={filter} onClick={() => setSelectedFilter(filter)} className={`rounded-full border-2 px-5 py-2 text-xs font-bold uppercase tracking-widest shadow-sm ${selectedFilter === filter ? "border-[#171717] bg-[#171717] text-white" : "border-slate-200 bg-white text-slate-500"}`}>
+              {filter}
+            </button>
+          ))}
         </div>
-      </section>
+      </div>
 
       {showSubmitForm && (
-        <section className="mx-auto mt-6 max-w-[980px] px-4 md:px-8">
-          <form onSubmit={submitGalleryPhoto} className="border-2 border-[#171717] bg-white p-5 brutal-shadow">
-            <h2 className="mb-4 text-3xl uppercase" style={fonts.display}>Submit Photos</h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="block text-xs font-bold uppercase tracking-widest">
-                Photo Title
-                <input value={galleryForm.title} onChange={(event) => setGalleryForm({ ...galleryForm, title: event.target.value })} required className="mt-2 w-full border-2 border-[#171717] p-3 font-mono text-sm" />
-              </label>
-              <label className="block text-xs font-bold uppercase tracking-widest">
-                Event Name
-                <input value={galleryForm.eventName} onChange={(event) => setGalleryForm({ ...galleryForm, eventName: event.target.value })} placeholder="Workshop, Hackathon, Community" className="mt-2 w-full border-2 border-[#171717] p-3 font-mono text-sm" />
-              </label>
-              <label className="block text-xs font-bold uppercase tracking-widest md:col-span-2">
-                Image URLs
-                <textarea value={galleryForm.imageUrl} onChange={(event) => setGalleryForm({ ...galleryForm, imageUrl: event.target.value })} required placeholder="Add one or more image URLs, separated by commas or new lines" className="mt-2 min-h-28 w-full border-2 border-[#171717] p-3 font-mono text-sm" />
-              </label>
+        <section className="mx-auto mt-6 max-w-[720px] px-4">
+          <form onSubmit={submitGalleryPhoto} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
+            <h2 className="mb-4 text-3xl uppercase" style={fonts.display}>Upload Photos</h2>
+            <div className="grid gap-4">
+              <input value={galleryForm.title} onChange={(event) => setGalleryForm({ ...galleryForm, title: event.target.value })} required placeholder="Photo title" className="rounded-xl border border-slate-200 p-3 font-mono text-sm" />
+              <textarea value={galleryForm.imageUrl} onChange={(event) => setGalleryForm({ ...galleryForm, imageUrl: event.target.value })} required placeholder="Image URLs, separated by commas or new lines" className="min-h-24 rounded-xl border border-slate-200 p-3 font-mono text-sm" />
+              <input value={galleryForm.eventName} onChange={(event) => setGalleryForm({ ...galleryForm, eventName: event.target.value })} placeholder="Event name" className="rounded-xl border border-slate-200 p-3 font-mono text-sm" />
               {eventOptions.length > 0 && (
-                <label className="block text-xs font-bold uppercase tracking-widest md:col-span-2">
-                  Link Event
-                  <select
-                    value={galleryForm.eventId}
-                    onChange={(event) => {
-                      const selected = eventOptions.find((item) => item.id === event.target.value);
-                      setGalleryForm({ ...galleryForm, eventId: event.target.value, eventName: selected?.title || galleryForm.eventName });
-                    }}
-                    className="mt-2 w-full border-2 border-[#171717] p-3 font-mono text-sm"
-                  >
-                    <option value="">No linked event</option>
-                    {eventOptions.map((event) => <option key={event.id} value={event.id}>{event.title}</option>)}
-                  </select>
-                </label>
+                <select
+                  value={galleryForm.eventId}
+                  onChange={(event) => {
+                    const selected = eventOptions.find((item) => item.id === event.target.value);
+                    setGalleryForm({ ...galleryForm, eventId: event.target.value, eventName: selected?.title || galleryForm.eventName });
+                  }}
+                  className="rounded-xl border border-slate-200 p-3 font-mono text-sm"
+                >
+                  <option value="">No linked event</option>
+                  {eventOptions.map((event) => <option key={event.id} value={event.id}>{event.title}</option>)}
+                </select>
               )}
             </div>
-            <button type="submit" disabled={submittingGallery} className="mt-5 w-full border-2 border-[#171717] bg-[#2563EB] px-5 py-3 text-xs font-bold uppercase tracking-widest text-white brutal-shadow disabled:opacity-50">
+            <button type="submit" disabled={submittingGallery} className="mt-4 w-full rounded-xl bg-[#2563EB] px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50">
               {submittingGallery ? "Submitting..." : "Submit For Review"}
             </button>
           </form>
         </section>
       )}
 
-      {submitStatus && <p className="mx-auto mt-5 max-w-[980px] px-4 text-sm font-bold text-[#2563EB] md:px-8">{submitStatus}</p>}
+      {submitStatus && <p className="mx-auto mt-4 max-w-[720px] px-4 text-sm font-bold text-[#2563EB]">{submitStatus}</p>}
 
-      <main className="mx-auto max-w-[720px] px-4 py-6 md:px-6">
-        {filteredPhotos.length === 0 ? (
-          <div className="border-2 border-dashed border-[#171717] bg-white py-20 text-center">
+      <main className="mx-auto max-w-[720px] px-4 py-8">
+        {filteredPosts.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white py-20 text-center shadow-xl">
             <Camera size={40} className="mx-auto mb-3 text-slate-300" />
-            <p className="text-2xl uppercase text-slate-400" style={fonts.display}>No Photos Yet</p>
-            <p className="mt-2 font-mono text-sm text-slate-400">Approved submissions will appear here.</p>
+            <p className="text-2xl uppercase text-slate-400" style={fonts.display}>No Posts Yet</p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {filteredPhotos.map((photo, index) => {
-              const color = TYPE_COLORS[index % TYPE_COLORS.length];
+          <div className="space-y-8">
+            {filteredPosts.map((post) => {
+              const photo = activePhoto(post);
+              const postComments = comments[post.id] || [];
               return (
-                <article key={photo.id} className="overflow-hidden border-2 border-[#171717] bg-white brutal-shadow">
-                  <div className="flex items-center justify-between gap-4 p-4">
+                <article key={post.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                  <div className="flex items-center justify-between px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${color} text-white`}>
-                        <Camera size={16} />
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-md ${TYPE_COLORS[post.type] || TYPE_COLORS.social} text-white`}>
+                        <Camera size={18} />
                       </div>
                       <div>
-                        <h2 className="text-sm font-bold uppercase leading-tight">{photo.event}</h2>
-                        <p className="font-mono text-[10px] uppercase text-slate-400">{photo.date || "Date TBA"}</p>
+                        <h2 className="font-bold text-[#171717]">{post.event}</h2>
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <span className={`h-1.5 w-1.5 rounded-full ${TYPE_COLORS[post.type] || TYPE_COLORS.social}`} />
+                          <span className="font-mono text-[11px] uppercase tracking-wider text-slate-500">{post.type} · {post.date || "Date TBA"}</span>
+                        </div>
                       </div>
                     </div>
-                    <span className="border-2 border-[#171717] bg-[#FFE800] px-2 py-1 text-[10px] font-bold uppercase tracking-widest">Photo</span>
+                    <MoreHorizontal size={20} className="text-slate-400" />
                   </div>
-                  <button className="block w-full bg-[#171717]" onClick={() => setSelectedPhotoIndex(index)}>
-                    <img src={photo.url} alt={photo.title} className="aspect-[4/3] w-full object-cover transition-transform duration-500 hover:scale-[1.02]" loading="lazy" />
-                  </button>
-                  <div className="p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h3 className="text-2xl uppercase leading-tight" style={fonts.display}>{photo.title}</h3>
-                      <button onClick={() => toggleLike(photo.id)} className="inline-flex items-center gap-2 font-bold text-[#FB7185]">
-                        <Heart size={18} className={likedPhotos.includes(photo.id) ? "fill-[#FB7185]" : ""} />
-                        <span>{photo.likes || 0}</span>
+
+                  <div className="relative bg-[#171717]">
+                    <button onClick={() => setLightbox({ postId: post.id, index: activeIndexes[post.id] || 0 })} className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white">
+                      <ZoomIn size={16} />
+                    </button>
+                    {post.photos.length > 1 && <span className="absolute left-4 top-4 z-10 rounded-full bg-black/60 px-3 py-1 font-mono text-xs font-bold text-white">{(activeIndexes[post.id] || 0) + 1} / {post.photos.length}</span>}
+                    <img src={photo.url} alt={photo.title} className="aspect-[4/3] w-full object-cover" loading="lazy" />
+                    {post.photos.length > 1 && (
+                      <>
+                        <button onClick={() => movePost(post, -1)} className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#171717] shadow-lg">
+                          <ChevronLeft size={22} />
+                        </button>
+                        <button onClick={() => movePost(post, 1)} className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#171717] shadow-lg">
+                          <ChevronRight size={22} />
+                        </button>
+                        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+                          {post.photos.map((_, index) => (
+                            <button key={index} onClick={() => setActiveIndexes((current) => ({ ...current, [post.id]: index }))} className={`h-2 rounded-full bg-white ${index === (activeIndexes[post.id] || 0) ? "w-6" : "w-2 opacity-50"}`} />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="px-5 py-4">
+                    <div className="mb-3 flex items-center gap-5">
+                      <button onClick={() => toggleLike(photo.id)} className="inline-flex items-center gap-2 text-slate-500">
+                        <Heart size={24} className={likedPhotos.includes(photo.id) ? "fill-[#FB7185] text-[#FB7185]" : ""} />
+                        <span className="font-semibold">{photo.likes || 0}</span>
+                      </button>
+                      <button onClick={() => setCommentsOpen((current) => ({ ...current, [post.id]: !current[post.id] }))} className="inline-flex items-center gap-2 text-[#2563EB]">
+                        <MessageCircle size={24} />
+                        <span className="font-semibold">{postComments.length}</span>
                       </button>
                     </div>
-                    <p className="text-sm leading-6 text-slate-600">Shared from {photo.event}. Open the photo to view it larger.</p>
+                    <p className="text-[15px] leading-7 text-[#171717]">
+                      <span className="mr-2 font-bold">@{post.postedBy}</span>
+                      {post.caption}
+                    </p>
+
+                    {(commentsOpen[post.id] || postComments.length > 0) && (
+                      <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+                        {postComments.map((comment) => (
+                          <div key={comment.id} className="flex gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-xs font-bold text-white">{comment.avatar}</div>
+                            <div className="flex-1 rounded-lg bg-slate-50 px-4 py-3">
+                              <div className="mb-1 flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-bold">{comment.author}</span>
+                                <span className="rounded bg-[#FFE800] px-2 py-0.5 text-[10px] font-bold uppercase">{comment.role}</span>
+                                <span className="font-mono text-[10px] text-slate-400">{comment.time}</span>
+                              </div>
+                              <p className="text-sm text-slate-700">{comment.text}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex items-center gap-3 border-t border-slate-100 pt-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#171717] bg-[#FFE800] text-xs font-bold">YO</div>
+                      <div className="flex flex-1 items-center rounded-full bg-slate-100 pl-4 pr-1">
+                        <input value={commentInputs[post.id] || ""} onChange={(event) => setCommentInputs((current) => ({ ...current, [post.id]: event.target.value }))} onKeyDown={(event) => event.key === "Enter" && submitComment(post.id)} placeholder="Add a comment..." className="flex-1 bg-transparent py-3 text-sm outline-none" />
+                        <button onClick={() => submitComment(post.id)} disabled={!commentInputs[post.id]?.trim()} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2563EB] text-white disabled:opacity-30">
+                          <Send size={15} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </article>
               );
@@ -260,22 +344,12 @@ export function GalleryPage() {
         )}
       </main>
 
-      {selectedPhoto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4" role="dialog" aria-modal="true">
-          <button onClick={() => setSelectedPhotoIndex(null)} className="absolute right-4 top-4 border-2 border-white bg-white p-3 text-[#171717]">
-            <X size={20} />
+      {lightbox && lightboxPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4" role="dialog" aria-modal="true" onClick={() => setLightbox(null)}>
+          <button onClick={() => setLightbox(null)} className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-3 text-white hover:bg-white/20">
+            <X size={22} />
           </button>
-          <button onClick={() => moveLightbox(-1)} disabled={selectedPhotoIndex === 0} className="absolute left-3 border-2 border-white bg-white p-3 disabled:opacity-30 md:left-8">
-            <ChevronLeft size={24} />
-          </button>
-          <img src={selectedPhoto.url} alt={selectedPhoto.title} className="max-h-[78vh] max-w-full border-2 border-white object-contain" />
-          <button onClick={() => moveLightbox(1)} disabled={selectedPhotoIndex === filteredPhotos.length - 1} className="absolute right-3 border-2 border-white bg-white p-3 disabled:opacity-30 md:right-8">
-            <ChevronRight size={24} />
-          </button>
-          <div className="absolute bottom-4 left-4 right-4 border-2 border-[#171717] bg-white p-4 md:left-8 md:right-8">
-            <h3 className="text-2xl uppercase" style={fonts.display}>{selectedPhoto.title}</h3>
-            <p className="font-mono text-xs text-slate-600">{selectedPhoto.event} {selectedPhoto.date && `- ${selectedPhoto.date}`}</p>
-          </div>
+          <img onClick={(event) => event.stopPropagation()} src={lightboxPost.photos[lightbox.index]?.url} alt={lightboxPost.event} className="max-h-[82vh] max-w-full rounded-xl object-contain" />
         </div>
       )}
     </div>
