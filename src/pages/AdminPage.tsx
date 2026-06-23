@@ -26,7 +26,7 @@ import { OverviewTab, UsersTab, EventsTab, ProposalsTab, ProjectsTab, BlogsTab, 
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, BrutalSelect, BrutalTextarea } from "./admin/AdminPrimitives";
 import { assignableRoleOptions, certificateTemplateOptions, formatCertificateError, fromDatetimeLocalValue, hasDatePassed, isEventRegistrationOpen, isFullAdminProfile, isOrganizerProfile, isPastEvent, slugify, toDatetimeLocalValue } from "./admin/adminUtils";
 
-const rolePriority = ["admin", "president", "event_manager", "teacher", "student", "member"];
+const rolePriority = ["president", "admin", "event_manager", "teacher", "student", "member"];
 const primaryRoleFrom = (roles: string[]) => rolePriority.find((role) => roles.includes(role)) || "member";
 
 
