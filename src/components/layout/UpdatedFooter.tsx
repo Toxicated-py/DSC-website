@@ -88,8 +88,6 @@ export function UpdatedFooter() {
             <Link to="/gallery" className="hover:text-[#7C3AED] w-max">Gallery</Link>
             <Link to="/partners" className="hover:text-[#FB7185] w-max">Partners</Link>
             <Link to="/contact" className="hover:text-[#FB7185] w-max">Contact</Link>
-            <Link to="/privacy" className="hover:text-[#2563EB] w-max">Privacy</Link>
-            <Link to="/terms" className="hover:text-[#2563EB] w-max">Terms</Link>
           </div>
 
           {/* Brand + Credit */}
@@ -125,6 +123,14 @@ export function UpdatedFooter() {
               >
                 Bisup
               </a>
+            </div>
+            <div className="mt-3 flex gap-4 md:justify-end">
+              <Link to="/privacy" className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-[#2563EB]">
+                Privacy
+              </Link>
+              <Link to="/terms" className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-[#2563EB]">
+                Terms
+              </Link>
             </div>
           </div>
         </div>
