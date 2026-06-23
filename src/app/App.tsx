@@ -27,6 +27,8 @@ const BlogEditorPage = lazy(() => import("../pages/BlogEditorPage").then((module
 const DashboardPage = lazy(() => import("../pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
 const TicketPage = lazy(() => import("../pages/TicketPage").then((module) => ({ default: module.TicketPage })));
 const ScannerPage = lazy(() => import("../pages/ScannerPage").then((module) => ({ default: module.ScannerPage })));
+const PrivacyPolicyPage = lazy(() => import("../pages/LegalPages").then((module) => ({ default: module.PrivacyPolicyPage })));
+const TermsOfServicePage = lazy(() => import("../pages/LegalPages").then((module) => ({ default: module.TermsOfServicePage })));
 
 function App() {
   return (
@@ -57,6 +59,8 @@ function App() {
             PartnersPage,
             TicketPage,
             ScannerPage,
+            PrivacyPolicyPage,
+            TermsOfServicePage,
           }}
         />
       </Suspense>

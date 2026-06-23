@@ -88,6 +88,8 @@ export function UpdatedFooter() {
             <Link to="/gallery" className="hover:text-[#7C3AED] w-max">Gallery</Link>
             <Link to="/partners" className="hover:text-[#FB7185] w-max">Partners</Link>
             <Link to="/contact" className="hover:text-[#FB7185] w-max">Contact</Link>
+            <Link to="/privacy" className="hover:text-[#2563EB] w-max">Privacy</Link>
+            <Link to="/terms" className="hover:text-[#2563EB] w-max">Terms</Link>
           </div>
 
           {/* Brand + Credit */}

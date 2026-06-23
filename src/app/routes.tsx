@@ -55,6 +55,8 @@ export function AppRoutes({ pages }: { pages: AppRoutePages }) {
     PartnersPage,
     TicketPage,
     ScannerPage,
+    PrivacyPolicyPage,
+    TermsOfServicePage,
   } = pages;
 
   return (
@@ -87,6 +89,8 @@ export function AppRoutes({ pages }: { pages: AppRoutePages }) {
         <Route path="ticket/:ticketId" element={<PageTitle title="Ticket"><ProtectedRoute><TicketPage /></ProtectedRoute></PageTitle>} />
         <Route path="tickets" element={<PageTitle title="Tickets"><ProtectedRoute><TicketPage /></ProtectedRoute></PageTitle>} />
         <Route path="tickets/:ticketId" element={<PageTitle title="Ticket"><ProtectedRoute><TicketPage /></ProtectedRoute></PageTitle>} />
+        <Route path="privacy" element={<PageTitle title="Privacy Policy"><PrivacyPolicyPage /></PageTitle>} />
+        <Route path="terms" element={<PageTitle title="Terms of Service"><TermsOfServicePage /></PageTitle>} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
