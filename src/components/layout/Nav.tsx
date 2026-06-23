@@ -227,12 +227,12 @@ export function Nav() {
           } as NavItem,
         ]
       : [{ label: "Resources", path: "/resources", icon: <BookOpen size={13} /> } as NavItem]),
+    { label: "Gallery", path: "/gallery", icon: <Image size={13} /> },
     {
       label: "Community",
       dropdown: [
         { label: "About Us", path: "/about", icon: <BookMarked size={14} /> },
         { label: "Team", path: "/team", icon: <Users size={14} /> },
-        { label: "Gallery", path: "/gallery", icon: <Image size={14} /> },
         { label: "Partners", path: "/partners", icon: <Handshake size={14} /> },
         { label: "Contact", path: "/contact", icon: <Mail size={14} /> },
       ],
@@ -267,7 +267,7 @@ export function Nav() {
 
   const dropdownActivePaths: Record<string, string[]> = {
     Resources: ["/resources"],
-    Community: ["/about", "/gallery", "/partners", "/contact"],
+    Community: ["/about", "/team", "/partners", "/contact"],
   };
 
   return (

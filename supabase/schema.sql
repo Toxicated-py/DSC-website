@@ -180,6 +180,14 @@ create table public.gallery_submissions (
   reviewed_by uuid references public.profiles(id)
 );
 
+create table public.gallery_comments (
+  id uuid primary key default gen_random_uuid(),
+  gallery_id uuid not null references public.gallery_submissions(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  text text not null check (char_length(trim(text)) between 1 and 1000),
+  created_at timestamptz not null default now()
+);
+
 create table public.partner_submissions (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -392,6 +400,7 @@ alter table public.projects enable row level security;
 alter table public.blog_posts enable row level security;
 alter table public.certificates enable row level security;
 alter table public.gallery_submissions enable row level security;
+alter table public.gallery_comments enable row level security;
 alter table public.partner_submissions enable row level security;
 alter table public.learning_materials enable row level security;
 alter table public.site_settings enable row level security;
@@ -414,6 +423,8 @@ create unique index if not exists certificates_unique_event_recipient
   where event_id is not null and status <> 'archived';
 create index if not exists gallery_submissions_submitted_by_idx on public.gallery_submissions(submitted_by);
 create index if not exists gallery_submissions_reviewed_by_idx on public.gallery_submissions(reviewed_by);
+create index if not exists gallery_comments_gallery_id_idx on public.gallery_comments(gallery_id);
+create index if not exists gallery_comments_user_id_idx on public.gallery_comments(user_id);
 create index if not exists partner_submissions_submitted_by_idx on public.partner_submissions(submitted_by);
 create index if not exists partner_submissions_reviewed_by_idx on public.partner_submissions(reviewed_by);
 create index if not exists learning_materials_created_by_idx on public.learning_materials(created_by);
@@ -565,6 +576,25 @@ create policy "Users can submit gallery" on public.gallery_submissions
 create policy "Admins manage gallery" on public.gallery_submissions
   for all using ((select private.current_user_is_admin()))
   with check ((select private.current_user_is_admin()));
+
+create policy "Public can read gallery comments" on public.gallery_comments
+  for select to anon, authenticated
+  using (
+    exists (
+      select 1
+      from public.gallery_submissions gallery
+      where gallery.id = gallery_comments.gallery_id
+        and gallery.status in ('approved', 'published')
+    )
+  );
+
+create policy "Users can add gallery comments" on public.gallery_comments
+  for insert to authenticated
+  with check ((select auth.uid()) = user_id);
+
+create policy "Users can delete own gallery comments" on public.gallery_comments
+  for delete to authenticated
+  using ((select auth.uid()) = user_id or (select private.current_user_is_admin()));
 
 create policy "Public can read approved partner submissions" on public.partner_submissions
   for select using (status in ('approved', 'published') or (select private.current_user_is_admin()) or submitted_by = (select auth.uid()));

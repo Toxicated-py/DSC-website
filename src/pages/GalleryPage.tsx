@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, ChevronLeft, ChevronRight, Heart, MessageCircle, MoreHorizontal, Send, Upload, X, ZoomIn } from "lucide-react";
-import { apiGet, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
+import { apiDelete, apiGet, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { submitGallery } from "../lib/contentApi";
 import { fonts } from "../config/fonts";
 
@@ -18,6 +18,7 @@ type GalleryPhoto = {
   submittedBy: string;
   likes: number;
   liked: boolean;
+  commentsCount: number;
 };
 
 type GalleryPost = {
@@ -29,15 +30,17 @@ type GalleryPost = {
   caption: string;
   tags: string[];
   photos: GalleryPhoto[];
+  commentsCount: number;
 };
 
 type LocalComment = {
-  id: number;
+  id: string;
   author: string;
   role: string;
   avatar: string;
   text: string;
   time: string;
+  canDelete: boolean;
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -101,6 +104,7 @@ export function GalleryPage() {
           submittedBy: item.submitted_by_name || "Club Member",
           likes: Number(item.likes_count || 0),
           liked: Boolean(item.liked_by_me),
+          commentsCount: Number(item.comments_count || 0),
         };
       }));
       setLikedPhotos((data || []).filter((item) => item.liked_by_me).map((item) => item.id));
@@ -128,6 +132,7 @@ export function GalleryPage() {
       caption: group.map((photo) => photo.caption || photo.title).filter(Boolean).join(" · "),
       tags: Array.from(new Set(group.flatMap((photo) => photo.tags))),
       photos: group,
+      commentsCount: group.reduce((total, photo) => total + (photo.commentsCount || 0), 0),
     }));
   }, [photos]);
   const filteredPosts = useMemo(() => {
@@ -144,6 +149,19 @@ export function GalleryPage() {
   const lightboxPost = lightbox ? posts.find((post) => post.id === lightbox.postId) : null;
 
   const activePhoto = (post: GalleryPost) => post.photos[activeIndexes[post.id] || 0] || post.photos[0];
+  const formatComment = (comment: any): LocalComment => {
+    const author = comment.author_name || "Member";
+    return {
+      id: comment.id,
+      author,
+      role: "Member",
+      avatar: String(author).slice(0, 2).toUpperCase(),
+      text: comment.text,
+      time: comment.created_at ? new Date(comment.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Just now",
+      canDelete: Boolean(comment.can_delete),
+    };
+  };
+
   const movePost = (post: GalleryPost, direction: number) => {
     setActiveIndexes((current) => {
       const next = ((current[post.id] || 0) + direction + post.photos.length) % post.photos.length;
@@ -165,22 +183,52 @@ export function GalleryPage() {
     }
   };
 
-  const submitComment = (postId: string) => {
-    const text = commentInputs[postId]?.trim();
-    if (!text) return;
-    setComments((current) => ({
-      ...current,
-      [postId]: [...(current[postId] || []), { id: Date.now(), author: "You", role: "Member", avatar: "YO", text, time: "Just now" }],
-    }));
-    setCommentInputs((current) => ({ ...current, [postId]: "" }));
-    setCommentsOpen((current) => ({ ...current, [postId]: true }));
+  const loadComments = async (post: GalleryPost) => {
+    const target = post.photos[0];
+    if (!target) return;
+    try {
+      const rows = await apiGet<any[]>(`/api/gallery/${target.id}/comments`, { auth: "optional" });
+      setComments((current) => ({ ...current, [post.id]: rows.map(formatComment) }));
+    } catch (error: any) {
+      setSubmitStatus(userFriendlyErrorMessage(error, "Could not load comments."));
+    }
   };
 
-  const deleteComment = (postId: string, commentId: number) => {
-    setComments((current) => ({
-      ...current,
-      [postId]: (current[postId] || []).filter((comment) => comment.id !== commentId),
-    }));
+  const toggleComments = async (post: GalleryPost) => {
+    const nextOpen = !commentsOpen[post.id];
+    setCommentsOpen((current) => ({ ...current, [post.id]: nextOpen }));
+    if (nextOpen && !comments[post.id]) await loadComments(post);
+  };
+
+  const submitComment = async (post: GalleryPost) => {
+    const target = post.photos[0];
+    const text = commentInputs[post.id]?.trim();
+    if (!target || !text) return;
+    try {
+      const row = await apiPost<any>(`/api/gallery/${target.id}/comments`, { text }, { auth: true });
+      setComments((current) => ({ ...current, [post.id]: [...(current[post.id] || []), formatComment(row)] }));
+      setPhotos((current) => current.map((photo) => photo.id === target.id ? { ...photo, commentsCount: photo.commentsCount + 1 } : photo));
+      setCommentInputs((current) => ({ ...current, [post.id]: "" }));
+      setCommentsOpen((current) => ({ ...current, [post.id]: true }));
+    } catch (error: any) {
+      if (error?.status === 401) {
+        navigate("/login?redirect=/gallery");
+        return;
+      }
+      setSubmitStatus(userFriendlyErrorMessage(error, "Could not save comment."));
+    }
+  };
+
+  const deleteComment = async (post: GalleryPost, commentId: string) => {
+    const target = post.photos[0];
+    if (!target) return;
+    try {
+      await apiDelete(`/api/gallery/comments/${commentId}`, { auth: true });
+      setComments((current) => ({ ...current, [post.id]: (current[post.id] || []).filter((comment) => comment.id !== commentId) }));
+      setPhotos((current) => current.map((photo) => photo.id === target.id ? { ...photo, commentsCount: Math.max(0, photo.commentsCount - 1) } : photo));
+    } catch (error: any) {
+      setSubmitStatus(userFriendlyErrorMessage(error, "Could not delete comment."));
+    }
   };
 
   const submitGalleryPhoto = async (event: React.FormEvent) => {
@@ -331,9 +379,9 @@ export function GalleryPage() {
                         <Heart size={24} className={likedPhotos.includes(photo.id) ? "fill-[#FB7185] text-[#FB7185]" : ""} />
                         <span className="font-semibold">{photo.likes || 0}</span>
                       </button>
-                      <button onClick={() => setCommentsOpen((current) => ({ ...current, [post.id]: !current[post.id] }))} className="inline-flex items-center gap-2 text-[#2563EB]">
+                      <button onClick={() => void toggleComments(post)} className="inline-flex items-center gap-2 text-[#2563EB]">
                         <MessageCircle size={24} />
-                        <span className="font-semibold">{postComments.length}</span>
+                        <span className="font-semibold">{comments[post.id]?.length ?? post.commentsCount}</span>
                       </button>
                     </div>
                     <p className="text-[15px] leading-7 text-[#171717]">
@@ -356,8 +404,8 @@ export function GalleryPage() {
                                 <span className="text-sm font-bold">{comment.author}</span>
                                 <span className="rounded bg-[#FFE800] px-2 py-0.5 text-[10px] font-bold uppercase">{comment.role}</span>
                                 <span className="font-mono text-[10px] text-slate-400">{comment.time}</span>
-                                {comment.author === "You" && (
-                                  <button onClick={() => deleteComment(post.id, comment.id)} className="ml-auto text-[10px] font-bold uppercase tracking-widest text-[#FB7185] hover:text-[#171717]">
+                                {comment.canDelete && (
+                                  <button onClick={() => void deleteComment(post, comment.id)} className="ml-auto text-[10px] font-bold uppercase tracking-widest text-[#FB7185] hover:text-[#171717]">
                                     Delete
                                   </button>
                                 )}
@@ -372,8 +420,8 @@ export function GalleryPage() {
                     <div className="mt-4 flex items-center gap-3 border-t border-slate-100 pt-4">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#171717] bg-[#FFE800] text-xs font-bold">YO</div>
                       <div className="flex flex-1 items-center rounded-full bg-slate-100 pl-4 pr-1">
-                        <input value={commentInputs[post.id] || ""} onChange={(event) => setCommentInputs((current) => ({ ...current, [post.id]: event.target.value }))} onKeyDown={(event) => event.key === "Enter" && submitComment(post.id)} placeholder="Add a comment..." className="flex-1 bg-transparent py-3 text-sm outline-none" />
-                        <button onClick={() => submitComment(post.id)} disabled={!commentInputs[post.id]?.trim()} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2563EB] text-white disabled:opacity-30">
+                        <input value={commentInputs[post.id] || ""} onChange={(event) => setCommentInputs((current) => ({ ...current, [post.id]: event.target.value }))} onKeyDown={(event) => event.key === "Enter" && void submitComment(post)} placeholder="Log in to add a comment..." className="flex-1 bg-transparent py-3 text-sm outline-none" />
+                        <button onClick={() => void submitComment(post)} disabled={!commentInputs[post.id]?.trim()} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2563EB] text-white disabled:opacity-30">
                           <Send size={15} />
                         </button>
                       </div>

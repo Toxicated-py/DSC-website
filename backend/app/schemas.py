@@ -83,6 +83,10 @@ class GallerySubmissionCreate(BaseModel):
     event_id: str | None = None
 
 
+class GalleryCommentCreate(BaseModel):
+    text: str = Field(min_length=1, max_length=1000)
+
+
 class CertificateImportRow(BaseModel):
     required_email: str
     required_name: str
