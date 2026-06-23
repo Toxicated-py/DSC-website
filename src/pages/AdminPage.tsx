@@ -315,7 +315,7 @@ export function ComprehensiveAdminPanel() {
         name: profile.full_name || profile.email || "Member",
         email: profile.email,
         phone: profile.phone || "",
-        role: profile.role,
+        role: primaryRoleFrom(Array.isArray(profile.roles) && profile.roles.length ? profile.roles : [profile.role || "member"]),
         roles: Array.isArray(profile.roles) && profile.roles.length ? profile.roles : [profile.role || "member"],
         membershipStatus: profile.membership_status,
         designationStatus: profile.designation_status,

@@ -13,6 +13,9 @@ type NavItem =
   | { label: string; path: string; icon?: React.ReactNode; dropdown?: undefined }
   | { label: string; path?: undefined; icon?: React.ReactNode; dropdown: NavDropdownItem[] };
 
+const rolePriority = ["president", "admin", "event_manager", "teacher", "student", "member"];
+const primaryRoleFrom = (roles: string[]) => rolePriority.find((role) => roles.includes(role)) || "member";
+
 function DropdownMenu({
   items,
   label,
@@ -186,7 +189,7 @@ export function Nav() {
       }
       setCurrentUser({
         name: profile?.full_name || profile?.email || displayName,
-        role: profile?.role || "member",
+        role: primaryRoleFrom(Array.isArray(profile?.roles) && profile.roles.length ? profile.roles : [profile?.role || "member"]),
         roles: Array.isArray(profile?.roles) ? profile.roles : [],
         verified: profile?.membership_status === "approved",
         designation: profile?.designation_status === "approved" ? profile?.designation || "" : "",

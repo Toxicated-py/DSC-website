@@ -669,10 +669,26 @@ export function UserBadge({ role, designation, verified }: { role?: string, desi
     );
   }
 
+  if (normalizedRole === "president") {
+    return (
+      <div className="inline-flex items-center gap-1 px-2 py-1 bg-[#FB7185] text-white border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest">
+        <Crown size={10} /> {label || "PRESIDENT"}
+      </div>
+    );
+  }
+
   if (normalizedRole === "event_manager") {
     return (
       <div className="inline-flex items-center gap-1 px-2 py-1 bg-[#7C3AED] text-white border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest">
         <GraduationCap size={10} /> {label || "EVENT MANAGER"}
+      </div>
+    );
+  }
+
+  if (normalizedRole === "teacher") {
+    return (
+      <div className="inline-flex items-center gap-1 px-2 py-1 bg-[#FFE800] text-[#171717] border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest">
+        <UserCheck size={10} /> {label || "TEACHER"}
       </div>
     );
   }
