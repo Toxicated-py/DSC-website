@@ -307,9 +307,10 @@ export function ComprehensiveAdminPanel() {
       if (!mounted) return;
       const profiles = profileRows || [];
       const profileById = new Map(profiles.map((profile: any) => [profile.id, profile]));
-      const projectRows = isAdmin ? projectRowsRaw : (projectRowsRaw || []).filter((project: any) => project.author_id === myProfile.id);
-      const blogRows = isAdmin ? blogRowsRaw : (blogRowsRaw || []).filter((post: any) => post.author_id === myProfile.id);
-      const eventRows = isAdmin ? eventRowsRaw : (eventRowsRaw || []).filter((event: any) => event.created_by === myProfile.id);
+      const canManageCoreContent = isAdmin || isOrganizerProfile(myProfile);
+      const projectRows = canManageCoreContent ? projectRowsRaw : (projectRowsRaw || []).filter((project: any) => project.author_id === myProfile.id);
+      const blogRows = canManageCoreContent ? blogRowsRaw : (blogRowsRaw || []).filter((post: any) => post.author_id === myProfile.id);
+      const eventRows = canManageCoreContent ? eventRowsRaw : (eventRowsRaw || []).filter((event: any) => event.created_by === myProfile.id);
       const mappedProfiles = (profiles || []).map((profile) => ({
         id: profile.id,
         name: profile.full_name || profile.email || "Member",
@@ -1923,7 +1924,7 @@ export function ComprehensiveAdminPanel() {
     handleIssueCertificate,
     handleUserAction,
     isCertificateAdmin,
-    isFullAdmin,
+    isFullAdmin: isFullAdmin || isOrganizerAdmin,
     isOrganizerAdmin,
     isSelectedRecipientAlreadyIssued,
     isSelectedRecipientCheckedIn,
