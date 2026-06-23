@@ -65,6 +65,7 @@ export function GalleryTab({ ctx }: { ctx: any }) {
     data,
     date,
     deleteCertificate,
+    deleteContentItem,
     deleteContactMessage,
     deleteLearningMaterial,
     deletePartner,
@@ -345,6 +346,7 @@ export function GalleryTab({ ctx }: { ctx: any }) {
                       </button>
                       <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Approve</button>
                       <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Reject</button>
+                      <button onClick={() => deleteContentItem("gallery", item.id, "gallery item")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>
                     </div>
                   </BrutalCard>
                 ))}
@@ -359,7 +361,10 @@ export function GalleryTab({ ctx }: { ctx: any }) {
                     </div>
                     <h3 className="font-bold uppercase">{item.title}</h3>
                     <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
-                    <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Move to Rejected</button>
+                    <div className="flex gap-2 flex-wrap">
+                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Move to Rejected</button>
+                      <button onClick={() => deleteContentItem("gallery", item.id, "gallery item")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>
+                    </div>
                   </BrutalCard>
                 ))}
                 {approvedGallery.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No approved gallery items.</p></BrutalCard>}
@@ -370,7 +375,10 @@ export function GalleryTab({ ctx }: { ctx: any }) {
                   <BrutalCard key={item.id} color="bg-white">
                     <h3 className="font-bold uppercase">{item.title}</h3>
                     <p className="text-xs font-mono text-slate-500 mb-3">{item.event_name || "General gallery"} - {item.status}</p>
-                    <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
+                    <div className="flex gap-2 flex-wrap">
+                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
+                      <button onClick={() => deleteContentItem("gallery", item.id, "gallery item")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>
+                    </div>
                   </BrutalCard>
                 ))}
                 {rejectedGallery.length === 0 && <BrutalCard color="bg-white"><p className="font-bold text-sm uppercase">No rejected gallery submissions.</p></BrutalCard>}

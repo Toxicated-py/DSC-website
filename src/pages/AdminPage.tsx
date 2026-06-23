@@ -1089,6 +1089,21 @@ export function ComprehensiveAdminPanel() {
     setEvents(events.map(e => e.id === id ? { ...e, status: "archived" } : e));
   };
 
+  const deleteContentItem = async (resource: "events" | "projects" | "blog-posts" | "gallery", id: string, label: string) => {
+    if (!window.confirm(`Delete this ${label} permanently?`)) return;
+    try {
+      await adminDeleteResource(resource, id);
+    } catch (error: any) {
+      setAdminStatus(error.message || `Could not delete ${label}.`);
+      return;
+    }
+    if (resource === "events") setEvents(events.filter((item) => item.id !== id));
+    if (resource === "projects") setProjects(projects.filter((item) => item.id !== id));
+    if (resource === "blog-posts") setBlogPosts(blogPosts.filter((item) => item.id !== id));
+    if (resource === "gallery") setGallerySubmissions(gallerySubmissions.filter((item) => item.id !== id));
+    setAdminStatus(`${label} deleted.`);
+  };
+
   const updateEventStatus = async (id: string, status: string) => {
     try {
       await adminUpdateResourceStatus("events", id, status);
@@ -1894,6 +1909,7 @@ export function ComprehensiveAdminPanel() {
     copyCertificateLink,
     createEventFromProposal,
     deleteCertificate,
+    deleteContentItem,
     deleteContactMessage,
     deleteLearningMaterial,
     deletePartner,

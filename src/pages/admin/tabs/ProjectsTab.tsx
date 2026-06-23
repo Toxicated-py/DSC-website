@@ -65,6 +65,7 @@ export function ProjectsTab({ ctx }: { ctx: any }) {
     data,
     date,
     deleteCertificate,
+    deleteContentItem,
     deleteContactMessage,
     deleteLearningMaterial,
     deletePartner,
@@ -398,6 +399,7 @@ export function ProjectsTab({ ctx }: { ctx: any }) {
                           Reject
                         </button>
                       )}
+                      {isFullAdmin && <button onClick={() => deleteContentItem("projects", project.id, "project")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs">Delete</button>}
                     </div>
                   </div>
                 </div>
@@ -419,6 +421,7 @@ export function ProjectsTab({ ctx }: { ctx: any }) {
                     <BrutalBadge color="bg-green-500">{project.status}</BrutalBadge>
                     <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
                     {isFullAdmin && <button onClick={() => updateProjectStatus(project.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs">Archive</button>}
+                    {isFullAdmin && <button onClick={() => deleteContentItem("projects", project.id, "project")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs">Delete</button>}
                   </div>
                 </div>
               </BrutalCard>
@@ -439,6 +442,7 @@ export function ProjectsTab({ ctx }: { ctx: any }) {
                     <BrutalBadge color="bg-[#FB7185]">{project.status}</BrutalBadge>
                     <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
                     {isFullAdmin && <button onClick={() => updateProjectStatus(project.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs">Unarchive</button>}
+                    {isFullAdmin && <button onClick={() => deleteContentItem("projects", project.id, "project")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs">Delete</button>}
                   </div>
                 </div>
               </BrutalCard>

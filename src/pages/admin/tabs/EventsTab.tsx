@@ -66,6 +66,7 @@ export function EventsTab({ ctx }: { ctx: any }) {
     data,
     date,
     deleteCertificate,
+    deleteContentItem,
     deleteContactMessage,
     deleteLearningMaterial,
     deletePartner,
@@ -388,6 +389,11 @@ export function EventsTab({ ctx }: { ctx: any }) {
                       Archive
                     </button>
                   )}
+                  {isFullAdmin && (
+                    <button onClick={() => deleteContentItem("events", event.id, "event")} className="flex-1 p-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs">
+                      Delete
+                    </button>
+                  )}
                 </div>
               </BrutalCard>
             );
@@ -422,6 +428,7 @@ export function EventsTab({ ctx }: { ctx: any }) {
                     <div className="flex gap-2 pt-4 border-t-2 border-slate-200">
                       <button onClick={() => void openEventModal(event)} className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
                       {isFullAdmin && <button onClick={() => handleArchiveEvent(event.id)} className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs">Archive</button>}
+                      {isFullAdmin && <button onClick={() => deleteContentItem("events", event.id, "event")} className="flex-1 p-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs">Delete</button>}
                     </div>
                   </BrutalCard>
                 ))}
@@ -526,6 +533,7 @@ export function EventsTab({ ctx }: { ctx: any }) {
                     </div>
                     <button onClick={() => void openEventModal(event)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
                     <button onClick={() => updateEventStatus(event.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 font-bold uppercase text-xs">Unarchive</button>
+                    <button onClick={() => deleteContentItem("events", event.id, "event")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>
                   </div>
                 ))}
                 {rejectedEventProposals.length === 0 && archivedEvents.length === 0 && (
