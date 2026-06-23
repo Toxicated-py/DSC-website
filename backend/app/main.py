@@ -429,7 +429,7 @@ async def optional_profile(
 
 
 async def can_manage_event(client: SupabaseRestClient, profile: dict[str, Any], event: dict[str, Any]) -> bool:
-    if profile_roles(profile) & {"admin", "president"}:
+    if profile_roles(profile) & {"admin", "president", "event_manager"}:
         return True
     if event.get("created_by") == profile.get("id"):
         return True

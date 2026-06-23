@@ -148,7 +148,6 @@ export function DashboardPage() {
               <span className="font-mono text-xs text-slate-400">Member since {member.memberSince}</span>
             </div>
             <h1 className="text-6xl md:text-8xl uppercase leading-none" style={fonts.display}>{member.name}</h1>
-            {member.phone && <p className="mt-3 font-mono text-sm text-slate-300">{member.phone}</p>}
           </div>
           <div className="flex gap-3 flex-wrap">
           <BrutalButton color="bg-white" className="text-xs px-4 py-2" onClick={() => setDashboardNotice(announcements.length ? announcements.map((item) => item.title).join(" | ") : "No new notifications right now.")}>
