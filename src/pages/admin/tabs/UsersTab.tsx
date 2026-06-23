@@ -1,7 +1,7 @@
-import { Check, User, Search, Edit, Trash2, Users, Plus } from "lucide-react";
+import { User, Search, Edit, Trash2, Users, Plus } from "lucide-react";
 
 import { fonts } from "../../../config/fonts";
-import { BrutalBadge, BrutalCard } from "../AdminPrimitives";
+import { BrutalCard } from "../AdminPrimitives";
 
 export function UsersTab({ ctx }: { ctx: any }) {
   const {
@@ -336,7 +336,7 @@ export function UsersTab({ ctx }: { ctx: any }) {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-10">
             <BrutalCard color="bg-white">
               <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>{users.length}</div>
               <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Total Users</div>
@@ -349,15 +349,9 @@ export function UsersTab({ ctx }: { ctx: any }) {
             </BrutalCard>
             <BrutalCard color="bg-[#7C3AED]" className="text-white">
               <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>
-                {users.filter(u => u.role === "organizer").length}
+                {users.filter(u => u.role === "event_manager").length}
               </div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Organizers</div>
-            </BrutalCard>
-            <BrutalCard color="bg-slate-400" className="text-white">
-              <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>
-                {users.filter(u => !u.verified).length}
-              </div>
-              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Pending</div>
+              <div className="text-xs font-bold uppercase tracking-widest opacity-80">Event Managers</div>
             </BrutalCard>
           </div>
 
@@ -371,7 +365,6 @@ export function UsersTab({ ctx }: { ctx: any }) {
                     <th className="text-left p-4 text-xs font-bold uppercase tracking-widest text-slate-500">Email</th>
                     <th className="text-left p-4 text-xs font-bold uppercase tracking-widest text-slate-500">Role</th>
                     <th className="text-left p-4 text-xs font-bold uppercase tracking-widest text-slate-500">Designation</th>
-                    <th className="text-left p-4 text-xs font-bold uppercase tracking-widest text-slate-500">Status</th>
                     <th className="text-right p-4 text-xs font-bold uppercase tracking-widest text-slate-500">Actions</th>
                   </tr>
                 </thead>
@@ -390,30 +383,9 @@ export function UsersTab({ ctx }: { ctx: any }) {
                       <td className="p-4">{getRoleBadge(user.role, user.verified)}</td>
                       <td className="p-4">
                         {user.designation ? (
-                          <div className="space-y-2">
-                            <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
-                              {user.designation}
-                            </span>
-                            <div>
-                              <BrutalBadge
-                                color={user.designationStatus === "approved" ? "bg-green-500" : user.designationStatus === "rejected" ? "bg-[#FB7185]" : "bg-[#FFE800]"}
-                                text={user.designationStatus === "pending" ? "text-[#171717]" : "text-white"}
-                              >
-                                {user.designationStatus || "pending"}
-                              </BrutalBadge>
-                            </div>
-                          </div>
+                          <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">{user.designation}</span>
                         ) : (
                           <span className="text-xs text-slate-400">â</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        {user.verified ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600">
-                            <Check size={12} strokeWidth={3} /> Verified
-                          </span>
-                        ) : (
-                          <span className="text-xs font-bold text-slate-400">Pending</span>
                         )}
                       </td>
                       <td className="p-4">

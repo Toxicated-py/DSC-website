@@ -29,7 +29,6 @@ const pages: AppRoutePages = {
   ResourcesPage: () => <Page name="resources" />,
   GalleryPage: () => <Page name="gallery" />,
   UserProfilePage: () => <Page name="profile" />,
-  AchievementsPage: () => <Page name="achievements" />,
   PartnersPage: () => <Page name="partners" />,
   TicketPage: () => <Page name="ticket" />,
   ScannerPage: () => <Page name="scanner" />,

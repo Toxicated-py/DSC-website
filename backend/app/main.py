@@ -116,8 +116,11 @@ def get_privileged_supabase(settings: Settings, auth_token: str | None = None) -
         return SupabaseRestClient(settings, get_http_client(), auth_token=auth_token)
 
 
+EVENT_MANAGER_RESOURCES = {"events", "projects", "blog-posts", "gallery"}
+
+
 def get_admin_resource_client(settings: Settings, profile: dict[str, Any], resource: str) -> SupabaseRestClient:
-    if is_full_admin(profile) or (is_event_manager(profile) and resource in {"events", "projects", "blog-posts", "gallery"}):
+    if is_full_admin(profile) or (is_event_manager(profile) and resource in EVENT_MANAGER_RESOURCES):
         return get_privileged_supabase(settings, profile.get("_auth_token"))
     return get_user_supabase(settings, profile)
 
@@ -229,7 +232,7 @@ def is_full_admin(profile: dict[str, Any]) -> bool:
 
 
 def is_organizer(profile: dict[str, Any]) -> bool:
-    return bool(profile_roles(profile) & {"organizer", "event_manager"})
+    return is_event_manager(profile)
 
 
 def is_event_manager(profile: dict[str, Any]) -> bool:
@@ -246,7 +249,6 @@ RESOURCE_OWNER_COLUMNS = {
 ADMIN_ONLY_RESOURCES = {
     "profiles",
     "designation-options",
-    "gallery",
     "partners",
     "learning-materials",
     "contact-messages",
@@ -306,7 +308,9 @@ async def require_resource_access(
     if is_full_admin(profile):
         return None
     if not is_organizer(profile):
-        raise HTTPException(status_code=403, detail="Admin or organizer access required.")
+        raise HTTPException(status_code=403, detail="Admin or event manager access required.")
+    if is_event_manager(profile) and resource in EVENT_MANAGER_RESOURCES:
+        return None
     if resource in ADMIN_ONLY_RESOURCES:
         raise HTTPException(status_code=403, detail="This area is restricted to admins.")
 
@@ -315,7 +319,7 @@ async def require_resource_access(
         row = await select_one(client, table, {"id": f"eq.{item_id}"})
         if not row:
             raise HTTPException(status_code=404, detail="Item not found.")
-        if is_event_manager(profile) and resource in {"events", "projects", "blog-posts", "gallery"}:
+        if is_event_manager(profile) and resource in EVENT_MANAGER_RESOURCES:
             return row
         owner_column = RESOURCE_OWNER_COLUMNS.get(resource)
         if owner_column and row.get(owner_column) == profile["id"]:
@@ -342,7 +346,7 @@ async def list_accessible_resource(
             return await admin_client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
         return await client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
     await require_resource_access(client, profile, resource)
-    if is_event_manager(profile) and resource in {"events", "projects", "blog-posts", "gallery"}:
+    if is_event_manager(profile) and resource in EVENT_MANAGER_RESOURCES:
         return await client.select(table, filters=filters, order=RESOURCE_ORDER.get(table))
     owner_column = RESOURCE_OWNER_COLUMNS.get(resource)
     if owner_column:
@@ -425,7 +429,7 @@ async def optional_profile(
 
 
 async def can_manage_event(client: SupabaseRestClient, profile: dict[str, Any], event: dict[str, Any]) -> bool:
-    if profile_roles(profile) & {"admin", "president"}:
+    if profile_roles(profile) & {"admin", "president", "event_manager"}:
         return True
     if event.get("created_by") == profile.get("id"):
         return True
@@ -1521,7 +1525,7 @@ async def admin_update_resource_status(
 ) -> dict[str, Any]:
     user_client = get_admin_resource_client(settings, profile, resource)
     await require_resource_access(user_client, profile, resource, item_id=item_id, action="status")
-    if not is_full_admin(profile) and not (is_event_manager(profile) and resource in {"events", "projects", "blog-posts", "gallery"}):
+    if not is_full_admin(profile) and not (is_event_manager(profile) and resource in EVENT_MANAGER_RESOURCES):
         raise HTTPException(status_code=403, detail="Only admins can approve, publish, archive, or restore items.")
     table = table_for_resource(resource)
     rows = await user_client.update(table, {"status": payload.status}, filters={"id": f"eq.{item_id}"})
@@ -1550,10 +1554,18 @@ async def admin_delete_resource(
 ) -> dict[str, str]:
     user_client = get_admin_resource_client(settings, profile, resource)
     await require_resource_access(user_client, profile, resource, item_id=item_id, action="delete")
-    if not is_full_admin(profile) and resource not in {"events", "projects", "blog-posts", "gallery"}:
+    if not is_full_admin(profile) and resource not in EVENT_MANAGER_RESOURCES:
         raise HTTPException(status_code=403, detail="Only admins can delete this item.")
     table = table_for_resource(resource)
-    await user_client.delete(table, filters={"id": f"eq.{item_id}"})
+    try:
+        await user_client.delete(table, filters={"id": f"eq.{item_id}"})
+    except SupabaseRestError as exc:
+        if resource == "profiles" and "foreign key" in str(exc).lower():
+            raise HTTPException(
+                status_code=409,
+                detail="This profile has related events, tickets, projects, or certificates. Remove or reassign those records before deleting it.",
+            ) from exc
+        raise supabase_http_error(exc) from exc
     await write_audit_log(
         user_client,
         profile,

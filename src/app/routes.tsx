@@ -52,10 +52,11 @@ export function AppRoutes({ pages }: { pages: AppRoutePages }) {
     ResourcesPage,
     GalleryPage,
     UserProfilePage,
-    AchievementsPage,
     PartnersPage,
     TicketPage,
     ScannerPage,
+    PrivacyPolicyPage,
+    TermsOfServicePage,
   } = pages;
 
   return (
@@ -83,19 +84,20 @@ export function AppRoutes({ pages }: { pages: AppRoutePages }) {
         <Route path="resources" element={<PageTitle title="Resources"><ResourcesPage /></PageTitle>} />
         <Route path="gallery" element={<PageTitle title="Gallery"><GalleryPage /></PageTitle>} />
         <Route path="profile" element={<PageTitle title="Profile"><ProtectedRoute><UserProfilePage /></ProtectedRoute></PageTitle>} />
-        <Route path="achievements" element={<PageTitle title="Achievements"><ProtectedRoute><AchievementsPage /></ProtectedRoute></PageTitle>} />
         <Route path="partners" element={<PageTitle title="Partners"><PartnersPage /></PageTitle>} />
         <Route path="ticket" element={<PageTitle title="Tickets"><ProtectedRoute><TicketPage /></ProtectedRoute></PageTitle>} />
         <Route path="ticket/:ticketId" element={<PageTitle title="Ticket"><ProtectedRoute><TicketPage /></ProtectedRoute></PageTitle>} />
         <Route path="tickets" element={<PageTitle title="Tickets"><ProtectedRoute><TicketPage /></ProtectedRoute></PageTitle>} />
         <Route path="tickets/:ticketId" element={<PageTitle title="Ticket"><ProtectedRoute><TicketPage /></ProtectedRoute></PageTitle>} />
+        <Route path="privacy" element={<PageTitle title="Privacy Policy"><PrivacyPolicyPage /></PageTitle>} />
+        <Route path="terms" element={<PageTitle title="Terms of Service"><TermsOfServicePage /></PageTitle>} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
       <Route path="/login" element={<PageTitle title="Login"><NewLoginPage /></PageTitle>} />
       <Route path="/register" element={<PageTitle title="Register"><NewLoginPage /></PageTitle>} />
       <Route path="/reset-password" element={<PageTitle title="Reset Password"><NewLoginPage /></PageTitle>} />
-      <Route path="/scanner" element={<PageTitle title="Scanner"><AdminRoute><ScannerPage /></AdminRoute></PageTitle>} />
+      <Route path="/scanner" element={<PageTitle title="Scanner"><ScannerPage /></PageTitle>} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

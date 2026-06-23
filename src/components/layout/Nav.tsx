@@ -13,6 +13,9 @@ type NavItem =
   | { label: string; path: string; icon?: React.ReactNode; dropdown?: undefined }
   | { label: string; path?: undefined; icon?: React.ReactNode; dropdown: NavDropdownItem[] };
 
+const rolePriority = ["president", "admin", "event_manager", "teacher", "student", "member"];
+const primaryRoleFrom = (roles: string[]) => rolePriority.find((role) => roles.includes(role)) || "member";
+
 function DropdownMenu({
   items,
   label,
@@ -135,7 +138,7 @@ export function Nav() {
   });
   const [currentUser, setCurrentUser] = useState({
     name: "Member",
-    role: "student",
+    role: "member",
     roles: [] as string[],
     verified: false,
     designation: "",
@@ -154,7 +157,7 @@ export function Nav() {
         .filter((key) => key.startsWith("sb-") && key.includes("auth-token"))
         .forEach((key) => localStorage.removeItem(key));
       setIsLoggedIn(false);
-      setCurrentUser({ name: "Member", role: "student", roles: [], verified: false, designation: "" });
+      setCurrentUser({ name: "Member", role: "member", roles: [], verified: false, designation: "" });
     };
     const syncSession = async (session: Awaited<ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>>["data"]["session"]) => {
       if (!mounted) return;
@@ -164,7 +167,7 @@ export function Nav() {
       }
       if (!session?.user) {
         setIsLoggedIn(false);
-        setCurrentUser({ name: "Member", role: "student", roles: [], verified: false, designation: "" });
+        setCurrentUser({ name: "Member", role: "member", roles: [], verified: false, designation: "" });
         return;
       }
 
@@ -186,7 +189,7 @@ export function Nav() {
       }
       setCurrentUser({
         name: profile?.full_name || profile?.email || displayName,
-        role: profile?.role || "student",
+        role: primaryRoleFrom(Array.isArray(profile?.roles) && profile.roles.length ? profile.roles : [profile?.role || "member"]),
         roles: Array.isArray(profile?.roles) ? profile.roles : [],
         verified: profile?.membership_status === "approved",
         designation: profile?.designation_status === "approved" ? profile?.designation || "" : "",

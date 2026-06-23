@@ -24,7 +24,7 @@ export const isFullAdminRole = (profile: any) => {
 
 export const canOpenAdminPanel = (profile: any) => {
   const roles = getRoleSet(profile);
-  return isFullAdminRole(profile) || roles.has("organizer") || roles.has("event_manager");
+  return isFullAdminRole(profile) || roles.has("event_manager");
 };
 
 export function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -85,7 +85,7 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
           <Shield size={40} className="mx-auto mb-4" />
           <h1 className="text-3xl uppercase mb-3" style={fonts.display}>Admin Access Required</h1>
           <p className="text-sm font-mono text-slate-700">
-            Your account needs the admin, organizer, or event manager role to open this panel.
+            Your account needs the admin, president, or event manager role to open this panel.
           </p>
         </BrutalCard>
       </div>

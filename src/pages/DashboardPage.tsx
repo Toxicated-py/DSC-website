@@ -11,11 +11,17 @@ import { BrutalButton, BrutalCard, BrutalBadge } from "../components/ui/brutal";
 
 import { fonts } from "../config/fonts";
 
+const rolePriority = ["president", "admin", "event_manager", "teacher", "student", "member"];
+const primaryRoleFrom = (roles: string[]) => rolePriority.find((role) => roles.includes(role)) || "member";
+const roleLabel = (role: string) => role.replace("_", " ");
+const roleColor = (role: string) => role === "president" || role === "admin" ? "bg-[#FB7185]" : role === "event_manager" ? "bg-[#7C3AED]" : role === "student" ? "bg-[#FFE800]" : "bg-[#2563EB]";
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const [member, setMember] = useState({
     name: "Member",
     phone: "",
+    role: "member",
     batchYear: "",
     memberSince: "New member",
   });
@@ -91,6 +97,7 @@ export function DashboardPage() {
       setMember({
         name: profile?.full_name || profile?.email || fallbackName,
         phone: profile?.phone || userData.user.user_metadata?.phone || "",
+        role: primaryRoleFrom(Array.isArray(profile?.roles) && profile.roles.length ? profile.roles : [profile?.role || "member"]),
         batchYear: profile?.batch_year ? String(profile.batch_year) : "",
         memberSince: profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "New member",
       });
@@ -136,12 +143,11 @@ export function DashboardPage() {
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div>
             <div className="flex flex-wrap items-center gap-3 mb-5">
-              <BrutalBadge color="bg-[#2563EB]" text="text-white">Club Member</BrutalBadge>
+              <BrutalBadge color={roleColor(member.role)} text={member.role === "student" ? "text-[#171717]" : "text-white"}>{roleLabel(member.role)}</BrutalBadge>
               {member.batchYear && <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Batch {member.batchYear}</BrutalBadge>}
               <span className="font-mono text-xs text-slate-400">Member since {member.memberSince}</span>
             </div>
             <h1 className="text-6xl md:text-8xl uppercase leading-none" style={fonts.display}>{member.name}</h1>
-            {member.phone && <p className="mt-3 font-mono text-sm text-slate-300">{member.phone}</p>}
           </div>
           <div className="flex gap-3 flex-wrap">
           <BrutalButton color="bg-white" className="text-xs px-4 py-2" onClick={() => setDashboardNotice(announcements.length ? announcements.map((item) => item.title).join(" | ") : "No new notifications right now.")}>

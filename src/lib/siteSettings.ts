@@ -84,7 +84,7 @@ export const defaultHomeSettings: HomeSettings = {
   heroDescription: "A student-run club at SMS TU for workshops, projects, research, competitions, and data science collaboration.",
   membershipLabel: "Membership",
   membershipTitle: "COMMUNITY",
-  membershipDescription: "Members, organizers, and builders",
+  membershipDescription: "Members, contributors, and builders",
   communityIntro: "We started as a handful of students at SMS who wanted to do more than just pass exams. Today, we host hackathons, conduct workshops, and maintain an open-source culture - proudly student-run and deeply passionate about the future of AI in Nepal.",
   memberStatDescription: "Members added through the connected account system will make up the active club community.",
   eventStatDescription: "Approved events added by admins will power the public events page and member dashboard.",
@@ -117,7 +117,7 @@ export const defaultSiteSettings: SiteSettings = {
     {
       id: "membership",
       question: "How do I become a member?",
-      answer: "Simply register on our website using any valid email address. Once registered, you can attend events, submit projects, and access exclusive resources. To become a verified Club Member, attend at least 3 events and submit one project.",
+      answer: "Simply register on our website using any valid email address. Once registered, you can attend events, submit projects, and access exclusive resources. To become a verified member, attend at least 3 events and submit one project.",
     },
     {
       id: "event-cost",

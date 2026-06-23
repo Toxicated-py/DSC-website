@@ -23,8 +23,9 @@ export type AppRoutePages = {
   ResourcesPage: RouteComponent;
   GalleryPage: RouteComponent;
   UserProfilePage: RouteComponent;
-  AchievementsPage: RouteComponent;
   PartnersPage: RouteComponent;
   TicketPage: RouteComponent;
   ScannerPage: RouteComponent;
+  PrivacyPolicyPage: RouteComponent;
+  TermsOfServicePage: RouteComponent;
 };

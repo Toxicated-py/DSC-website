@@ -16,7 +16,7 @@ export const isFullAdminProfile = (profile: any) => {
 
 export const isOrganizerProfile = (profile: any) => {
   const roles = getRoleSet(profile);
-  return roles.has("organizer") || roles.has("event_manager");
+  return roles.has("event_manager");
 };
 
 const isCertificateSchemaError = (message = "") =>
@@ -37,7 +37,7 @@ export const certificateTemplateOptions = [
   { value: "custom-image", label: "Custom Image", accent: "bg-[#7C3AED]", surface: "bg-white", text: "text-[#171717]" },
 ];
 
-export const assignableRoleOptions = ["member", "student", "teacher", "event_manager", "organizer", "president", "admin"];
+export const assignableRoleOptions = ["member", "student", "teacher", "event_manager", "admin", "president"];
 
 export const toDatetimeLocalValue = (value?: string | null) => {
   if (!value) return "";

@@ -26,6 +26,9 @@ import { OverviewTab, UsersTab, EventsTab, ProposalsTab, ProjectsTab, BlogsTab, 
 import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, BrutalSelect, BrutalTextarea } from "./admin/AdminPrimitives";
 import { assignableRoleOptions, certificateTemplateOptions, formatCertificateError, fromDatetimeLocalValue, hasDatePassed, isEventRegistrationOpen, isFullAdminProfile, isOrganizerProfile, isPastEvent, slugify, toDatetimeLocalValue } from "./admin/adminUtils";
 
+const rolePriority = ["president", "admin", "event_manager", "teacher", "student", "member"];
+const primaryRoleFrom = (roles: string[]) => rolePriority.find((role) => roles.includes(role)) || "member";
+
 
 // âââ Reusable Components âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
@@ -159,6 +162,7 @@ export function ComprehensiveAdminPanel() {
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [savingUser, setSavingUser] = useState(false);
+  const [userRoleDraft, setUserRoleDraft] = useState<string[]>(["member"]);
   const [editingProjectId, setEditingProjectId] = useState("");
   const [editingBlogId, setEditingBlogId] = useState("");
   const [editingPartnerId, setEditingPartnerId] = useState("");
@@ -292,9 +296,9 @@ export function ComprehensiveAdminPanel() {
         safeList(adminListResource<any>("events"), "events"),
         safeList(adminListResource<any>("blog-posts"), "blogs"),
         safeList(adminListResource<any>("gallery"), "gallery"),
-        safeList(adminListResource<any>("partners"), "partners"),
-        safeList(adminListResource<any>("learning-materials"), "learning materials"),
-        safeList(adminListResource<any>("event-registrations"), "event registrations"),
+        isAdmin ? safeList(adminListResource<any>("partners"), "partners") : Promise.resolve([]),
+        isAdmin ? safeList(adminListResource<any>("learning-materials"), "learning materials") : Promise.resolve([]),
+        isAdmin ? safeList(adminListResource<any>("event-registrations"), "event registrations") : Promise.resolve([]),
         apiGet<any>("/api/site-settings").catch(() => null),
         isAdmin ? safeList(adminListContacts<any>(), "contact messages") : Promise.resolve([]),
         isAdmin ? safeList(adminListAuditLogs<any>(), "audit logs") : Promise.resolve([]),
@@ -303,20 +307,22 @@ export function ComprehensiveAdminPanel() {
       if (!mounted) return;
       const profiles = profileRows || [];
       const profileById = new Map(profiles.map((profile: any) => [profile.id, profile]));
-      const projectRows = isAdmin ? projectRowsRaw : (projectRowsRaw || []).filter((project: any) => project.author_id === myProfile.id);
-      const blogRows = isAdmin ? blogRowsRaw : (blogRowsRaw || []).filter((post: any) => post.author_id === myProfile.id);
-      const eventRows = isAdmin ? eventRowsRaw : (eventRowsRaw || []).filter((event: any) => event.created_by === myProfile.id);
+      const canManageCoreContent = isAdmin || isOrganizerProfile(myProfile);
+      const projectRows = canManageCoreContent ? projectRowsRaw : (projectRowsRaw || []).filter((project: any) => project.author_id === myProfile.id);
+      const blogRows = canManageCoreContent ? blogRowsRaw : (blogRowsRaw || []).filter((post: any) => post.author_id === myProfile.id);
+      const eventRows = canManageCoreContent ? eventRowsRaw : (eventRowsRaw || []).filter((event: any) => event.created_by === myProfile.id);
       const mappedProfiles = (profiles || []).map((profile) => ({
         id: profile.id,
         name: profile.full_name || profile.email || "Member",
         email: profile.email,
         phone: profile.phone || "",
-        role: profile.role,
+        role: primaryRoleFrom(Array.isArray(profile.roles) && profile.roles.length ? profile.roles : [profile.role || "member"]),
         roles: Array.isArray(profile.roles) && profile.roles.length ? profile.roles : [profile.role || "member"],
         membershipStatus: profile.membership_status,
         designationStatus: profile.designation_status,
-        verified: profile.membership_status === "approved" || profile.role === "member" || profile.role === "organizer" || profile.role === "admin",
+        verified: profile.membership_status === "approved",
         designation: profile.designation || "",
+        batchYear: profile.batch_year || "",
         createdAt: profile.created_at,
         joinedDate: profile.created_at ? new Date(profile.created_at).toLocaleDateString() : "",
       }));
@@ -377,6 +383,16 @@ export function ComprehensiveAdminPanel() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!showUserModal) return;
+    const roles = Array.isArray(editingItem?.roles) && editingItem.roles.length ? editingItem.roles : [editingItem?.role || "member"];
+    const normalizedRoles = roles
+      .map((role: string) => String(role).trim().toLowerCase())
+      .filter((role: string) => assignableRoleOptions.includes(role));
+    if (!normalizedRoles.includes("member")) normalizedRoles.unshift("member");
+    setUserRoleDraft(normalizedRoles.length ? normalizedRoles : ["member"]);
+  }, [showUserModal, editingItem]);
 
   const saveSiteSettings = async () => {
     setSettingsStatus("");
@@ -668,13 +684,16 @@ export function ComprehensiveAdminPanel() {
     if (role === "admin") {
       return <BrutalBadge color="bg-[#FB7185]" className="inline-flex items-center gap-1"><Crown size={10} /> ADMIN</BrutalBadge>;
     }
-    if (role === "organizer") {
-      return <BrutalBadge color="bg-[#7C3AED]" className="inline-flex items-center gap-1"><GraduationCap size={10} /> ORGANIZER</BrutalBadge>;
+    if (role === "president") {
+      return <BrutalBadge color="bg-[#FB7185]" className="inline-flex items-center gap-1"><Crown size={10} /> PRESIDENT</BrutalBadge>;
+    }
+    if (role === "event_manager") {
+      return <BrutalBadge color="bg-[#7C3AED]" className="inline-flex items-center gap-1"><GraduationCap size={10} /> EVENT MANAGER</BrutalBadge>;
     }
     if (role === "member" && verified) {
       return <BrutalBadge color="bg-[#2563EB]" className="inline-flex items-center gap-1"><UserCheck size={10} /> MEMBER</BrutalBadge>;
     }
-    return <BrutalBadge color="bg-slate-400" className="inline-flex items-center gap-1"><User size={10} /> STUDENT</BrutalBadge>;
+    return <BrutalBadge color="bg-slate-400" className="inline-flex items-center gap-1"><User size={10} /> {role === "student" ? "STUDENT" : "MEMBER"}</BrutalBadge>;
   };
 
   const updateProfile = async (id: string, patch: Record<string, unknown>) => {
@@ -701,10 +720,9 @@ export function ComprehensiveAdminPanel() {
     const roles = String(form.get("roles") || "")
       .split(",")
       .map((role) => role.trim().toLowerCase())
-      .filter(Boolean);
-    const role = String(form.get("role") || "member").toLowerCase();
+      .filter((role) => assignableRoleOptions.includes(role));
     if (!roles.includes("member")) roles.unshift("member");
-    if (!roles.includes(role)) roles.push(role);
+    const role = primaryRoleFrom(roles);
     const membershipStatus = String(form.get("membership_status") || "pending");
     const patch = {
       full_name: String(form.get("full_name") || "").trim(),
@@ -726,6 +744,7 @@ export function ComprehensiveAdminPanel() {
         ...user,
         ...patch,
         name: patch.full_name || user.name,
+        batchYear: patch.batch_year,
         membershipStatus: patch.membership_status,
         designationStatus: patch.designation_status,
         verified: patch.membership_status === "approved",
@@ -748,7 +767,12 @@ export function ComprehensiveAdminPanel() {
       setUsers(users.filter((row) => row.id !== user.id));
       setAdminStatus("Profile deleted. Auth user was not deleted.");
     } catch (error: any) {
-      setAdminStatus(error.message || "Could not delete profile.");
+      const message = String(error.message || "");
+      setAdminStatus(
+        message.toLowerCase().includes("foreign key")
+          ? "This profile has related events, tickets, projects, or certificates. Remove or reassign those records before deleting it."
+          : message || "Could not delete profile."
+      );
     }
   };
 
@@ -761,14 +785,8 @@ export function ComprehensiveAdminPanel() {
     }
     currentRoles.add("member");
 
-    const nextRoles = Array.from(currentRoles);
-    const nextPrimaryRole = nextRoles.includes("admin")
-      ? "admin"
-      : nextRoles.includes("organizer") || nextRoles.includes("event_manager")
-        ? "organizer"
-        : nextRoles.includes("student")
-          ? "student"
-          : "member";
+    const nextRoles = Array.from(currentRoles).filter((role) => assignableRoleOptions.includes(role));
+    const nextPrimaryRole = primaryRoleFrom(nextRoles);
 
     await updateProfile(user.id, { roles: nextRoles, role: nextPrimaryRole });
   };
@@ -1069,6 +1087,21 @@ export function ComprehensiveAdminPanel() {
       return;
     }
     setEvents(events.map(e => e.id === id ? { ...e, status: "archived" } : e));
+  };
+
+  const deleteContentItem = async (resource: "events" | "projects" | "blog-posts" | "gallery", id: string, label: string) => {
+    if (!window.confirm(`Delete this ${label} permanently?`)) return;
+    try {
+      await adminDeleteResource(resource, id);
+    } catch (error: any) {
+      setAdminStatus(error.message || `Could not delete ${label}.`);
+      return;
+    }
+    if (resource === "events") setEvents(events.filter((item) => item.id !== id));
+    if (resource === "projects") setProjects(projects.filter((item) => item.id !== id));
+    if (resource === "blog-posts") setBlogPosts(blogPosts.filter((item) => item.id !== id));
+    if (resource === "gallery") setGallerySubmissions(gallerySubmissions.filter((item) => item.id !== id));
+    setAdminStatus(`${label} deleted.`);
   };
 
   const updateEventStatus = async (id: string, status: string) => {
@@ -1676,10 +1709,7 @@ export function ComprehensiveAdminPanel() {
     return date && new Date(date).toISOString().slice(0, 7) === thisMonth;
   }).length;
   const postsThisMonth = blogPosts.filter((post) => post.published_at && new Date(post.published_at).toISOString().slice(0, 7) === thisMonth).length;
-  const activeMemberCount = users.filter((user) => {
-    const roles = Array.isArray(user.roles) ? user.roles : [user.role];
-    return user.membershipStatus === "approved" || roles.includes("member") || roles.includes("student") || roles.includes("organizer") || roles.includes("admin") || roles.includes("president");
-  }).length;
+  const activeMemberCount = users.filter((user) => user.membershipStatus === "approved").length;
   const activeEventCount = events.filter((event) => event.status === "approved" || event.status === "published").length;
   const upcomingEventCount = events.filter((event) => {
     const eventTime = event.start_time || event.startTime;
@@ -1879,6 +1909,7 @@ export function ComprehensiveAdminPanel() {
     copyCertificateLink,
     createEventFromProposal,
     deleteCertificate,
+    deleteContentItem,
     deleteContactMessage,
     deleteLearningMaterial,
     deletePartner,
@@ -1909,7 +1940,7 @@ export function ComprehensiveAdminPanel() {
     handleIssueCertificate,
     handleUserAction,
     isCertificateAdmin,
-    isFullAdmin,
+    isFullAdmin: isFullAdmin || isOrganizerAdmin,
     isOrganizerAdmin,
     isSelectedRecipientAlreadyIssued,
     isSelectedRecipientCheckedIn,
@@ -2247,13 +2278,37 @@ export function ComprehensiveAdminPanel() {
                 <BrutalInput name="phone" label="Phone" defaultValue={editingItem?.phone || ""} />
                 <BrutalInput name="batch_year" label="Batch / Year" defaultValue={editingItem?.batchYear || editingItem?.batch_year || ""} />
               </div>
-              <BrutalSelect
-                name="role"
-                label="Primary Role"
-                defaultValue={editingItem?.role || "member"}
-                options={assignableRoleOptions.map((role) => ({ value: role, label: role.replace("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) }))}
-              />
-              <BrutalInput name="roles" label="Roles (comma separated)" defaultValue={(editingItem?.roles || [editingItem?.role || "member"]).join(", ")} />
+              <input type="hidden" name="roles" value={userRoleDraft.join(",")} />
+              <div className="mb-4">
+                <label className="block text-xs font-bold uppercase tracking-widest mb-2">Roles</label>
+                <div className="flex flex-wrap gap-2">
+                  {assignableRoleOptions.map((role) => {
+                    const active = userRoleDraft.includes(role);
+                    return (
+                      <button
+                        key={role}
+                        type="button"
+                        disabled={role === "member"}
+                        onClick={() => {
+                          if (role === "member") return;
+                          setUserRoleDraft((current) => {
+                            const next = current.includes(role) ? current.filter((item) => item !== role) : [...current, role];
+                            return next.includes("member") ? next : ["member", ...next];
+                          });
+                        }}
+                        className={`border-2 border-[#171717] px-3 py-2 text-xs font-bold uppercase tracking-widest ${
+                          active ? "bg-[#2563EB] text-white" : "bg-white text-[#171717]"
+                        } ${role === "member" ? "cursor-not-allowed opacity-80" : "hover:bg-[#FFE800]"}`}
+                      >
+                        {role.replace("_", " ")}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 font-mono text-xs text-slate-500">
+                  Primary role: {primaryRoleFrom(userRoleDraft).replace("_", " ")}
+                </p>
+              </div>
               <BrutalInput name="designation" label="Designation (admin assigned)" defaultValue={editingItem?.designation || ""} />
               <BrutalSelect
                 name="membership_status"

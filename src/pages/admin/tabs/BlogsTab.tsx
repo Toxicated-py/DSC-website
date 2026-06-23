@@ -65,6 +65,7 @@ export function BlogsTab({ ctx }: { ctx: any }) {
     data,
     date,
     deleteCertificate,
+    deleteContentItem,
     deleteContactMessage,
     deleteLearningMaterial,
     deletePartner,
@@ -361,6 +362,7 @@ export function BlogsTab({ ctx }: { ctx: any }) {
                           <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Publish</button>
                         )}
                         {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>}
+                        {isFullAdmin && <button onClick={() => deleteContentItem("blog-posts", post.id, "blog post")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>}
                       </div>
                     </div>
                   </BrutalCard>
@@ -381,6 +383,7 @@ export function BlogsTab({ ctx }: { ctx: any }) {
                         <BrutalBadge color="bg-green-500">{post.status}</BrutalBadge>
                         <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
                         {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>}
+                        {isFullAdmin && <button onClick={() => deleteContentItem("blog-posts", post.id, "blog post")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>}
                       </div>
                     </div>
                   </BrutalCard>
@@ -400,6 +403,7 @@ export function BlogsTab({ ctx }: { ctx: any }) {
                         <BrutalBadge color="bg-[#FB7185]">{post.status}</BrutalBadge>
                         <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
                         {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>}
+                        {isFullAdmin && <button onClick={() => deleteContentItem("blog-posts", post.id, "blog post")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>}
                       </div>
                     </div>
                   </BrutalCard>

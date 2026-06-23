@@ -13,7 +13,6 @@ const ContactPage = lazy(() => import("../pages/ContactPage").then((module) => (
 const ResourcesPage = lazy(() => import("../pages/ResourcesPage").then((module) => ({ default: module.ResourcesPage })));
 const GalleryPage = lazy(() => import("../pages/GalleryPage").then((module) => ({ default: module.GalleryPage })));
 const UserProfilePage = lazy(() => import("../pages/UserProfilePage").then((module) => ({ default: module.UserProfilePage })));
-const AchievementsPage = lazy(() => import("../pages/AchievementsPage").then((module) => ({ default: module.AchievementsPage })));
 const PartnersPage = lazy(() => import("../pages/PartnersPage").then((module) => ({ default: module.PartnersPage })));
 const ComprehensiveAdminPanel = lazy(() => import("../pages/AdminPage").then((module) => ({ default: module.ComprehensiveAdminPanel })));
 const EventsPage = lazy(() => import("../pages/EventsPage").then((module) => ({ default: module.EventsPage })));
@@ -28,6 +27,8 @@ const BlogEditorPage = lazy(() => import("../pages/BlogEditorPage").then((module
 const DashboardPage = lazy(() => import("../pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
 const TicketPage = lazy(() => import("../pages/TicketPage").then((module) => ({ default: module.TicketPage })));
 const ScannerPage = lazy(() => import("../pages/ScannerPage").then((module) => ({ default: module.ScannerPage })));
+const PrivacyPolicyPage = lazy(() => import("../pages/LegalPages").then((module) => ({ default: module.PrivacyPolicyPage })));
+const TermsOfServicePage = lazy(() => import("../pages/LegalPages").then((module) => ({ default: module.TermsOfServicePage })));
 
 function App() {
   return (
@@ -55,10 +56,11 @@ function App() {
             ResourcesPage,
             GalleryPage,
             UserProfilePage,
-            AchievementsPage,
             PartnersPage,
             TicketPage,
             ScannerPage,
+            PrivacyPolicyPage,
+            TermsOfServicePage,
           }}
         />
       </Suspense>
