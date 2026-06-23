@@ -9,10 +9,12 @@ type GalleryPhoto = {
   id: string;
   url: string;
   title: string;
+  caption: string;
   event: string;
   eventId: string;
   type: string;
   date: string;
+  submittedBy: string;
   likes: number;
   liked: boolean;
 };
@@ -36,7 +38,6 @@ type LocalComment = {
   time: string;
 };
 
-const FILTERS = ["all", "workshop", "competition", "talk", "social"];
 const TYPE_COLORS: Record<string, string> = {
   workshop: "bg-[#2563EB]",
   competition: "bg-[#171717]",
@@ -54,7 +55,6 @@ const normalizeType = (value: string) => {
 
 export function GalleryPage() {
   const navigate = useNavigate();
-  const [selectedFilter, setSelectedFilter] = useState("all");
   const [activeIndexes, setActiveIndexes] = useState<Record<string, number>>({});
   const [eventOptions, setEventOptions] = useState<any[]>([]);
   const [likedPhotos, setLikedPhotos] = useState<string[]>([]);
@@ -66,7 +66,7 @@ export function GalleryPage() {
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
   const [submittingGallery, setSubmittingGallery] = useState(false);
-  const [galleryForm, setGalleryForm] = useState({ title: "", imageUrl: "", eventName: "", eventId: "" });
+  const [galleryForm, setGalleryForm] = useState({ title: "", caption: "", imageUrl: "", eventName: "", eventId: "" });
 
   useEffect(() => {
     let mounted = true;
@@ -84,10 +84,12 @@ export function GalleryPage() {
           id: item.id,
           url: item.image_url,
           title: item.title,
+          caption: item.caption || "",
           event: item.event_name || event?.title || "Community",
           eventId: item.event_id || "",
           type: normalizeType(event?.event_type || item.event_type || item.event_name),
           date: item.created_at ? new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "",
+          submittedBy: item.submitted_by_name || "Club Member",
           likes: Number(item.likes_count || 0),
           liked: Boolean(item.liked_by_me),
         };
@@ -113,12 +115,11 @@ export function GalleryPage() {
       event: group[0].event,
       type: group[0].type,
       date: group[0].date,
-      postedBy: "clubteam",
-      caption: group.map((photo) => photo.title).join(" · "),
+      postedBy: group[0].submittedBy,
+      caption: group.map((photo) => photo.caption || photo.title).filter(Boolean).join(" · "),
       photos: group,
     }));
   }, [photos]);
-  const filteredPosts = selectedFilter === "all" ? posts : posts.filter((post) => post.type === selectedFilter);
   const lightboxPost = lightbox ? posts.find((post) => post.id === lightbox.postId) : null;
 
   const activePhoto = (post: GalleryPost) => post.photos[activeIndexes[post.id] || 0] || post.photos[0];
@@ -154,6 +155,13 @@ export function GalleryPage() {
     setCommentsOpen((current) => ({ ...current, [postId]: true }));
   };
 
+  const deleteComment = (postId: string, commentId: number) => {
+    setComments((current) => ({
+      ...current,
+      [postId]: (current[postId] || []).filter((comment) => comment.id !== commentId),
+    }));
+  };
+
   const submitGalleryPhoto = async (event: React.FormEvent) => {
     event.preventDefault();
     if (submittingGallery) return;
@@ -167,11 +175,12 @@ export function GalleryPage() {
       }
       await Promise.all(urls.map((url, index) => submitGallery({
         title: urls.length === 1 ? galleryForm.title.trim() : `${galleryForm.title.trim()} ${index + 1}`.trim(),
+        caption: galleryForm.caption.trim() || null,
         image_url: url,
         event_name: galleryForm.eventName.trim() || "Community",
         event_id: galleryForm.eventId || null,
       })));
-      setGalleryForm({ title: "", imageUrl: "", eventName: "", eventId: "" });
+      setGalleryForm({ title: "", caption: "", imageUrl: "", eventName: "", eventId: "" });
       setSubmitStatus("Photo submitted for admin approval.");
       setShowSubmitForm(false);
     } catch (error: any) {
@@ -187,28 +196,18 @@ export function GalleryPage() {
 
   return (
     <div className="min-h-screen bg-[#F4EFEB] pb-20">
-      <header className="mx-auto max-w-[860px] px-5 pt-24 pb-8">
+      <header className="mx-auto max-w-[860px] px-5 pt-24 pb-10">
         <div className="flex items-end justify-between gap-5">
           <div>
             <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">Data Sarathi · SMS TU</p>
             <h1 className="text-6xl uppercase leading-none text-[#171717] md:text-8xl" style={fonts.display}>Gallery</h1>
             <p className="mt-2 text-lg text-slate-600">Moments from our events &amp; community</p>
           </div>
-          <button onClick={() => setShowSubmitForm((open) => !open)} className="hidden items-center gap-2 rounded-md bg-[#171717] px-6 py-3 text-xs font-bold uppercase tracking-widest text-white shadow-lg hover:bg-[#2563EB] sm:inline-flex">
+          <button onClick={() => setShowSubmitForm((open) => !open)} className="inline-flex items-center gap-2 rounded-md bg-[#171717] px-5 py-3 text-xs font-bold uppercase tracking-widest text-white shadow-lg hover:bg-[#2563EB]">
             <Upload size={15} /> Upload
           </button>
         </div>
       </header>
-
-      <div className="sticky top-0 z-30 border-y border-slate-200 bg-[#F4EFEB]/90 px-5 backdrop-blur">
-        <div className="mx-auto flex max-w-[860px] gap-3 overflow-x-auto py-3">
-          {FILTERS.map((filter) => (
-            <button key={filter} onClick={() => setSelectedFilter(filter)} className={`rounded-full border-2 px-5 py-2 text-xs font-bold uppercase tracking-widest shadow-sm ${selectedFilter === filter ? "border-[#171717] bg-[#171717] text-white" : "border-slate-200 bg-white text-slate-500"}`}>
-              {filter}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {showSubmitForm && (
         <section className="mx-auto mt-6 max-w-[720px] px-4">
@@ -216,6 +215,7 @@ export function GalleryPage() {
             <h2 className="mb-4 text-3xl uppercase" style={fonts.display}>Upload Photos</h2>
             <div className="grid gap-4">
               <input value={galleryForm.title} onChange={(event) => setGalleryForm({ ...galleryForm, title: event.target.value })} required placeholder="Photo title" className="rounded-xl border border-slate-200 p-3 font-mono text-sm" />
+              <textarea value={galleryForm.caption} onChange={(event) => setGalleryForm({ ...galleryForm, caption: event.target.value })} placeholder="Caption" className="min-h-24 rounded-xl border border-slate-200 p-3 font-mono text-sm" />
               <textarea value={galleryForm.imageUrl} onChange={(event) => setGalleryForm({ ...galleryForm, imageUrl: event.target.value })} required placeholder="Image URLs, separated by commas or new lines" className="min-h-24 rounded-xl border border-slate-200 p-3 font-mono text-sm" />
               <input value={galleryForm.eventName} onChange={(event) => setGalleryForm({ ...galleryForm, eventName: event.target.value })} placeholder="Event name" className="rounded-xl border border-slate-200 p-3 font-mono text-sm" />
               {eventOptions.length > 0 && (
@@ -242,14 +242,14 @@ export function GalleryPage() {
       {submitStatus && <p className="mx-auto mt-4 max-w-[720px] px-4 text-sm font-bold text-[#2563EB]">{submitStatus}</p>}
 
       <main className="mx-auto max-w-[720px] px-4 py-8">
-        {filteredPosts.length === 0 ? (
+        {posts.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white py-20 text-center shadow-xl">
             <Camera size={40} className="mx-auto mb-3 text-slate-300" />
             <p className="text-2xl uppercase text-slate-400" style={fonts.display}>No Posts Yet</p>
           </div>
         ) : (
           <div className="space-y-8">
-            {filteredPosts.map((post) => {
+            {posts.map((post) => {
               const photo = activePhoto(post);
               const postComments = comments[post.id] || [];
               return (
@@ -319,6 +319,11 @@ export function GalleryPage() {
                                 <span className="text-sm font-bold">{comment.author}</span>
                                 <span className="rounded bg-[#FFE800] px-2 py-0.5 text-[10px] font-bold uppercase">{comment.role}</span>
                                 <span className="font-mono text-[10px] text-slate-400">{comment.time}</span>
+                                {comment.author === "You" && (
+                                  <button onClick={() => deleteComment(post.id, comment.id)} className="ml-auto text-[10px] font-bold uppercase tracking-widest text-[#FB7185] hover:text-[#171717]">
+                                    Delete
+                                  </button>
+                                )}
                               </div>
                               <p className="text-sm text-slate-700">{comment.text}</p>
                             </div>
