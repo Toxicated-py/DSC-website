@@ -317,12 +317,13 @@ export function GalleryTab({ ctx }: { ctx: any }) {
 
   const [editingGalleryId, setEditingGalleryId] = useState<string | null>(null);
   const parseTags = (value: string) => value.split(",").map((tag) => tag.trim()).filter(Boolean);
-  const [galleryEditForm, setGalleryEditForm] = useState({ title: "", caption: "", tags: "", event_name: "", image_url: "" });
+  const [galleryEditForm, setGalleryEditForm] = useState({ title: "", event_type: "social", caption: "", tags: "", event_name: "", image_url: "" });
 
   const startGalleryEdit = (item: any) => {
     setEditingGalleryId(item.id);
     setGalleryEditForm({
       title: item.title || "",
+      event_type: item.event_type || "social",
       caption: item.caption || "",
       tags: Array.isArray(item.tags) ? item.tags.join(", ") : "",
       event_name: item.event_name || "",
@@ -335,6 +336,7 @@ export function GalleryTab({ ctx }: { ctx: any }) {
     try {
       const updated = await adminUpdateResource("gallery", editingGalleryId, {
         title: galleryEditForm.title.trim(),
+        event_type: galleryEditForm.event_type,
         caption: galleryEditForm.caption.trim() || null,
         tags: parseTags(galleryEditForm.tags),
         event_name: galleryEditForm.event_name.trim() || null,
@@ -356,9 +358,12 @@ export function GalleryTab({ ctx }: { ctx: any }) {
       {editingGalleryId === item.id ? (
         <div className="grid gap-2">
           <input value={galleryEditForm.title} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, title: event.target.value })} className="border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Title" />
+          <select value={galleryEditForm.event_type} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, event_type: event.target.value })} className="border-2 border-[#171717] p-2 font-mono text-xs">
+            {["workshop", "competition", "talk", "social"].map((type) => <option key={type} value={type}>{type.toUpperCase()}</option>)}
+          </select>
           <textarea value={galleryEditForm.caption} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, caption: event.target.value })} className="min-h-20 border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Caption" />
           <input value={galleryEditForm.tags} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, tags: event.target.value })} className="border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Tags, comma separated" />
-          <input value={galleryEditForm.event_name} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, event_name: event.target.value })} className="border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Event name" />
+          <input value={galleryEditForm.event_name} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, event_name: event.target.value })} className="border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Event title" />
           <input value={galleryEditForm.image_url} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, image_url: event.target.value })} className="border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Image URL" />
           <div className="flex gap-2">
             <button onClick={saveGalleryEdit} className="px-3 py-1 border-2 border-[#171717] bg-[#2563EB] text-white font-bold uppercase text-xs">Save</button>
@@ -368,7 +373,7 @@ export function GalleryTab({ ctx }: { ctx: any }) {
       ) : (
         <>
           <h3 className="font-bold uppercase leading-tight">{item.title}</h3>
-          <p className="mt-1 text-xs font-mono text-slate-500">{item.event_name || "General gallery"} - {item.status}</p>
+          <p className="mt-1 text-xs font-mono text-slate-500">{item.event_name || "General gallery"} - {item.event_type || "social"} - {item.status}</p>
           {item.caption && <p className="mt-2 max-h-10 overflow-hidden text-sm text-slate-600">{item.caption}</p>}
           {Array.isArray(item.tags) && item.tags.length > 0 && <p className="mt-2 text-xs font-bold text-slate-500">{item.tags.map((tag: string) => `#${tag}`).join(" ")}</p>}
           <div className="mt-3 flex gap-2 flex-wrap">
@@ -391,6 +396,7 @@ export function GalleryTab({ ctx }: { ctx: any }) {
                       <button
                         onClick={() => openReviewPreview("Gallery Submission", [
                           { label: "Title", value: item.title },
+                          { label: "Event Type", value: item.event_type || "social" },
                           { label: "Caption", value: item.caption },
                           { label: "Tags", value: Array.isArray(item.tags) ? item.tags.join(", ") : "" },
                           { label: "Event", value: item.event_name },

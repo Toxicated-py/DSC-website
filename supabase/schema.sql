@@ -170,6 +170,7 @@ create table public.gallery_submissions (
   title text not null,
   caption text,
   tags text[] not null default '{}',
+  event_type text not null default 'social',
   image_url text not null,
   event_name text,
   submitted_by uuid references public.profiles(id),
