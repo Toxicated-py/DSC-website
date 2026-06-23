@@ -918,8 +918,10 @@ async def list_gallery(
         )
         profile = await optional_profile(authorization, settings, client)
         gallery_ids = [row.get("id") for row in rows if row.get("id")]
+        submitter_ids = [row.get("submitted_by") for row in rows if row.get("submitted_by")]
         like_counts: dict[str, int] = {}
         liked_ids: set[str] = set()
+        submitter_names: dict[str, str] = {}
         if gallery_ids:
             service_client = get_privileged_supabase(settings, profile.get("_auth_token") if profile else None)
             try:
@@ -937,11 +939,26 @@ async def list_gallery(
             except SupabaseRestError:
                 like_counts = {}
                 liked_ids = set()
+            if submitter_ids:
+                try:
+                    profiles = await service_client.select(
+                        "profiles",
+                        columns="id,full_name,email",
+                        filters={"id": f"in.({','.join(sorted(set(submitter_ids)))})"},
+                    )
+                    submitter_names = {
+                        row.get("id"): row.get("full_name") or row.get("email") or "Club Member"
+                        for row in profiles or []
+                        if row.get("id")
+                    }
+                except SupabaseRestError:
+                    submitter_names = {}
         return [
             {
                 **row,
                 "likes_count": like_counts.get(row.get("id"), 0),
                 "liked_by_me": row.get("id") in liked_ids,
+                "submitted_by_name": submitter_names.get(row.get("submitted_by"), "Club Member"),
             }
             for row in rows
         ]

@@ -1872,6 +1872,7 @@ export function ComprehensiveAdminPanel() {
     activePartners,
     activeProjects,
     activeTab,
+    adminUpdateResource,
     addCertificateSignature,
     addContactItem,
     addFAQ,

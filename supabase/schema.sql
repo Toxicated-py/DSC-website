@@ -168,6 +168,9 @@ create table public.certificates (
 create table public.gallery_submissions (
   id uuid primary key default gen_random_uuid(),
   title text not null,
+  caption text,
+  tags text[] not null default '{}',
+  event_type text not null,
   image_url text not null,
   event_name text,
   submitted_by uuid references public.profiles(id),
