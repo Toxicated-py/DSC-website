@@ -46,15 +46,16 @@ const TYPE_COLORS: Record<string, string> = {
   talk: "bg-[#7C3AED]",
   social: "bg-[#FB7185]",
 };
-const FILTERS = ["all", "workshop", "competition", "talk", "social"];
 
-const normalizeType = (value: string) => {
+const typeKey = (value: string) => {
   const type = String(value || "").toLowerCase();
   if (type.includes("competition") || type.includes("hackathon")) return "competition";
   if (type.includes("talk") || type.includes("seminar")) return "talk";
   if (type.includes("workshop")) return "workshop";
-  return "social";
+  if (type.includes("social")) return "social";
+  return type;
 };
+const typeColor = (value: string) => TYPE_COLORS[typeKey(value)] || "bg-[#2563EB]";
 
 const parseTags = (value: string) => value.split(",").map((tag) => tag.trim()).filter(Boolean);
 
@@ -73,7 +74,7 @@ export function GalleryPage() {
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
   const [submittingGallery, setSubmittingGallery] = useState(false);
-  const [galleryForm, setGalleryForm] = useState({ eventName: "", eventType: "social", caption: "", tags: "", imageUrl: "", eventId: "" });
+  const [galleryForm, setGalleryForm] = useState({ eventName: "", eventType: "", caption: "", tags: "", imageUrl: "", eventId: "" });
 
   useEffect(() => {
     let mounted = true;
@@ -95,7 +96,7 @@ export function GalleryPage() {
           tags: Array.isArray(item.tags) ? item.tags : [],
           event: item.event_name || event?.title || "Community",
           eventId: item.event_id || "",
-          type: normalizeType(item.event_type || event?.event_type || item.event_name),
+          type: item.event_type || event?.event_type || "",
           date: item.created_at ? new Date(item.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "",
           submittedBy: item.submitted_by_name || "Club Member",
           likes: Number(item.likes_count || 0),
@@ -131,7 +132,7 @@ export function GalleryPage() {
   }, [photos]);
   const filteredPosts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const byType = selectedFilter === "all" ? posts : posts.filter((post) => post.type === selectedFilter);
+    const byType = selectedFilter === "all" ? posts : posts.filter((post) => post.type.toLowerCase() === selectedFilter);
     if (!query) return byType;
     return byType.filter((post) => [
       post.postedBy,
@@ -139,6 +140,7 @@ export function GalleryPage() {
       post.tags.join(" "),
     ].some((value) => value.toLowerCase().includes(query)));
   }, [posts, searchQuery, selectedFilter]);
+  const filters = useMemo(() => ["all", ...Array.from(new Set(posts.map((post) => post.type).filter(Boolean).map((type) => type.toLowerCase())))], [posts]);
   const lightboxPost = lightbox ? posts.find((post) => post.id === lightbox.postId) : null;
 
   const activePhoto = (post: GalleryPost) => post.photos[activeIndexes[post.id] || 0] || post.photos[0];
@@ -201,7 +203,7 @@ export function GalleryPage() {
         event_name: galleryForm.eventName.trim() || "Community",
         event_id: galleryForm.eventId || null,
       })));
-      setGalleryForm({ eventName: "", eventType: "social", caption: "", tags: "", imageUrl: "", eventId: "" });
+      setGalleryForm({ eventName: "", eventType: "", caption: "", tags: "", imageUrl: "", eventId: "" });
       setSubmitStatus("Photo submitted for admin approval.");
       setShowSubmitForm(false);
     } catch (error: any) {
@@ -236,9 +238,7 @@ export function GalleryPage() {
             <h2 className="mb-4 text-3xl uppercase" style={fonts.display}>Upload Photos</h2>
             <div className="grid gap-4">
               <input value={galleryForm.eventName} onChange={(event) => setGalleryForm({ ...galleryForm, eventName: event.target.value })} required placeholder="Event title" className="rounded-xl border border-slate-200 p-3 font-mono text-sm" />
-              <select value={galleryForm.eventType} onChange={(event) => setGalleryForm({ ...galleryForm, eventType: event.target.value })} className="rounded-xl border border-slate-200 p-3 font-mono text-sm">
-                {FILTERS.filter((filter) => filter !== "all").map((filter) => <option key={filter} value={filter}>{filter.toUpperCase()}</option>)}
-              </select>
+              <input value={galleryForm.eventType} onChange={(event) => setGalleryForm({ ...galleryForm, eventType: event.target.value })} required placeholder="Event type" className="rounded-xl border border-slate-200 p-3 font-mono text-sm" />
               <textarea value={galleryForm.caption} onChange={(event) => setGalleryForm({ ...galleryForm, caption: event.target.value })} placeholder="Caption" className="min-h-24 rounded-xl border border-slate-200 p-3 font-mono text-sm" />
               <input value={galleryForm.tags} onChange={(event) => setGalleryForm({ ...galleryForm, tags: event.target.value })} placeholder="Tags, comma separated" className="rounded-xl border border-slate-200 p-3 font-mono text-sm" />
               <textarea value={galleryForm.imageUrl} onChange={(event) => setGalleryForm({ ...galleryForm, imageUrl: event.target.value })} required placeholder="Image URLs, separated by commas or new lines" className="min-h-24 rounded-xl border border-slate-200 p-3 font-mono text-sm" />
@@ -247,7 +247,7 @@ export function GalleryPage() {
                   value={galleryForm.eventId}
                   onChange={(event) => {
                     const selected = eventOptions.find((item) => item.id === event.target.value);
-                    setGalleryForm({ ...galleryForm, eventId: event.target.value, eventName: selected?.title || galleryForm.eventName, eventType: normalizeType(selected?.event_type || galleryForm.eventType) });
+                    setGalleryForm({ ...galleryForm, eventId: event.target.value, eventName: selected?.title || galleryForm.eventName, eventType: selected?.event_type || galleryForm.eventType });
                   }}
                   className="rounded-xl border border-slate-200 p-3 font-mono text-sm"
                 >
@@ -267,7 +267,7 @@ export function GalleryPage() {
 
       <main className="mx-auto max-w-[720px] px-4 py-8">
         <div className="mb-4 flex gap-3 overflow-x-auto pb-2">
-          {FILTERS.map((filter) => (
+          {filters.map((filter) => (
             <button key={filter} onClick={() => setSelectedFilter(filter)} className={`rounded-full border-2 px-5 py-2 text-xs font-bold uppercase tracking-widest shadow-sm ${selectedFilter === filter ? "border-[#171717] bg-[#171717] text-white" : "border-slate-200 bg-white text-slate-500"}`}>
               {filter}
             </button>
@@ -288,13 +288,13 @@ export function GalleryPage() {
                 <article key={post.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
                   <div className="flex items-center justify-between px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-md ${TYPE_COLORS[post.type] || TYPE_COLORS.social} text-white`}>
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-md ${typeColor(post.type)} text-white`}>
                         <Camera size={18} />
                       </div>
                       <div>
                         <h2 className="font-bold text-[#171717]">{post.event}</h2>
                         <div className="mt-0.5 flex items-center gap-2">
-                          <span className={`h-1.5 w-1.5 rounded-full ${TYPE_COLORS[post.type] || TYPE_COLORS.social}`} />
+                          <span className={`h-1.5 w-1.5 rounded-full ${typeColor(post.type)}`} />
                           <span className="font-mono text-[11px] uppercase tracking-wider text-slate-500">{post.type} · {post.date || "Date TBA"}</span>
                         </div>
                       </div>

@@ -77,7 +77,7 @@ class GallerySubmissionCreate(BaseModel):
     title: str = Field(min_length=2, max_length=180)
     caption: str | None = None
     tags: list[str] = []
-    event_type: str = "social"
+    event_type: str
     image_url: str = Field(min_length=5)
     event_name: str | None = None
     event_id: str | None = None
