@@ -10,6 +10,7 @@ type GalleryPhoto = {
   url: string;
   title: string;
   caption: string;
+  tags: string[];
   event: string;
   eventId: string;
   type: string;
@@ -26,6 +27,7 @@ type GalleryPost = {
   date: string;
   postedBy: string;
   caption: string;
+  tags: string[];
   photos: GalleryPhoto[];
 };
 
@@ -53,9 +55,12 @@ const normalizeType = (value: string) => {
   return "social";
 };
 
+const parseTags = (value: string) => value.split(",").map((tag) => tag.trim()).filter(Boolean);
+
 export function GalleryPage() {
   const navigate = useNavigate();
   const [activeIndexes, setActiveIndexes] = useState<Record<string, number>>({});
+  const [searchQuery, setSearchQuery] = useState("");
   const [eventOptions, setEventOptions] = useState<any[]>([]);
   const [likedPhotos, setLikedPhotos] = useState<string[]>([]);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
@@ -66,7 +71,7 @@ export function GalleryPage() {
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [submitStatus, setSubmitStatus] = useState("");
   const [submittingGallery, setSubmittingGallery] = useState(false);
-  const [galleryForm, setGalleryForm] = useState({ title: "", caption: "", imageUrl: "", eventName: "", eventId: "" });
+  const [galleryForm, setGalleryForm] = useState({ title: "", caption: "", tags: "", imageUrl: "", eventName: "", eventId: "" });
 
   useEffect(() => {
     let mounted = true;
@@ -85,6 +90,7 @@ export function GalleryPage() {
           url: item.image_url,
           title: item.title,
           caption: item.caption || "",
+          tags: Array.isArray(item.tags) ? item.tags : [],
           event: item.event_name || event?.title || "Community",
           eventId: item.event_id || "",
           type: normalizeType(event?.event_type || item.event_type || item.event_name),
@@ -117,9 +123,19 @@ export function GalleryPage() {
       date: group[0].date,
       postedBy: group[0].submittedBy,
       caption: group.map((photo) => photo.caption || photo.title).filter(Boolean).join(" · "),
+      tags: Array.from(new Set(group.flatMap((photo) => photo.tags))),
       photos: group,
     }));
   }, [photos]);
+  const filteredPosts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return posts;
+    return posts.filter((post) => [
+      post.postedBy,
+      post.caption,
+      post.tags.join(" "),
+    ].some((value) => value.toLowerCase().includes(query)));
+  }, [posts, searchQuery]);
   const lightboxPost = lightbox ? posts.find((post) => post.id === lightbox.postId) : null;
 
   const activePhoto = (post: GalleryPost) => post.photos[activeIndexes[post.id] || 0] || post.photos[0];
@@ -176,11 +192,12 @@ export function GalleryPage() {
       await Promise.all(urls.map((url, index) => submitGallery({
         title: urls.length === 1 ? galleryForm.title.trim() : `${galleryForm.title.trim()} ${index + 1}`.trim(),
         caption: galleryForm.caption.trim() || null,
+        tags: parseTags(galleryForm.tags),
         image_url: url,
         event_name: galleryForm.eventName.trim() || "Community",
         event_id: galleryForm.eventId || null,
       })));
-      setGalleryForm({ title: "", caption: "", imageUrl: "", eventName: "", eventId: "" });
+      setGalleryForm({ title: "", caption: "", tags: "", imageUrl: "", eventName: "", eventId: "" });
       setSubmitStatus("Photo submitted for admin approval.");
       setShowSubmitForm(false);
     } catch (error: any) {
@@ -216,6 +233,7 @@ export function GalleryPage() {
             <div className="grid gap-4">
               <input value={galleryForm.title} onChange={(event) => setGalleryForm({ ...galleryForm, title: event.target.value })} required placeholder="Photo title" className="rounded-xl border border-slate-200 p-3 font-mono text-sm" />
               <textarea value={galleryForm.caption} onChange={(event) => setGalleryForm({ ...galleryForm, caption: event.target.value })} placeholder="Caption" className="min-h-24 rounded-xl border border-slate-200 p-3 font-mono text-sm" />
+              <input value={galleryForm.tags} onChange={(event) => setGalleryForm({ ...galleryForm, tags: event.target.value })} placeholder="Tags, comma separated" className="rounded-xl border border-slate-200 p-3 font-mono text-sm" />
               <textarea value={galleryForm.imageUrl} onChange={(event) => setGalleryForm({ ...galleryForm, imageUrl: event.target.value })} required placeholder="Image URLs, separated by commas or new lines" className="min-h-24 rounded-xl border border-slate-200 p-3 font-mono text-sm" />
               <input value={galleryForm.eventName} onChange={(event) => setGalleryForm({ ...galleryForm, eventName: event.target.value })} placeholder="Event name" className="rounded-xl border border-slate-200 p-3 font-mono text-sm" />
               {eventOptions.length > 0 && (
@@ -242,14 +260,15 @@ export function GalleryPage() {
       {submitStatus && <p className="mx-auto mt-4 max-w-[720px] px-4 text-sm font-bold text-[#2563EB]">{submitStatus}</p>}
 
       <main className="mx-auto max-w-[720px] px-4 py-8">
-        {posts.length === 0 ? (
+        <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search publisher, caption, or tags" className="mb-6 w-full rounded-2xl border border-slate-200 bg-white p-4 font-mono text-sm shadow-lg outline-none focus:ring-4 focus:ring-[#2563EB]/20" />
+        {filteredPosts.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white py-20 text-center shadow-xl">
             <Camera size={40} className="mx-auto mb-3 text-slate-300" />
             <p className="text-2xl uppercase text-slate-400" style={fonts.display}>No Posts Yet</p>
           </div>
         ) : (
           <div className="space-y-8">
-            {posts.map((post) => {
+            {filteredPosts.map((post) => {
               const photo = activePhoto(post);
               const postComments = comments[post.id] || [];
               return (
@@ -308,6 +327,11 @@ export function GalleryPage() {
                       <span className="mr-2 font-bold">@{post.postedBy}</span>
                       {post.caption}
                     </p>
+                    {post.tags.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {post.tags.map((tag) => <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500">#{tag}</span>)}
+                      </div>
+                    )}
 
                     {(commentsOpen[post.id] || postComments.length > 0) && (
                       <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
