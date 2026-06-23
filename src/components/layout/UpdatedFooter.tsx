@@ -93,10 +93,7 @@ export function UpdatedFooter() {
           {/* Brand + Credit */}
           <div className="md:text-right text-[#171717]">
             <h3 className="text-3xl" style={fonts.display}>{settings.siteName}</h3>
-            <p className="text-xs text-slate-500 mt-4 font-mono">
-              &copy; {new Date().getFullYear()} All rights reserved.
-            </p>
-            <p className="text-xs text-slate-600 mt-2">
+            <p className="text-xs text-slate-600 mt-4">
               {settings.tagline}
             </p>
             <p className="text-xs text-slate-500 mt-4">
@@ -124,6 +121,9 @@ export function UpdatedFooter() {
                 Bisup
               </a>
             </div>
+            <p className="text-xs text-slate-500 mt-4 font-mono">
+              &copy; {new Date().getFullYear()} All rights reserved.
+            </p>
             <div className="mt-3 flex gap-4 md:justify-end">
               <Link to="/privacy" className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-[#2563EB]">
                 Privacy
