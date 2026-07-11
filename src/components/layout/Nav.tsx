@@ -161,7 +161,7 @@ export function Nav() {
     };
     const syncSession = async (session: Awaited<ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>>["data"]["session"]) => {
       if (!mounted) return;
-      if (!isSupabaseConfigured) {
+      if (!isSupabaseConfigured || !supabase) {
         setIsLoggedIn(false);
         return;
       }

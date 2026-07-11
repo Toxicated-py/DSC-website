@@ -321,7 +321,16 @@ security definer
 set search_path = public, private
 stable
 as $$
-  select coalesce(private.current_user_role() = 'admin', false)
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and (
+        p.role::text in ('admin', 'president')
+        or 'admin' = any(coalesce(p.roles, '{}'::text[]))
+        or 'president' = any(coalesce(p.roles, '{}'::text[]))
+      )
+  )
 $$;
 
 grant execute on function private.current_user_is_admin() to authenticated;
@@ -333,7 +342,17 @@ security definer
 set search_path = public, private
 stable
 as $$
-  select coalesce(private.current_user_role() in ('admin', 'organizer'), false)
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and (
+        p.role::text in ('admin', 'president', 'event_manager')
+        or 'admin' = any(coalesce(p.roles, '{}'::text[]))
+        or 'president' = any(coalesce(p.roles, '{}'::text[]))
+        or 'event_manager' = any(coalesce(p.roles, '{}'::text[]))
+      )
+  )
 $$;
 
 grant execute on function private.current_user_is_admin_or_organizer() to authenticated;

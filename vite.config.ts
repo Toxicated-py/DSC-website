@@ -15,7 +15,7 @@ export default defineConfig({
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
   build: {
-    sourcemap: true,
+    sourcemap: false,
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {

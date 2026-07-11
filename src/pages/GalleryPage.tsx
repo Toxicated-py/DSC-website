@@ -88,7 +88,7 @@ export function GalleryPage() {
         apiGet<any[]>("/api/events").catch(() => []),
       ]);
       if (!mounted) return;
-      const eventById = new Map((events || []).map((event) => [event.id, event]));
+      const eventById = new Map<string, any>((events || []).map((event) => [event.id, event] as [string, any]));
       setPhotos((data || []).map((item) => {
         const event = eventById.get(item.event_id);
         return {
