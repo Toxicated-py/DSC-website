@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import { BrowserRouter as Router } from "react-router-dom";
 import { Toaster } from "sonner";
+import { MotionConfig } from "motion/react";
 import { AppRoutes } from "./routes";
 import { PageLoadingFallback } from "./styles/GlobalStyles";
 
@@ -32,10 +33,11 @@ const TermsOfServicePage = lazy(() => import("../pages/LegalPages").then((module
 
 function App() {
   return (
-    <Router>
-      <Suspense fallback={<PageLoadingFallback />}>
-        <AppRoutes
-          pages={{
+    <MotionConfig reducedMotion="user">
+      <Router>
+        <Suspense fallback={<PageLoadingFallback />}>
+          <AppRoutes
+            pages={{
             HomePage,
             UpdatedAboutPage,
             EventsPage,
@@ -61,11 +63,12 @@ function App() {
             ScannerPage,
             PrivacyPolicyPage,
             TermsOfServicePage,
-          }}
-        />
-      </Suspense>
-      <Toaster position="top-right" richColors />
-    </Router>
+            }}
+          />
+        </Suspense>
+        <Toaster position="top-right" richColors />
+      </Router>
+    </MotionConfig>
   );
 }
 

@@ -8,7 +8,7 @@ import { QRCodeCanvas } from "qrcode.react";
 
 import { apiGet, apiPatch, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput } from "../components/ui";
 import { fonts } from "../config/fonts";
 
 const formatEventDate = (date: Date) =>
@@ -171,7 +171,7 @@ export function EventDetailPage() {
     return (
       <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
         <BrutalCard color="bg-white">
-          <p className="font-mono text-sm text-slate-500">Loading event...</p>
+          <p className="font-mono text-sm text-muted-foreground">Loading event...</p>
         </BrutalCard>
       </div>
     );
@@ -180,12 +180,12 @@ export function EventDetailPage() {
   if (!displayEvent) {
     return (
       <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
-        <button onClick={() => navigate("/events")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+        <button onClick={() => navigate("/events")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-primary">
           <ArrowLeft size={16} /> Back to Events
         </button>
         <BrutalCard color="bg-white">
           <h1 className="text-4xl uppercase mb-3" style={fonts.display}>Event not found</h1>
-          <p className="text-sm text-slate-600">This event may have been archived, moved, or is not public yet.</p>
+          <p className="text-sm text-muted-foreground">This event may have been archived, moved, or is not public yet.</p>
         </BrutalCard>
       </div>
     );
@@ -202,16 +202,16 @@ export function EventDetailPage() {
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
-      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-primary">
         <ArrowLeft size={16} /> Back to Events
       </button>
 
-      <BrutalCard color="bg-[#2563EB]" className="text-white mb-12 border-4 overflow-hidden">
+      <BrutalCard color="bg-primary" className="text-white mb-12 border-4 overflow-hidden">
         {displayEvent.banner_url && (
-          <img src={displayEvent.banner_url} alt={displayEvent.title} className="-m-6 mb-8 h-64 w-[calc(100%+3rem)] object-cover border-b-4 border-[#171717]" />
+          <img src={displayEvent.banner_url} alt={displayEvent.title} className="-m-6 mb-8 h-64 w-[calc(100%+3rem)] object-cover border-b-4 border-foreground" />
         )}
         <div className="flex justify-between items-start mb-10">
-           <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{displayEvent.event_type || "WORKSHOP"}</BrutalBadge>
+           <BrutalBadge color="bg-highlight" text="text-foreground">{displayEvent.event_type || "WORKSHOP"}</BrutalBadge>
            <div className="text-right">
              <div className="text-5xl" style={fonts.display}>{startDate ? startDate.getDate() : "24"}</div>
              <div className="font-bold tracking-widest">{startDate ? startDate.toLocaleString("en", { month: "short" }).toUpperCase() : "FEB"}</div>
@@ -226,28 +226,28 @@ export function EventDetailPage() {
       </BrutalCard>
 
       <div className="grid md:grid-cols-3 gap-10">
-        <div className="md:col-span-2 prose prose-lg text-[#171717]">
+        <div className="md:col-span-2 prose prose-lg text-foreground">
           <h2 className="uppercase font-bold tracking-widest text-xl mb-4">About The Event</h2>
           <p>{displayEvent.description || displayEvent.short_description || "Event details will be updated soon."}</p>
         </div>
         <div>
           <BrutalCard className="sticky top-32">
             <h3 className="uppercase font-bold tracking-widest text-lg mb-6">Registration</h3>
-            <p className="text-sm font-mono text-slate-500 mb-6">
+            <p className="text-sm font-mono text-muted-foreground mb-6">
               {registrationDeadline ? `Registration deadline: ${formatEventDate(registrationDeadline)} - ${remainingLabel(registrationDeadline)}` : "Registration deadline not set."}
             </p>
-            {reserveStatus && <p className="mb-4 text-xs font-bold text-[#FB7185]">{reserveStatus}</p>}
+            {reserveStatus && <p className="mb-4 text-xs font-bold text-secondary">{reserveStatus}</p>}
             {isReserved ? (
               <div className="space-y-3">
                 <BrutalButton disabled className="w-full cursor-not-allowed opacity-80" color="bg-green-500" text="text-white">
                   <Check size={16} /> Reserved
                 </BrutalButton>
                 {myRegistration.user_id ? (
-                  <BrutalButton onClick={() => navigate(`/ticket/${myRegistration.id}`, { state: { from: `/events/${id}` } })} className="w-full" color="bg-[#FFE800]" text="text-[#171717]">
+                  <BrutalButton onClick={() => navigate(`/ticket/${myRegistration.id}`, { state: { from: `/events/${id}` } })} className="w-full" color="bg-highlight" text="text-foreground">
                     <QrCode size={16} /> View Ticket
                   </BrutalButton>
                 ) : (
-                  <div className="border-2 border-[#171717] bg-white p-4 text-center">
+                  <div className="border-2 border-foreground bg-white p-4 text-center">
                     {myRegistration.ticket_code && <QRCodeCanvas value={myRegistration.ticket_code} size={140} className="mx-auto mb-3" />}
                     <p className="text-xs font-bold uppercase tracking-widest">Guest ticket code</p>
                     <p className="break-all font-mono text-xs">{myRegistration.ticket_code}</p>
@@ -256,15 +256,15 @@ export function EventDetailPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <BrutalButton onClick={reserveSpot} className="w-full" color="bg-[#FB7185]" text="text-white" disabled={registrationClosed || reservingSpot}>
+                <BrutalButton onClick={reserveSpot} className="w-full" color="bg-secondary" text="text-white" disabled={registrationClosed || reservingSpot}>
                   {registrationClosed ? "Registration Closed" : reservingSpot ? "Reserving..." : "Reserve Spot"}
                 </BrutalButton>
                 {showReserveChoice && !registrationClosed && (
                   <div className="grid gap-3">
-                    <BrutalButton onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/events/${id}`)}`)} className="w-full" color="bg-[#171717]" text="text-white">
+                    <BrutalButton onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/events/${id}`)}`)} className="w-full" color="bg-foreground" text="text-white">
                       Login Now
                     </BrutalButton>
-                    <BrutalButton onClick={() => setShowGuestForm((current) => !current)} className="w-full" color="bg-[#FFE800]" text="text-[#171717]">
+                    <BrutalButton onClick={() => setShowGuestForm((current) => !current)} className="w-full" color="bg-highlight" text="text-foreground">
                       Direct Registration
                     </BrutalButton>
                   </div>
@@ -272,8 +272,8 @@ export function EventDetailPage() {
               </div>
             )}
             {canManageEvent && (
-              <div className="mt-4 pt-4 border-t-2 border-[#171717] space-y-3">
-                <BrutalButton onClick={() => navigate(`/scanner?event=${id}`)} className="w-full text-xs" color="bg-[#171717]" text="text-white">
+              <div className="mt-4 pt-4 border-t-2 border-foreground space-y-3">
+                <BrutalButton onClick={() => navigate(`/scanner?event=${id}`)} className="w-full text-xs" color="bg-foreground" text="text-white">
                   <QrCode size={14} className="inline mr-2" /> Scan Tickets
                 </BrutalButton>
               </div>
@@ -284,14 +284,14 @@ export function EventDetailPage() {
 
       {showGuestForm && !isReserved && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-6 pt-24 md:items-center md:py-12">
-          <div className="w-full max-w-4xl border-2 border-[#171717] bg-white p-5 brutal-shadow-lg md:p-7">
-            <div className="mb-6 flex flex-col gap-4 border-b-2 border-[#171717] pb-5 md:flex-row md:items-start md:justify-between">
+          <div className="w-full max-w-4xl border-2 border-foreground bg-white p-5 brutal-shadow-lg md:p-7">
+            <div className="mb-6 flex flex-col gap-4 border-b-2 border-foreground pb-5 md:flex-row md:items-start md:justify-between">
               <div>
-                <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Google Form</BrutalBadge>
+                <BrutalBadge color="bg-highlight" text="text-foreground">Google Form</BrutalBadge>
                 <h2 className="mt-4 text-3xl uppercase md:text-5xl" style={fonts.display}>
                   Guest Registration Form
                 </h2>
-                <p className="mt-2 max-w-xl text-sm font-mono text-slate-600">
+                <p className="mt-2 max-w-xl text-sm font-mono text-muted-foreground">
                   Fill the embedded Google Form below.
                 </p>
               </div>
@@ -299,7 +299,7 @@ export function EventDetailPage() {
                 type="button"
                 onClick={() => setShowGuestForm(false)}
                 disabled={reservingSpot}
-                className="self-start border-2 border-[#171717] bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-slate-100 disabled:opacity-60"
+                className="self-start border-2 border-foreground bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-slate-100 disabled:opacity-60"
               >
                 Close
               </button>
@@ -310,19 +310,19 @@ export function EventDetailPage() {
                 <iframe
                   title="Guest registration form"
                   src={guestGoogleFormUrl}
-                  className="h-[70vh] min-h-[520px] w-full border-2 border-[#171717]"
+                  className="h-[70vh] min-h-[520px] w-full border-2 border-foreground"
                 />
                 <a
                   href={displayEvent.google_form_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-4 inline-flex border-2 border-[#171717] bg-[#FFE800] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#171717]"
+                  className="mt-4 inline-flex border-2 border-foreground bg-highlight px-4 py-2 text-xs font-bold uppercase tracking-widest text-foreground"
                 >
                   Open Form In New Tab
                 </a>
               </div>
             ) : (
-              <div className="border-2 border-[#171717] bg-[#F4EFEB] p-5">
+              <div className="border-2 border-foreground bg-background p-5">
                 <p className="font-bold uppercase tracking-widest text-red-700">Sorry, Guest registration is not available for this event.</p>
                 <p className="mt-2 text-sm text-red-700">Login and register for the event.</p>
               </div>
@@ -337,11 +337,11 @@ export function EventDetailPage() {
             <h2 className="text-3xl uppercase" style={fonts.display}>Organizer Workspace</h2>
             <BrutalBadge color={eventEnded ? "bg-slate-400" : "bg-green-500"}>{eventEnded ? "Ended" : "Active"}</BrutalBadge>
           </div>
-          {managerStatus && <p className="mb-4 text-xs font-bold text-[#2563EB]">{managerStatus}</p>}
+          {managerStatus && <p className="mb-4 text-xs font-bold text-primary">{managerStatus}</p>}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b-2 border-[#171717]">
+                <tr className="border-b-2 border-foreground">
                   <th className="text-left p-3 uppercase text-xs">Attendee</th>
                   <th className="text-left p-3 uppercase text-xs">Ticket</th>
                   <th className="text-left p-3 uppercase text-xs">Status</th>
@@ -361,11 +361,11 @@ export function EventDetailPage() {
                       <td className="p-3">{attendee.checked_in_at ? "Checked in" : attendee.status}</td>
                       <td className="p-3 text-right">
                         {attendee.checked_in_at ? (
-                          <button onClick={() => undoCheckInAttendee(attendee.id)} className="px-3 py-2 border-2 border-[#171717] bg-[#FFE800] text-[#171717] text-xs font-bold uppercase">
+                          <button onClick={() => undoCheckInAttendee(attendee.id)} className="px-3 py-2 border-2 border-foreground bg-highlight text-foreground text-xs font-bold uppercase">
                             Undo
                           </button>
                         ) : (
-                          <button onClick={() => checkInAttendee(attendee.id)} className="px-3 py-2 border-2 border-[#171717] bg-green-500 text-white text-xs font-bold uppercase">
+                          <button onClick={() => checkInAttendee(attendee.id)} className="px-3 py-2 border-2 border-foreground bg-green-500 text-white text-xs font-bold uppercase">
                             Check In
                           </button>
                         )}
@@ -375,7 +375,7 @@ export function EventDetailPage() {
                 })}
                 {attendees.length === 0 && (
                   <tr>
-                    <td className="p-6 text-center text-slate-500 font-mono" colSpan={4}>No registrations yet.</td>
+                    <td className="p-6 text-center text-muted-foreground font-mono" colSpan={4}>No registrations yet.</td>
                   </tr>
                 )}
               </tbody>

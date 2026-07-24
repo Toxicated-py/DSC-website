@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, ChevronLeft, ChevronRight, Heart, MessageCircle, MoreHorizontal, Send, Upload, X, ZoomIn } from "lucide-react";
+import { motion } from "motion/react";
 import { apiDelete, apiGet, apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
 import { submitGallery } from "../lib/contentApi";
 import { fonts } from "../config/fonts";
+import { curtainWipe, defaultViewport } from "../utils/animations";
 
 type GalleryPhoto = {
   id: string;
@@ -44,10 +46,10 @@ type LocalComment = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  workshop: "bg-[#2563EB]",
-  competition: "bg-[#171717]",
-  talk: "bg-[#7C3AED]",
-  social: "bg-[#FB7185]",
+  workshop: "bg-primary",
+  competition: "bg-foreground",
+  talk: "bg-violet-600",
+  social: "bg-secondary",
 };
 
 const typeKey = (value: string) => {
@@ -58,7 +60,7 @@ const typeKey = (value: string) => {
   if (type.includes("social")) return "social";
   return type;
 };
-const typeColor = (value: string) => TYPE_COLORS[typeKey(value)] || "bg-[#2563EB]";
+const typeColor = (value: string) => TYPE_COLORS[typeKey(value)] || "bg-primary";
 
 const parseTags = (value: string) => value.split(",").map((tag) => tag.trim()).filter(Boolean);
 
@@ -266,15 +268,15 @@ export function GalleryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4EFEB] pb-20">
+    <div className="min-h-screen bg-background pb-20">
       <header className="mx-auto max-w-[860px] px-5 pt-24 pb-10">
         <div className="flex items-end justify-between gap-5">
           <div>
-            <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">Data Sarathi · SMS TU</p>
-            <h1 className="text-6xl uppercase leading-none text-[#171717] md:text-8xl" style={fonts.display}>Gallery</h1>
-            <p className="mt-2 text-lg text-slate-600">Moments from our events &amp; community</p>
+            <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Data Sarathi · SMS TU</p>
+            <h1 className="text-6xl uppercase leading-none text-foreground md:text-8xl" style={fonts.display}>Gallery</h1>
+            <p className="mt-2 text-lg text-muted-foreground">Moments from our events &amp; community</p>
           </div>
-          <button onClick={() => setShowSubmitForm((open) => !open)} className="inline-flex items-center gap-2 rounded-md bg-[#171717] px-5 py-3 text-xs font-bold uppercase tracking-widest text-white shadow-lg hover:bg-[#2563EB]">
+          <button onClick={() => setShowSubmitForm((open) => !open)} className="inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-3 text-xs font-bold uppercase tracking-widest text-white shadow-lg hover:bg-primary">
             <Upload size={15} /> Upload
           </button>
         </div>
@@ -304,24 +306,24 @@ export function GalleryPage() {
                 </select>
               )}
             </div>
-            <button type="submit" disabled={submittingGallery} className="mt-4 w-full rounded-xl bg-[#2563EB] px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50">
+            <button type="submit" disabled={submittingGallery} className="mt-4 w-full rounded-xl bg-primary px-5 py-3 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-50">
               {submittingGallery ? "Submitting..." : "Submit For Review"}
             </button>
           </form>
         </section>
       )}
 
-      {submitStatus && <p className="mx-auto mt-4 max-w-[720px] px-4 text-sm font-bold text-[#2563EB]">{submitStatus}</p>}
+      {submitStatus && <p className="mx-auto mt-4 max-w-[720px] px-4 text-sm font-bold text-primary">{submitStatus}</p>}
 
       <main className="mx-auto max-w-[720px] px-4 py-8">
         <div className="mb-4 flex gap-3 overflow-x-auto pb-2">
           {filters.map((filter) => (
-            <button key={filter} onClick={() => setSelectedFilter(filter)} className={`rounded-full border-2 px-5 py-2 text-xs font-bold uppercase tracking-widest shadow-sm ${selectedFilter === filter ? "border-[#171717] bg-[#171717] text-white" : "border-slate-200 bg-white text-slate-500"}`}>
+            <button key={filter} onClick={() => setSelectedFilter(filter)} className={`rounded-full border-2 px-5 py-2 text-xs font-bold uppercase tracking-widest shadow-sm ${selectedFilter === filter ? "border-foreground bg-foreground text-white" : "border-slate-200 bg-white text-muted-foreground"}`}>
               {filter}
             </button>
           ))}
         </div>
-        <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search publisher, caption, or tags" className="mb-6 w-full rounded-2xl border border-slate-200 bg-white p-4 font-mono text-sm shadow-lg outline-none focus:ring-4 focus:ring-[#2563EB]/20" />
+        <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search publisher, caption, or tags" className="mb-6 w-full rounded-2xl border border-slate-200 bg-white p-4 font-mono text-sm shadow-lg outline-none focus:ring-4 focus:ring-primary/20" />
         {filteredPosts.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white py-20 text-center shadow-xl">
             <Camera size={40} className="mx-auto mb-3 text-slate-300" />
@@ -340,28 +342,36 @@ export function GalleryPage() {
                         <Camera size={18} />
                       </div>
                       <div>
-                        <h2 className="font-bold text-[#171717]">{post.event}</h2>
+                        <h2 className="font-bold text-foreground">{post.event}</h2>
                         <div className="mt-0.5 flex items-center gap-2">
                           <span className={`h-1.5 w-1.5 rounded-full ${typeColor(post.type)}`} />
-                          <span className="font-mono text-[11px] uppercase tracking-wider text-slate-500">{post.type} · {post.date || "Date TBA"}</span>
+                          <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{post.type} · {post.date || "Date TBA"}</span>
                         </div>
                       </div>
                     </div>
                     <MoreHorizontal size={20} className="text-slate-400" />
                   </div>
 
-                  <div className="relative bg-[#171717]">
+                  <div className="relative bg-foreground">
                     <button onClick={() => setLightbox({ postId: post.id, index: activeIndexes[post.id] || 0 })} className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white">
                       <ZoomIn size={16} />
                     </button>
                     {post.photos.length > 1 && <span className="absolute left-4 top-4 z-10 rounded-full bg-black/60 px-3 py-1 font-mono text-xs font-bold text-white">{(activeIndexes[post.id] || 0) + 1} / {post.photos.length}</span>}
                     <img src={photo.url} alt={photo.title} className="aspect-[4/3] w-full object-cover" loading="lazy" />
+                    <motion.div
+                      key={photo.id}
+                      variants={curtainWipe}
+                      initial="hidden"
+                      whileInView="visible"
+                      viewport={defaultViewport}
+                    className="pointer-events-none absolute inset-0 z-10 bg-foreground"
+                    />
                     {post.photos.length > 1 && (
                       <>
-                        <button onClick={() => movePost(post, -1)} className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#171717] shadow-lg">
+                        <button onClick={() => movePost(post, -1)} className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-foreground shadow-lg">
                           <ChevronLeft size={22} />
                         </button>
-                        <button onClick={() => movePost(post, 1)} className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-[#171717] shadow-lg">
+                        <button onClick={() => movePost(post, 1)} className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-foreground shadow-lg">
                           <ChevronRight size={22} />
                         </button>
                         <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
@@ -375,22 +385,22 @@ export function GalleryPage() {
 
                   <div className="px-5 py-4">
                     <div className="mb-3 flex items-center gap-5">
-                      <button onClick={() => toggleLike(photo.id)} className="inline-flex items-center gap-2 text-slate-500">
-                        <Heart size={24} className={likedPhotos.includes(photo.id) ? "fill-[#FB7185] text-[#FB7185]" : ""} />
+                      <button onClick={() => toggleLike(photo.id)} className="inline-flex items-center gap-2 text-muted-foreground">
+                        <Heart size={24} className={likedPhotos.includes(photo.id) ? "fill-secondary text-secondary" : ""} />
                         <span className="font-semibold">{photo.likes || 0}</span>
                       </button>
-                      <button onClick={() => void toggleComments(post)} className="inline-flex items-center gap-2 text-[#2563EB]">
+                      <button onClick={() => void toggleComments(post)} className="inline-flex items-center gap-2 text-primary">
                         <MessageCircle size={24} />
                         <span className="font-semibold">{comments[post.id]?.length ?? post.commentsCount}</span>
                       </button>
                     </div>
-                    <p className="text-[15px] leading-7 text-[#171717]">
+                    <p className="text-[15px] leading-7 text-foreground">
                       <span className="mr-2 font-bold">@{post.postedBy}</span>
                       {post.caption}
                     </p>
                     {post.tags.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {post.tags.map((tag) => <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500">#{tag}</span>)}
+                        {post.tags.map((tag) => <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-muted-foreground">#{tag}</span>)}
                       </div>
                     )}
 
@@ -398,14 +408,14 @@ export function GalleryPage() {
                       <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
                         {postComments.map((comment) => (
                           <div key={comment.id} className="flex gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-xs font-bold text-white">{comment.avatar}</div>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">{comment.avatar}</div>
                             <div className="flex-1 rounded-lg bg-slate-50 px-4 py-3">
                               <div className="mb-1 flex flex-wrap items-center gap-2">
                                 <span className="text-sm font-bold">{comment.author}</span>
-                                <span className="rounded bg-[#FFE800] px-2 py-0.5 text-[10px] font-bold uppercase">{comment.role}</span>
+                                <span className="rounded bg-highlight px-2 py-0.5 text-[10px] font-bold uppercase">{comment.role}</span>
                                 <span className="font-mono text-[10px] text-slate-400">{comment.time}</span>
                                 {comment.canDelete && (
-                                  <button onClick={() => void deleteComment(post, comment.id)} className="ml-auto text-[10px] font-bold uppercase tracking-widest text-[#FB7185] hover:text-[#171717]">
+                                  <button onClick={() => void deleteComment(post, comment.id)} className="ml-auto text-[10px] font-bold uppercase tracking-widest text-secondary hover:text-foreground">
                                     Delete
                                   </button>
                                 )}
@@ -418,10 +428,10 @@ export function GalleryPage() {
                     )}
 
                     <div className="mt-4 flex items-center gap-3 border-t border-slate-100 pt-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#171717] bg-[#FFE800] text-xs font-bold">YO</div>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-foreground bg-highlight text-xs font-bold">YO</div>
                       <div className="flex flex-1 items-center rounded-full bg-slate-100 pl-4 pr-1">
                         <input value={commentInputs[post.id] || ""} onChange={(event) => setCommentInputs((current) => ({ ...current, [post.id]: event.target.value }))} onKeyDown={(event) => event.key === "Enter" && void submitComment(post)} placeholder="Log in to add a comment..." className="flex-1 bg-transparent py-3 text-sm outline-none" />
-                        <button onClick={() => void submitComment(post)} disabled={!commentInputs[post.id]?.trim()} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2563EB] text-white disabled:opacity-30">
+                        <button onClick={() => void submitComment(post)} disabled={!commentInputs[post.id]?.trim()} className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white disabled:opacity-30">
                           <Send size={15} />
                         </button>
                       </div>

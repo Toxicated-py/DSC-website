@@ -1,14 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Database, Search, Tag } from "lucide-react";
-
-
-
+import { motion } from "motion/react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
-import { BrutalButton, BrutalBadge } from "../components/ui/brutal";
+import { BrutalButton, BrutalBadge } from "../components/ui";
 
 import { fonts } from "../config/fonts";
+import { defaultViewport, fadeUp, staggerContainer } from "../utils/animations";
+
+type ProjectCard = {
+  id: string;
+  slug: string;
+  title: string;
+  tags: string[];
+  author: string;
+  year: number;
+  imageUrl?: string | null;
+  color: string;
+  text: string;
+  desc: string;
+};
 
 export function ProjectsPage() {
   const navigate = useNavigate();
@@ -16,7 +28,7 @@ export function ProjectsPage() {
   const [activeTag, setActiveTag] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
-  const [allProjects, setAllProjects] = useState<any[]>([]);
+  const [allProjects, setAllProjects] = useState<ProjectCard[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const ITEMS_PER_PAGE = 6;
 
@@ -36,12 +48,12 @@ export function ProjectsPage() {
         .order("published_at", { ascending: false, nullsFirst: false });
       if (!mounted) return;
       const styles = [
-        { color: "bg-[#F4EFEB]", text: "text-[#171717]" },
-        { color: "bg-[#2563EB]", text: "text-white" },
-        { color: "bg-[#FB7185]", text: "text-white" },
-        { color: "bg-[#FFE800]", text: "text-[#171717]" },
-        { color: "bg-[#7C3AED]", text: "text-white" },
-        { color: "bg-[#171717]", text: "text-white" },
+        { color: "bg-background", text: "text-foreground" },
+        { color: "bg-primary", text: "text-white" },
+        { color: "bg-secondary", text: "text-white" },
+        { color: "bg-highlight", text: "text-foreground" },
+        { color: "bg-violet-600", text: "text-white" },
+        { color: "bg-foreground", text: "text-white" },
       ];
       setAllProjects((data || []).map((project, index) => {
         const style = styles[index % styles.length];
@@ -91,14 +103,14 @@ export function ProjectsPage() {
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1400px] mx-auto min-h-screen">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between border-b-4 border-[#171717] pb-8 mb-10 gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between border-b-4 border-foreground pb-8 mb-10 gap-6">
         <div>
-          <BrutalBadge color="bg-[#FB7185]" className="mb-4 inline-block">Student Projects</BrutalBadge>
+          <BrutalBadge color="bg-secondary" className="mb-4 inline-block">Student Projects</BrutalBadge>
           <h1 className="text-6xl md:text-8xl uppercase leading-none" style={fonts.display}>Showcase</h1>
-          <p className="mt-2 text-sm font-mono text-slate-500">{filtered.length} project{filtered.length !== 1 ? "s" : ""} found</p>
+          <p className="mt-2 text-sm font-mono text-muted-foreground">{filtered.length} project{filtered.length !== 1 ? "s" : ""} found</p>
         </div>
         <BrutalButton
-          color="bg-[#FB7185]"
+          color="bg-secondary"
           text="text-white"
           className="w-full self-stretch sm:w-auto md:self-start"
           onClick={() => navigate("/projects/submit")}
@@ -116,13 +128,13 @@ export function ProjectsPage() {
             placeholder="Search by title, description, or tech..."
             value={searchQuery}
             onChange={e => { setSearchQuery(e.target.value); resetPage(); }}
-            className="w-full border-2 border-[#171717] p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30 transition-all"
+            className="w-full border-2 border-foreground p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-secondary/30 transition-all"
           />
         </div>
         <select
           value={sortOrder}
           onChange={e => { setSortOrder(e.target.value); resetPage(); }}
-          className="px-4 py-3 border-2 border-[#171717] font-bold uppercase tracking-widest text-xs bg-white focus:outline-none cursor-pointer"
+          className="px-4 py-3 border-2 border-foreground font-bold uppercase tracking-widest text-xs bg-white focus:outline-none cursor-pointer"
         >
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
@@ -136,8 +148,8 @@ export function ProjectsPage() {
           <button
             key={tag}
             onClick={() => { setActiveTag(tag); resetPage(); }}
-            className={`px-3 py-1.5 border-2 border-[#171717] font-bold uppercase tracking-widest text-[10px] transition-all ${
-              activeTag === tag ? "bg-[#FB7185] text-white" : "bg-white hover:bg-[#F4EFEB]"
+            className={`px-3 py-1.5 border-2 border-foreground font-bold uppercase tracking-widest text-[10px] transition-all ${
+              activeTag === tag ? "bg-secondary text-white" : "bg-white hover:bg-background"
             }`}
           >
             {tag === "all" ? "All Tech" : tag}
@@ -147,7 +159,7 @@ export function ProjectsPage() {
 
       {/* Projects Grid */}
       {paginated.length === 0 ? (
-        <div className="text-center py-24 border-2 border-dashed border-[#171717]">
+        <div className="text-center py-24 border-2 border-dashed border-foreground">
           <p className="text-2xl font-bold uppercase tracking-widest text-slate-400" style={fonts.display}>
             {loadingProjects ? "Loading projects" : "No projects found"}
           </p>
@@ -156,14 +168,21 @@ export function ProjectsPage() {
           </p>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={defaultViewport}
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
           {paginated.map(proj => (
-            <div
+            <motion.div
               key={proj.id}
+              variants={fadeUp}
               onClick={() => navigate(`/projects/${proj.slug || proj.id}`)}
-              className={`cursor-pointer border-2 border-[#171717] flex flex-col brutal-shadow brutal-shadow-hover transition-all group ${proj.color} ${proj.text}`}
+              className={`cursor-pointer border-2 border-foreground flex flex-col brutal-shadow brutal-shadow-hover transition-all group ${proj.color} ${proj.text}`}
             >
-              <div className="w-full aspect-video border-b-2 border-[#171717] relative overflow-hidden flex items-center justify-center bg-black/10">
+              <div className="w-full aspect-video border-b-2 border-foreground relative overflow-hidden flex items-center justify-center bg-black/10">
                 {proj.imageUrl ? (
                   <img src={proj.imageUrl} alt={proj.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                 ) : (
@@ -181,9 +200,9 @@ export function ProjectsPage() {
                   ))}
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
 
       {/* Pagination */}
@@ -192,7 +211,7 @@ export function ProjectsPage() {
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 border-2 border-[#171717] font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-[#F4EFEB] transition-all"
+            className="px-4 py-2 border-2 border-foreground font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-background transition-all"
           >
             ? Prev
           </button>
@@ -200,8 +219,8 @@ export function ProjectsPage() {
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`w-10 h-10 border-2 border-[#171717] font-bold text-sm transition-all ${
-                currentPage === page ? "bg-[#171717] text-white" : "bg-white hover:bg-[#F4EFEB]"
+              className={`w-10 h-10 border-2 border-foreground font-bold text-sm transition-all ${
+                currentPage === page ? "bg-foreground text-white" : "bg-white hover:bg-background"
               }`}
             >
               {page}
@@ -210,7 +229,7 @@ export function ProjectsPage() {
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 border-2 border-[#171717] font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-[#F4EFEB] transition-all"
+            className="px-4 py-2 border-2 border-foreground font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-background transition-all"
           >
             Next ?
           </button>

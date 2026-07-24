@@ -1,9 +1,10 @@
+import type { AdminTabContext } from "../types";
 import { Mail } from "lucide-react";
 
 import { fonts } from "../../../config/fonts";
 import { BrutalBadge, BrutalCard } from "../AdminPrimitives";
 
-export function ContactsTab({ ctx }: { ctx: any }) {
+export function ContactsTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -316,17 +317,17 @@ export function ContactsTab({ ctx }: { ctx: any }) {
 {activeTab === "contacts" && isFullAdmin && (
         <div className="space-y-6">
           <div className="grid sm:grid-cols-3 gap-4">
-            <BrutalCard color="bg-[#2563EB]" className="text-white">
+            <BrutalCard color="bg-primary" className="text-white">
               <div className="text-4xl font-bold mb-1" style={fonts.display}>{contactMessages.length}</div>
               <div className="text-xs font-bold uppercase tracking-widest opacity-80">Total Messages</div>
             </BrutalCard>
-            <BrutalCard color="bg-[#FFE800]">
+            <BrutalCard color="bg-highlight">
               <div className="text-4xl font-bold mb-1" style={fonts.display}>{contactMessages.filter((message) => message.status === "new").length}</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">New</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">New</div>
             </BrutalCard>
             <BrutalCard color="bg-white">
               <div className="text-4xl font-bold mb-1" style={fonts.display}>{contactMessages.filter((message) => message.status === "read").length}</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">Read</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Read</div>
             </BrutalCard>
           </div>
 
@@ -334,34 +335,34 @@ export function ContactsTab({ ctx }: { ctx: any }) {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Contact Inbox</h2>
-                <p className="text-sm text-slate-600">Messages sent from the public contact page appear here.</p>
+                <p className="text-sm text-muted-foreground">Messages sent from the public contact page appear here.</p>
               </div>
-              <BrutalBadge color="bg-[#FB7185]">
+              <BrutalBadge color="bg-secondary">
                 {contactMessages.filter((message) => message.status === "new").length} Unread
               </BrutalBadge>
             </div>
 
             {contactMessages.length === 0 ? (
-              <div className="border-2 border-dashed border-[#171717] p-10 text-center">
-                <Mail size={36} className="mx-auto mb-3 text-[#2563EB]" />
+              <div className="border-2 border-dashed border-foreground p-10 text-center">
+                <Mail size={36} className="mx-auto mb-3 text-primary" />
                 <p className="font-bold uppercase tracking-widest">No contact messages yet</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {contactMessages.map((message) => (
-                  <div key={message.id} className={`border-2 border-[#171717] p-4 ${message.status === "new" ? "bg-[#FFF7A8]" : "bg-white"}`}>
+                  <div key={message.id} className={`border-2 border-foreground p-4 ${message.status === "new" ? "bg-highlight-soft" : "bg-white"}`}>
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <BrutalBadge color={message.status === "new" ? "bg-[#FFE800]" : message.status === "archived" ? "bg-slate-300" : "bg-[#22C55E]"}>
+                          <BrutalBadge color={message.status === "new" ? "bg-highlight" : message.status === "archived" ? "bg-slate-300" : "bg-green-500"}>
                             {message.status}
                           </BrutalBadge>
-                          <span className="text-xs font-mono text-slate-500">
+                          <span className="text-xs font-mono text-muted-foreground">
                             {message.created_at ? new Date(message.created_at).toLocaleString() : "Unknown time"}
                           </span>
                         </div>
                         <h3 className="text-xl uppercase mb-1" style={fonts.display}>{message.subject}</h3>
-                        <p className="text-sm font-mono text-slate-600 mb-3">
+                        <p className="text-sm font-mono text-muted-foreground mb-3">
                           {message.name} - <a href={`mailto:${message.email}`} className="underline">{message.email}</a>
                         </p>
                         <p className="text-sm whitespace-pre-wrap break-words">{message.message}</p>
@@ -369,19 +370,19 @@ export function ContactsTab({ ctx }: { ctx: any }) {
                       <div className="flex flex-wrap lg:flex-col gap-2 shrink-0">
                         <button
                           onClick={() => updateContactMessageStatus(message.id, message.status === "new" ? "read" : "new")}
-                          className="px-3 py-2 border-2 border-[#171717] bg-white text-xs font-bold uppercase tracking-widest hover:bg-[#F4EFEB]"
+                          className="px-3 py-2 border-2 border-foreground bg-white text-xs font-bold uppercase tracking-widest hover:bg-background"
                         >
                           {message.status === "new" ? "Mark Read" : "Mark New"}
                         </button>
                         <button
                           onClick={() => updateContactMessageStatus(message.id, "archived")}
-                          className="px-3 py-2 border-2 border-[#171717] bg-[#FFE800] text-xs font-bold uppercase tracking-widest hover:bg-yellow-300"
+                          className="px-3 py-2 border-2 border-foreground bg-highlight text-xs font-bold uppercase tracking-widest hover:bg-yellow-300"
                         >
                           Archive
                         </button>
                         <button
                           onClick={() => deleteContactMessage(message.id)}
-                          className="px-3 py-2 border-2 border-[#171717] bg-[#FB7185] text-white text-xs font-bold uppercase tracking-widest hover:bg-[#F43F5E]"
+                          className="px-3 py-2 border-2 border-foreground bg-secondary text-white text-xs font-bold uppercase tracking-widest hover:bg-destructive"
                         >
                           Delete
                         </button>

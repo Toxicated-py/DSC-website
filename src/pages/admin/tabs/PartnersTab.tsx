@@ -1,9 +1,10 @@
+import type { AdminTabContext } from "../types";
 import { Edit } from "lucide-react";
 
 import { fonts } from "../../../config/fonts";
 import { BrutalCard } from "../AdminPrimitives";
 
-export function PartnersTab({ ctx }: { ctx: any }) {
+export function PartnersTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -317,7 +318,7 @@ export function PartnersTab({ ctx }: { ctx: any }) {
             <>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Partners</h2>
-                <button onClick={() => openPartnerModal()} className="px-5 py-3 bg-[#2563EB] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-xs brutal-shadow brutal-shadow-hover">
+                <button onClick={() => openPartnerModal()} className="px-5 py-3 bg-primary text-white border-2 border-foreground font-bold uppercase tracking-widest text-xs brutal-shadow brutal-shadow-hover">
                   Add Partner
                 </button>
               </div>
@@ -327,14 +328,14 @@ export function PartnersTab({ ctx }: { ctx: any }) {
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div>
                         <h3 className="font-bold uppercase text-lg">{partner.name}</h3>
-                        <p className="text-xs font-mono text-slate-500">{partner.category || "Partner"} - {partner.status}</p>
-                        <p className="text-sm text-slate-600 mt-2">{partner.description}</p>
-                        {partner.website_url && <a href={partner.website_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-[#2563EB]">Open website</a>}
+                        <p className="text-xs font-mono text-muted-foreground">{partner.category || "Partner"} - {partner.status}</p>
+                        <p className="text-sm text-muted-foreground mt-2">{partner.description}</p>
+                        {partner.website_url && <a href={partner.website_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary">Open website</a>}
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => openPartnerModal(partner)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>
-                        <button onClick={() => deletePartner(partner.id)} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Delete</button>
+                        <button onClick={() => openPartnerModal(partner)} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white font-bold uppercase text-xs">Edit</button>
+                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "archived")} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-secondary hover:text-white font-bold uppercase text-xs">Archive</button>
+                        <button onClick={() => deletePartner(partner.id)} className="px-3 py-1 border-2 border-foreground bg-secondary text-white font-bold uppercase text-xs">Delete</button>
                       </div>
                     </div>
                   </BrutalCard>
@@ -348,12 +349,12 @@ export function PartnersTab({ ctx }: { ctx: any }) {
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div>
                         <h3 className="font-bold uppercase text-lg">{partner.name}</h3>
-                        <p className="text-xs font-mono text-slate-500">{partner.category || "Partner"} - {partner.status}</p>
+                        <p className="text-xs font-mono text-muted-foreground">{partner.category || "Partner"} - {partner.status}</p>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => openPartnerModal(partner)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
-                        <button onClick={() => deletePartner(partner.id)} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Delete</button>
+                        <button onClick={() => openPartnerModal(partner)} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white font-bold uppercase text-xs">Edit</button>
+                        <button onClick={() => updateSubmissionStatus("partner_submissions", partner.id, "published")} className="px-3 py-1 border-2 border-foreground bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
+                        <button onClick={() => deletePartner(partner.id)} className="px-3 py-1 border-2 border-foreground bg-secondary text-white font-bold uppercase text-xs">Delete</button>
                       </div>
                     </div>
                   </BrutalCard>

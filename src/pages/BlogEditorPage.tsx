@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { getPersistenceLabel, publishBlogPost } from "../lib/contentApi";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { userFriendlyErrorMessage } from "../lib/apiClient";
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui";
 import { requireLoginForAction } from "../utils/authNavigation";
 import { fonts } from "../config/fonts";
 
@@ -92,14 +92,14 @@ export function BlogEditorPage() {
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1200px] mx-auto min-h-screen">
-      <button onClick={() => navigate("/blog")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+      <button onClick={() => navigate("/blog")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-primary">
         <ArrowLeft size={16} /> Back to Blog
       </button>
 
-      <div className="border-b-4 border-[#171717] pb-8 mb-10">
-        <BrutalBadge color="bg-[#171717]" className="mb-4 inline-block">Blog Editor</BrutalBadge>
+      <div className="border-b-4 border-foreground pb-8 mb-10">
+        <BrutalBadge color="bg-foreground" className="mb-4 inline-block">Blog Editor</BrutalBadge>
         <h1 className="text-5xl md:text-7xl uppercase leading-none" style={fonts.display}>Write a Post</h1>
-        <p className="mt-3 text-slate-600 max-w-2xl">Draft, preview, and publish club updates, tutorials, and event recaps.</p>
+        <p className="mt-3 text-muted-foreground max-w-2xl">Draft, preview, and publish club updates, tutorials, and event recaps.</p>
       </div>
 
       <form onSubmit={publishPostForm} className="grid lg:grid-cols-[1fr_380px] gap-8">
@@ -120,17 +120,17 @@ export function BlogEditorPage() {
               <button
                 type="button"
                 onClick={() => setPreview(!preview)}
-                className="px-3 py-2 border-2 border-[#171717] bg-white text-[#171717] text-xs font-bold uppercase tracking-widest"
+                className="px-3 py-2 border-2 border-foreground bg-white text-foreground text-xs font-bold uppercase tracking-widest"
               >
                 {preview ? "Edit" : "Preview"}
               </button>
             </div>
             {preview ? (
               <article className="space-y-5">
-                <div className="border-b-4 border-[#171717] pb-5">
+                <div className="border-b-4 border-foreground pb-5">
                   <div className="flex flex-wrap gap-2 mb-4">
                     {(previewTags.length ? previewTags : ["Blog"]).map((tag: string) => (
-                      <BrutalBadge key={tag} color="bg-[#2563EB]">{tag}</BrutalBadge>
+                      <BrutalBadge key={tag} color="bg-primary">{tag}</BrutalBadge>
                     ))}
                   </div>
                   <h3 className="text-4xl md:text-5xl uppercase leading-none mb-4" style={fonts.display}>
@@ -139,7 +139,7 @@ export function BlogEditorPage() {
                   <p className="text-lg text-slate-700" style={fonts.serif}>
                     {form.summary || "Post summary preview."}
                   </p>
-                  <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-slate-500">
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                     <span>{authorName}</span>
                     <span>{previewDate}</span>
                     <span>{previewReadTime}</span>
@@ -147,12 +147,12 @@ export function BlogEditorPage() {
                 </div>
 
                 {form.coverImage && (
-                  <div className="border-2 border-[#171717] brutal-shadow overflow-hidden bg-[#2563EB]">
+                  <div className="border-2 border-foreground brutal-shadow overflow-hidden bg-primary">
                     <img loading="lazy" src={form.coverImage} alt={form.title || "Blog cover"} className="w-full max-h-56 object-cover" />
                   </div>
                 )}
 
-                <div className="space-y-4 text-base leading-7 text-[#171717]" style={fonts.serif}>
+                <div className="space-y-4 text-base leading-7 text-foreground" style={fonts.serif}>
                   {(previewBlocks.length ? previewBlocks : ["Write your post here..."]).map((block: string, index: number) => {
                     if (block.startsWith("## ")) {
                       return <h4 key={index} className="pt-2 text-2xl md:text-3xl uppercase leading-tight" style={fonts.display}>{block.replace(/^##\s+/, "")}</h4>;
@@ -170,13 +170,13 @@ export function BlogEditorPage() {
           </BrutalCard>
 
           {status && (
-            <div className="border-2 border-[#171717] bg-white p-4 text-sm font-bold">
+            <div className="border-2 border-foreground bg-white p-4 text-sm font-bold">
               {status}
             </div>
           )}
 
           <div className="flex flex-col gap-3">
-            <BrutalButton type="submit" color="bg-[#171717]" text="text-white" className="w-full" disabled={publishingPost}>
+            <BrutalButton type="submit" color="bg-foreground" text="text-white" className="w-full" disabled={publishingPost}>
               {publishingPost ? "Submitting..." : "Submit for Review"}
             </BrutalButton>
           </div>
@@ -186,4 +186,4 @@ export function BlogEditorPage() {
   );
 }
 
-// BrutalField and BrutalTextArea imported from `./components/ui/brutal`
+// BrutalField and BrutalTextArea imported from `./components/ui`

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BookOpen, Code, Database, Download, Search, TrendingUp } from "lucide-react";
 import { apiGet } from "../lib/apiClient";
-import { BrutalButton, BrutalCard, BrutalBadge } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge } from "../components/ui";
 import { fonts } from "../config/fonts";
 
 
@@ -39,15 +39,15 @@ export function ResourcesPage() {
   }, []);
 
   const typeColors: Record<string, string> = {
-    PDF: "bg-[#2563EB]",
-    Video: "bg-[#FB7185]",
-    Link: "bg-[#FFE800]",
-    Notebook: "bg-[#7C3AED]",
+    PDF: "bg-primary",
+    Video: "bg-secondary",
+    Link: "bg-highlight",
+    Notebook: "bg-violet-600",
   };
   const typeTextColors: Record<string, string> = {
     PDF: "text-white",
     Video: "text-white",
-    Link: "text-[#171717]",
+    Link: "text-foreground",
     Notebook: "text-white",
   };
 
@@ -74,21 +74,21 @@ export function ResourcesPage() {
   return (
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-12 border-b-4 border-[#171717] pb-8">
-        <BrutalBadge color="bg-[#2563EB]" className="mb-4 inline-flex items-center gap-1">
+      <div className="mb-12 border-b-4 border-foreground pb-8">
+        <BrutalBadge color="bg-primary" className="mb-4 inline-flex items-center gap-1">
           <BookOpen size={10} /> LEARNING MATERIALS
         </BrutalBadge>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-5xl md:text-7xl uppercase leading-none mb-2" style={fonts.display}>Resources</h1>
-            <p className="text-slate-600 font-mono text-sm">{filtered.length} resource{filtered.length !== 1 ? "s" : ""} found</p>
+            <p className="text-muted-foreground font-mono text-sm">{filtered.length} resource{filtered.length !== 1 ? "s" : ""} found</p>
           </div>
           <div className="flex gap-4 text-center">
             {[
-              { val: resources.reduce((s, r) => s + r.downloads, 0).toLocaleString(), label: "Total Downloads", color: "bg-[#2563EB]" },
-              { val: resources.length.toString(), label: "Total Resources", color: "bg-[#FB7185]" },
+              { val: resources.reduce((s, r) => s + r.downloads, 0).toLocaleString(), label: "Total Downloads", color: "bg-primary" },
+              { val: resources.length.toString(), label: "Total Resources", color: "bg-secondary" },
             ].map(s => (
-              <div key={s.label} className={`${s.color} border-2 border-[#171717] px-6 py-3 text-white`}>
+              <div key={s.label} className={`${s.color} border-2 border-foreground px-6 py-3 text-white`}>
                 <div className="text-2xl font-bold" style={fonts.display}>{s.val}</div>
                 <div className="text-[9px] font-bold uppercase tracking-widest opacity-80">{s.label}</div>
               </div>
@@ -106,13 +106,13 @@ export function ResourcesPage() {
             placeholder="Search resources..."
             value={searchQuery}
             onChange={e => { setSearchQuery(e.target.value); resetPage(); }}
-            className="w-full border-2 border-[#171717] p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all"
+            className="w-full border-2 border-foreground p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/30 transition-all"
           />
         </div>
         <select
           value={sortOrder}
           onChange={e => { setSortOrder(e.target.value); resetPage(); }}
-          className="px-4 py-3 border-2 border-[#171717] font-bold uppercase tracking-widest text-xs bg-white focus:outline-none cursor-pointer"
+          className="px-4 py-3 border-2 border-foreground font-bold uppercase tracking-widest text-xs bg-white focus:outline-none cursor-pointer"
         >
           <option value="popular">Most Downloaded</option>
           <option value="newest">Newest First</option>
@@ -128,22 +128,22 @@ export function ResourcesPage() {
             <button
               key={cat}
               onClick={() => { setSelectedCategory(cat); resetPage(); }}
-              className={`px-4 py-2 border-2 border-[#171717] font-bold uppercase tracking-widest text-xs transition-all ${
-                selectedCategory === cat ? "bg-[#2563EB] text-white" : "bg-white hover:bg-[#F4EFEB]"
+              className={`px-4 py-2 border-2 border-foreground font-bold uppercase tracking-widest text-xs transition-all ${
+                selectedCategory === cat ? "bg-primary text-white" : "bg-white hover:bg-background"
               }`}
             >
               {cat === "all" ? "All Levels" : cat}
             </button>
           ))}
         </div>
-        <div className="w-px bg-[#171717] mx-1 hidden sm:block" />
+        <div className="w-px bg-foreground mx-1 hidden sm:block" />
         <div className="flex gap-2 flex-wrap">
           {["all", "PDF", "Video", "Notebook", "Link"].map(type => (
             <button
               key={type}
               onClick={() => { setSelectedType(type); resetPage(); }}
-              className={`px-4 py-2 border-2 border-[#171717] font-bold uppercase tracking-widest text-xs transition-all ${
-                selectedType === type ? "bg-[#171717] text-white" : "bg-white hover:bg-[#F4EFEB]"
+              className={`px-4 py-2 border-2 border-foreground font-bold uppercase tracking-widest text-xs transition-all ${
+                selectedType === type ? "bg-foreground text-white" : "bg-white hover:bg-background"
               }`}
             >
               {type === "all" ? "All Types" : type}
@@ -154,7 +154,7 @@ export function ResourcesPage() {
 
       {/* Resources Grid */}
       {paginated.length === 0 ? (
-        <div className="text-center py-24 border-2 border-dashed border-[#171717]">
+        <div className="text-center py-24 border-2 border-dashed border-foreground">
           <p className="text-2xl font-bold uppercase tracking-widest text-slate-400" style={fonts.display}>No resources found</p>
           <p className="text-sm font-mono text-slate-400 mt-2">Admin-added learning materials will appear here.</p>
         </div>
@@ -165,27 +165,27 @@ export function ResourcesPage() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex gap-2 flex-wrap">
                   <BrutalBadge
-                    color={resource.category === "beginner" ? "bg-green-500" : resource.category === "intermediate" ? "bg-[#FFE800]" : "bg-[#FB7185]"}
-                    text={resource.category === "intermediate" ? "text-[#171717]" : "text-white"}
+                    color={resource.category === "beginner" ? "bg-green-500" : resource.category === "intermediate" ? "bg-highlight" : "bg-secondary"}
+                    text={resource.category === "intermediate" ? "text-foreground" : "text-white"}
                   >
                     {resource.category.toUpperCase()}
                   </BrutalBadge>
                 </div>
-                <BrutalBadge color={typeColors[resource.type] || "bg-[#2563EB]"} text={typeTextColors[resource.type] || "text-white"}>
+                <BrutalBadge color={typeColors[resource.type] || "bg-primary"} text={typeTextColors[resource.type] || "text-white"}>
                   {resource.type}
                 </BrutalBadge>
               </div>
               <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>{resource.title}</h3>
-              <p className="text-sm text-slate-600 mb-4 leading-relaxed">{resource.description}</p>
+              <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{resource.description}</p>
               <div className="flex items-center justify-between pt-4 border-t-2 border-slate-100">
-                <div className="flex items-center gap-3 text-xs text-slate-500 font-mono">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono">
                   {resource.size && <span>{resource.size}</span>}
                   <span className="flex items-center gap-1">
                     <Download size={11} /> {resource.downloads.toLocaleString()}
                   </span>
                 </div>
                 <BrutalButton
-                  color="bg-[#2563EB]"
+                  color="bg-primary"
                   text="text-white"
                   className="text-xs px-4 py-2"
                   onClick={() => {
@@ -207,7 +207,7 @@ export function ResourcesPage() {
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 border-2 border-[#171717] font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-[#F4EFEB] transition-all"
+            className="px-4 py-2 border-2 border-foreground font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-background transition-all"
           >
             â Prev
           </button>
@@ -215,8 +215,8 @@ export function ResourcesPage() {
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`w-10 h-10 border-2 border-[#171717] font-bold text-sm transition-all ${
-                currentPage === page ? "bg-[#2563EB] text-white" : "bg-white hover:bg-[#F4EFEB]"
+              className={`w-10 h-10 border-2 border-foreground font-bold text-sm transition-all ${
+                currentPage === page ? "bg-primary text-white" : "bg-white hover:bg-background"
               }`}
             >
               {page}
@@ -225,7 +225,7 @@ export function ResourcesPage() {
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 border-2 border-[#171717] font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-[#F4EFEB] transition-all"
+            className="px-4 py-2 border-2 border-foreground font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-background transition-all"
           >
             Next â
           </button>
@@ -236,30 +236,30 @@ export function ResourcesPage() {
       <div className="mt-16">
         <h2 className="text-3xl uppercase mb-6" style={fonts.display}>Recommended Platforms</h2>
         <div className="grid md:grid-cols-3 gap-6">
-          <BrutalCard color="bg-[#FB7185]" className="text-white text-center">
+          <BrutalCard color="bg-secondary" className="text-white text-center">
             <Code size={32} className="mx-auto mb-3" />
             <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>Kaggle</h3>
             <p className="text-sm mb-4 opacity-90">Competitions & Datasets</p>
             <a href="https://kaggle.com" target="_blank" rel="noopener noreferrer"
-              className="inline-block px-4 py-2 bg-white text-[#FB7185] border-2 border-[#171717] font-bold uppercase text-xs hover:bg-[#F4EFEB] transition-all">
+              className="inline-block px-4 py-2 bg-white text-secondary border-2 border-foreground font-bold uppercase text-xs hover:bg-background transition-all">
               Visit Kaggle
             </a>
           </BrutalCard>
-          <BrutalCard color="bg-[#7C3AED]" className="text-white text-center">
+          <BrutalCard color="bg-violet-600" className="text-white text-center">
             <Database size={32} className="mx-auto mb-3" />
             <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>Coursera</h3>
             <p className="text-sm mb-4 opacity-90">Online Courses</p>
             <a href="https://coursera.org" target="_blank" rel="noopener noreferrer"
-              className="inline-block px-4 py-2 bg-white text-[#7C3AED] border-2 border-[#171717] font-bold uppercase text-xs hover:bg-[#F4EFEB] transition-all">
+              className="inline-block px-4 py-2 bg-white text-violet-600 border-2 border-foreground font-bold uppercase text-xs hover:bg-background transition-all">
               Visit Coursera
             </a>
           </BrutalCard>
-          <BrutalCard color="bg-[#2563EB]" className="text-white text-center">
+          <BrutalCard color="bg-primary" className="text-white text-center">
             <TrendingUp size={32} className="mx-auto mb-3" />
             <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>GitHub</h3>
             <p className="text-sm mb-4 opacity-90">Code Repositories</p>
             <a href="https://github.com" target="_blank" rel="noopener noreferrer"
-              className="inline-block px-4 py-2 bg-white text-[#2563EB] border-2 border-[#171717] font-bold uppercase text-xs hover:bg-[#F4EFEB] transition-all">
+              className="inline-block px-4 py-2 bg-white text-primary border-2 border-foreground font-bold uppercase text-xs hover:bg-background transition-all">
               Visit GitHub
             </a>
           </BrutalCard>

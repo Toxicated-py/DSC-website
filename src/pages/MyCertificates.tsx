@@ -7,11 +7,11 @@ import { getCertificatesByMember } from "../services/certificateService";
 import type { Certificate } from "../types/certificate";
 
 
-import { BrutalButton, BrutalCard } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard } from "../components/ui";
 import { fonts } from "../config/fonts";
 
-const Badge = ({ children, color = "bg-[#2563EB]" }: any) => (
-  <span className={`px-2 py-1 ${color} border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest`}>
+const Badge = ({ children, color = "bg-primary" }: any) => (
+  <span className={`px-2 py-1 ${color} border-2 border-foreground text-[10px] font-bold uppercase tracking-widest`}>
     {children}
   </span>
 );
@@ -54,35 +54,35 @@ export function MyCertificates() {
   }, []);
 
   return (
-    <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto min-h-screen bg-[#F4EFEB]">
+    <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto min-h-screen bg-background">
       <div className="mb-12">
-        <Link to="/dashboard" className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+        <Link to="/dashboard" className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-primary">
           <ArrowLeft size={16} /> Back to Dashboard
         </Link>
         <div>
-          <Badge color="bg-[#2563EB] text-white">
+          <Badge color="bg-primary text-white">
             My Certificates
           </Badge>
         </div>
         <h1 className="mt-4 text-4xl sm:text-5xl md:text-6xl uppercase leading-none break-words" style={fonts.display}>
           My Certificates
         </h1>
-        <p className="font-mono text-sm text-slate-600">View certificates issued to you.</p>
+        <p className="font-mono text-sm text-muted-foreground">View certificates issued to you.</p>
       </div>
 
       {loading ? (
         <BrutalCard>
-          <p className="font-mono text-sm text-slate-500">Loading certificates...</p>
+          <p className="font-mono text-sm text-muted-foreground">Loading certificates...</p>
         </BrutalCard>
       ) : error ? (
-        <BrutalCard color="bg-[#FB7185]" className="text-white">
+        <BrutalCard color="bg-secondary" className="text-white">
           <p className="font-bold">{error}</p>
         </BrutalCard>
       ) : certificates.length === 0 ? (
         <BrutalCard className="text-center">
-          <Award size={42} className="mx-auto mb-4 text-[#2563EB]" />
+          <Award size={42} className="mx-auto mb-4 text-primary" />
           <h2 className="text-3xl uppercase mb-2" style={fonts.display}>No certificates yet</h2>
-          <p className="text-slate-600">Certificates will appear here after they are issued by the club.</p>
+          <p className="text-muted-foreground">Certificates will appear here after they are issued by the club.</p>
         </BrutalCard>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -91,17 +91,17 @@ export function MyCertificates() {
               key={certificate.id}
               type="button"
               onClick={() => setSelectedCertificate(certificate)}
-              className="text-left border-2 border-[#171717] bg-white p-5 brutal-shadow brutal-shadow-hover transition-all"
+              className="text-left border-2 border-foreground bg-white p-5 brutal-shadow brutal-shadow-hover transition-all"
             >
               <div className="flex items-start justify-between gap-3 mb-4">
-                <Badge color={certificate.status === "revoked" ? "bg-[#FB7185] text-white" : "bg-green-500 text-white"}>
+                <Badge color={certificate.status === "revoked" ? "bg-secondary text-white" : "bg-green-500 text-white"}>
                   {certificate.status}
                 </Badge>
                 <Badge>{certificate.certificate_type}</Badge>
               </div>
               <h2 className="text-2xl uppercase leading-tight" style={fonts.display}>{certificate.event_title_snapshot}</h2>
-              <p className="mt-2 text-sm text-slate-600">{certificate.certificate_title}</p>
-              <p className="mt-4 flex items-center gap-2 font-mono text-xs text-slate-500">
+              <p className="mt-2 text-sm text-muted-foreground">{certificate.certificate_title}</p>
+              <p className="mt-4 flex items-center gap-2 font-mono text-xs text-muted-foreground">
                 <Calendar size={14} /> {formatDate(certificate.issued_date)}
               </p>
             </button>
@@ -114,15 +114,15 @@ export function MyCertificates() {
           <BrutalCard className="w-full max-w-2xl">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <Badge color={selectedCertificate.status === "revoked" ? "bg-[#FB7185] text-white" : "bg-green-500 text-white"}>
+                <Badge color={selectedCertificate.status === "revoked" ? "bg-secondary text-white" : "bg-green-500 text-white"}>
                   {selectedCertificate.status}
                 </Badge>
                 <h2 className="mt-4 text-3xl uppercase leading-tight" style={fonts.display}>
                   {selectedCertificate.event_title_snapshot}
                 </h2>
-                <p className="text-sm text-slate-600">{selectedCertificate.certificate_title}</p>
+                <p className="text-sm text-muted-foreground">{selectedCertificate.certificate_title}</p>
               </div>
-              <button type="button" onClick={() => setSelectedCertificate(null)} className="border-2 border-[#171717] bg-white p-2">
+              <button type="button" onClick={() => setSelectedCertificate(null)} className="border-2 border-foreground bg-white p-2">
                 <X size={18} />
               </button>
             </div>
@@ -133,7 +133,7 @@ export function MyCertificates() {
               <p><span className="font-bold">Certificate ID:</span> {selectedCertificate.verification_code}</p>
               <p><span className="font-bold">Issued by:</span> {selectedCertificate.issuer_name || "Data Science Club"}</p>
             </div>
-            <BrutalButton color="bg-[#2563EB]" text="text-white" className="mt-6 w-full" onClick={() => setSelectedCertificate(null)}>
+            <BrutalButton color="bg-primary" text="text-white" className="mt-6 w-full" onClick={() => setSelectedCertificate(null)}>
               Close
             </BrutalButton>
           </BrutalCard>

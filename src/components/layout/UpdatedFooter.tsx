@@ -41,7 +41,7 @@ export function UpdatedFooter() {
   ].filter((social) => social.url && social.url !== "#" && social.url !== "mailto:");
 
   return (
-    <footer className="bg-[#F4EFEB] py-12 px-6 md:px-10 border-t-2 border-[#171717]">
+    <footer className="bg-background py-12 px-6 md:px-10 border-t-2 border-foreground">
       <div className="max-w-[1400px] mx-auto">
         <div className="grid md:grid-cols-3 gap-10 items-start">
           {/* Brand + Socials */}
@@ -50,11 +50,11 @@ export function UpdatedFooter() {
               <div className="w-12 h-12 bg-white flex items-center justify-center rounded-full p-[2px]">
                 <img loading="lazy" src={DSC_LOGO_SRC} alt="Data Science Club logo" className="w-full h-full object-contain" />
               </div>
-              <span className="font-bold text-lg uppercase tracking-widest text-[#171717]" style={fonts.display}>
+              <span className="font-bold text-lg uppercase tracking-widest text-foreground" style={fonts.display}>
                 {settings.siteName.replace(" - SMS TU", "")}
               </span>
             </Link>
-            <p className="text-sm text-slate-600 max-w-xs mb-4" style={fonts.sans}>
+            <p className="text-sm text-muted-foreground max-w-xs mb-4" style={fonts.sans}>
               {settings.address}
             </p>
             <div className="flex flex-wrap gap-3 mt-6">
@@ -64,7 +64,7 @@ export function UpdatedFooter() {
                   href={social.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-9 h-9 bg-white border-2 border-[#171717] flex items-center justify-center hover:bg-[#2563EB] hover:text-white transition-all brutal-shadow hover:brutal-shadow-hover"
+                  className="w-9 h-9 bg-white border-2 border-foreground flex items-center justify-center hover:bg-primary hover:text-white transition-all brutal-shadow hover:brutal-shadow-hover"
                   aria-label={social.label}
                 >
                   {social.icon}
@@ -74,35 +74,34 @@ export function UpdatedFooter() {
           </div>
 
           {/* Quick Links */}
-          <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm font-bold uppercase tracking-widest text-[#171717]">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm font-bold uppercase tracking-widest text-foreground">
             <div className="col-span-2">
               <h3 className="text-lg mb-3" style={fonts.display}>Quick Links</h3>
             </div>
-            <Link to="/" className="hover:text-[#2563EB] w-max">Home</Link>
-            <Link to="/events" className="hover:text-[#2563EB] w-max">Events</Link>
-            <Link to="/projects" className="hover:text-[#FB7185] w-max">Projects</Link>
-            <Link to="/blog" className="hover:text-[#2563EB] w-max">Blog</Link>
-            <Link to="/resources" className="hover:text-[#2563EB] w-max">Resources</Link>
-            <Link to="/verify" className="hover:text-[#2563EB] w-max">Verify Certificate</Link>
-            <Link to="/about" className="hover:text-[#2563EB] w-max">About Us</Link>
-            <Link to="/gallery" className="hover:text-[#7C3AED] w-max">Gallery</Link>
-            <Link to="/partners" className="hover:text-[#FB7185] w-max">Partners</Link>
-            <Link to="/contact" className="hover:text-[#FB7185] w-max">Contact</Link>
+            <Link to="/" className="hover:text-primary w-max">Home</Link>
+            <Link to="/events" className="hover:text-primary w-max">Events</Link>
+            <Link to="/projects" className="hover:text-primary w-max">Projects</Link>
+            <Link to="/blog" className="hover:text-primary w-max">Blog</Link>
+            <Link to="/resources" className="hover:text-primary w-max">Resources</Link>
+            <Link to="/verify" className="hover:text-primary w-max">Verify Certificate</Link>
+            <Link to="/about" className="hover:text-primary w-max">About Us</Link>
+            <Link to="/gallery" className="hover:text-primary w-max">Gallery</Link>
+            <Link to="/partners" className="hover:text-primary w-max">Partners</Link>
+            <Link to="/contact" className="hover:text-primary w-max">Contact</Link>
           </div>
 
-          {/* Brand + Credit */}
-          <div className="md:text-right text-[#171717]">
-            <h3 className="text-3xl" style={fonts.display}>{settings.siteName}</h3>
-            <p className="text-xs text-slate-600 mt-4">
+          {/* Tagline + Credit */}
+          <div className="md:text-right text-foreground">
+            <p className="text-xs text-muted-foreground">
               {settings.tagline}
             </p>
-            <p className="text-xs text-slate-500 mt-4">
+            <p className="text-xs text-muted-foreground mt-4">
               Made by{" "}
               <a
                 href="https://github.com/Toxicated-py"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold text-[#2563EB] hover:text-[#171717] transition-colors"
+                className="font-bold text-primary hover:text-foreground transition-colors"
               >
                 Ashish Adhikari
               </a>
@@ -115,20 +114,20 @@ export function UpdatedFooter() {
                 href="https://www.bisup.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 bg-[#171717] text-white border-2 border-[#171717] hover:bg-white hover:text-[#171717] transition-colors"
+                className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 bg-foreground text-white border-2 border-foreground hover:bg-white hover:text-foreground transition-colors"
                 style={fonts.sans}
               >
                 Bisup
               </a>
             </div>
-            <p className="text-xs text-slate-500 mt-4 font-mono">
+            <p className="text-xs text-muted-foreground mt-4 font-mono">
               &copy; {new Date().getFullYear()} All rights reserved.
             </p>
             <div className="mt-3 flex gap-4 md:justify-end">
-              <Link to="/privacy" className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-[#2563EB]">
+              <Link to="/privacy" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary">
                 Privacy
               </Link>
-              <Link to="/terms" className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-[#2563EB]">
+              <Link to="/terms" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary">
                 Terms
               </Link>
             </div>

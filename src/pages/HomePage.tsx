@@ -1,34 +1,36 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, Code, GitBranch, MapPin, Trophy, Users } from "lucide-react";
-import { BrutalButton, BrutalBadge } from "../components/ui/brutal";
+import { motion } from "motion/react";
+import { BrutalButton, BrutalBadge } from "../components/ui";
 import { apiGet } from "../lib/apiClient";
 import { defaultSiteSettings, loadSiteSettings } from "../lib/siteSettings";
 import { fonts } from "../config/fonts";
+import { defaultViewport, fadeIn, fadeUp, prefersReducedMotion, slideLeft, slideRight, staggerContainer } from "../utils/animations";
 
 const workCards = [
   {
     title: "Workshops",
     body: "We run sessions where you actually touch the data. Python, ML, SQL, visualization - hands-on, beginner-friendly, and taught by experts.",
-    color: "bg-[#2563EB] text-white",
+    color: "bg-primary text-white",
     icon: <BookOpen size={28} />,
   },
   {
     title: "Hackathons",
     body: "Build something real in 48 hours with people you just met. No perfect setup needed - just curiosity, a laptop, and pressure that turns ideas into projects.",
-    color: "bg-[#FFE800] text-[#171717]",
+    color: "bg-highlight text-foreground",
     icon: <Trophy size={28} />,
   },
   {
     title: "Student Projects",
     body: "Have an idea? Bring it. We help you scope it, find teammates, and ship it. Student ideas deserve more than a notebook.",
-    color: "bg-[#FB7185] text-white",
+    color: "bg-secondary text-white",
     icon: <Code size={28} />,
   },
   {
     title: "Open Resources",
     body: "Every cheat sheet, dataset, and workshop recording we produce is shared for members. We learn in the open.",
-    color: "bg-[#7C3AED] text-white",
+    color: "bg-violet-600 text-white",
     icon: <BookOpen size={28} />,
   },
 ];
@@ -68,11 +70,12 @@ export function HomePage() {
       if (!mounted) return;
 
       setHomeSettings(settings.home);
-      const events = (summary?.upcoming_events?.length ? summary.upcoming_events : [summary?.next_event]).filter(Boolean)
+      const eventSource: any[] = summary?.upcoming_events?.length ? summary.upcoming_events : [summary?.next_event];
+      const events = eventSource.filter(Boolean)
         .filter((event, index, list) => list.findIndex((item) => item.id === event.id) === index)
         .sort((a, b) => String(a.start_time || "").localeCompare(String(b.start_time || "")))
         .slice(0, 8);
-      const colors = ["bg-[#2563EB]", "bg-[#FB7185]", "bg-[#171717]", "bg-[#7C3AED]"];
+      const colors = ["bg-primary", "bg-secondary", "bg-foreground", "bg-violet-600"];
       setHomeEvents(events.map((event, index) => {
         const start = event.start_time ? new Date(event.start_time) : null;
         return {
@@ -103,50 +106,71 @@ export function HomePage() {
 
   return (
     <>
-      <section className="relative overflow-hidden border-y-2 border-[#171717] bg-[#F4EFEB]">
-        <div className="pointer-events-none absolute left-0 top-0 h-[430px] w-[720px] max-w-[90vw] bg-[#E0DEF4]/80" style={{ clipPath: "polygon(0 0, 88% 0, 100% 76%, 0 58%)" }} />
+      <section className="relative overflow-hidden border-y-2 border-foreground bg-background">
+        <div className="pointer-events-none absolute left-0 top-0 h-[430px] w-[720px] max-w-[90vw] bg-lavender/80" style={{ clipPath: "polygon(0 0, 88% 0, 100% 76%, 0 58%)" }} />
         <div className="pointer-events-none absolute left-0 top-0 h-[380px] w-[610px] max-w-[84vw] bg-white/60" style={{ clipPath: "polygon(0 0, 82% 0, 74% 100%, 0 80%)" }} />
 
         <div className="relative mx-auto max-w-[1450px] px-5 py-8 sm:px-8 md:px-12 lg:px-16 lg:py-12">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-            <div>
-              <h1
-                className="relative max-w-[760px] text-6xl leading-[0.84] text-[#171717] sm:text-7xl md:text-[7.5rem] lg:text-[8.5rem] xl:text-[10rem]"
-                style={{ ...fonts.display, textShadow: "6px 6px 0 #2563EB, 12px 12px 0 #FB7185" }}
-              >
-                {heroTitleLines.map((line, index) => (
-                  <React.Fragment key={`${line}-${index}`}>
-                    {line}{index < heroTitleLines.length - 1 ? <br /> : null}
-                  </React.Fragment>
-                ))}
-              </h1>
+            <div className="min-w-0">
+              <motion.div variants={staggerContainer} initial="hidden" animate="visible">
+                <h1
+                  className="relative max-w-[760px] text-6xl leading-[0.84] text-foreground sm:text-7xl md:text-[7.5rem] lg:text-[8.5rem] xl:text-[10rem]"
+                  style={{ ...fonts.display, textShadow: "6px 6px 0 var(--color-primary), 12px 12px 0 var(--color-secondary)" }}
+                >
+                  {heroTitleLines.map((line, index) => (
+                    <motion.span key={`${line}-${index}`} variants={fadeUp} className="block">
+                      {line}
+                    </motion.span>
+                  ))}
+                </h1>
+              </motion.div>
 
-              <div className="mt-8 max-w-2xl border-t-2 border-[#171717] pt-6">
-                <p className="text-xl leading-snug text-[#171717] sm:text-2xl" style={fonts.serif}>
-                  <em className="text-[#FB7185]">Sarathi</em> means guide. We are the student community at SMS TU that turns data science <em className="text-[#2563EB]">from theory into practice.</em>
-                </p>
-                <p className="mt-4 font-mono text-sm text-slate-500">Open to all students at SMS, TU.</p>
-                <div className="mt-6 flex flex-wrap gap-4">
+              <div className="mt-8 max-w-2xl border-t-2 border-foreground pt-6">
+                <motion.p
+                  variants={fadeUp}
+                  initial="hidden"
+                  animate="visible"
+                  transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.3 }}
+                  className="text-xl leading-snug text-foreground sm:text-2xl"
+                  style={fonts.serif}
+                >
+                  <em className="text-secondary">Sarathi</em> means guide. We are the student community at SMS TU that turns data science <em className="text-primary">from theory into practice.</em>
+                </motion.p>
+                <p className="mt-4 font-mono text-sm text-muted-foreground">Open to all students at SMS, TU.</p>
+                <motion.div
+                  variants={fadeIn}
+                  initial="hidden"
+                  animate="visible"
+                  transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.5 }}
+                  className="mt-6 flex flex-wrap gap-4"
+                >
                   <Link to="/events"><BrutalButton color="bg-white">See Events</BrutalButton></Link>
-                  <Link to="/about"><BrutalButton color="bg-[#171717]" text="text-white">Our Story</BrutalButton></Link>
-                </div>
+                  <Link to="/about"><BrutalButton color="bg-foreground" text="text-white">Our Story</BrutalButton></Link>
+                </motion.div>
               </div>
             </div>
 
-            <div className="grid gap-4 lg:pt-4">
+            <motion.div
+              variants={slideRight}
+              initial="hidden"
+              animate="visible"
+              transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.4 }}
+              className="grid min-w-0 gap-4 lg:pt-4"
+            >
               <Link
                 to={nextEvent ? `/events/${nextEvent.slug || nextEvent.id}` : "/events"}
-                className="block border-2 border-[#171717] bg-white p-5 brutal-shadow -rotate-1 transition-transform hover:-translate-y-1"
+                className="block border-2 border-foreground bg-white p-5 brutal-shadow -rotate-1 transition-transform hover:-translate-y-1"
               >
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Next Up</span>
                 <div className="mt-4 flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-4xl leading-none text-[#2563EB]" style={fonts.display}>{nextEvent?.num || "--"}</p>
-                    <p className="mt-1 text-sm font-bold uppercase tracking-widest text-slate-500">{nextEvent?.month || "No event yet"}</p>
+                    <p className="text-4xl leading-none text-primary" style={fonts.display}>{nextEvent?.num || "--"}</p>
+                    <p className="mt-1 text-sm font-bold uppercase tracking-widest text-muted-foreground">{nextEvent?.month || "No event yet"}</p>
                   </div>
-                  <BrutalBadge color="bg-[#2563EB]">{nextEvent?.type || "Event"}</BrutalBadge>
+                  <BrutalBadge color="bg-primary">{nextEvent?.type || "Event"}</BrutalBadge>
                 </div>
-                <p className="mt-5 text-xl uppercase text-[#171717]" style={fonts.display}>{nextEvent?.label || "No events yet"}</p>
+                <p className="mt-5 text-xl uppercase text-foreground" style={fonts.display}>{nextEvent?.label || "No events yet"}</p>
                 <p className="mt-2 flex items-center gap-2 font-mono text-sm text-slate-400">
                   <Users size={16} /> {nextEvent?.capacity ? `${nextEvent.registeredCount || 0}/${nextEvent.capacity} spots` : "Club event"}
                 </p>
@@ -154,7 +178,7 @@ export function HomePage() {
 
               <Link
                 to={homeProject ? `/projects/${homeProject.slug || homeProject.id}` : "/projects"}
-                className="block border-2 border-[#171717] bg-[#7C3AED] p-5 text-white brutal-shadow rotate-1 transition-transform hover:-translate-y-1"
+                className="block border-2 border-foreground bg-violet-600 p-5 text-white brutal-shadow rotate-1 transition-transform hover:-translate-y-1"
               >
                 <span className="text-xs font-bold uppercase tracking-widest text-white/70">Projects</span>
                 <p className="mt-4 text-2xl uppercase" style={fonts.display}>{homeProject?.title || "No projects yet"}</p>
@@ -167,42 +191,55 @@ export function HomePage() {
                   View Project <ArrowRight size={16} />
                 </p>
               </Link>
-            </div>
+            </motion.div>
           </div>
 
         </div>
       </section>
 
-      <section className="bg-[#F4EFEB] py-16 md:py-20">
+      <section className="bg-background py-16 md:py-20">
         <div className="mx-auto max-w-[1450px] px-5 sm:px-8 md:px-12 lg:px-16">
-          <BrutalBadge color="bg-[#FB7185]">What we do</BrutalBadge>
+          <BrutalBadge color="bg-secondary">What we do</BrutalBadge>
           <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_620px] lg:items-end">
-            <h2 className="max-w-[520px] text-5xl leading-[0.92] text-[#171717] sm:text-6xl lg:text-7xl" style={fonts.display}>
+            <motion.h2
+              variants={slideLeft}
+              initial="hidden"
+              whileInView="visible"
+              viewport={defaultViewport}
+              className="max-w-[520px] text-5xl leading-[0.92] text-foreground sm:text-6xl lg:text-7xl"
+              style={fonts.display}
+            >
               THEORY ENDS IN CLASS.
-            </h2>
-            <p className="max-w-xl text-xl leading-relaxed text-slate-600">
+            </motion.h2>
+            <p className="max-w-xl text-xl leading-relaxed text-muted-foreground">
               Everything real - the projects, the collaboration, the skills that actually get you hired - starts here.
             </p>
           </div>
 
-          <div className="mt-10 grid border-2 border-[#171717] md:grid-cols-2 xl:grid-cols-4">
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={defaultViewport}
+            className="mt-10 grid border-2 border-foreground md:grid-cols-2 xl:grid-cols-4"
+          >
             {workCards.map((card, index) => (
-              <div key={card.title} className={`${card.color} min-h-[240px] border-b-2 border-[#171717] p-6 last:border-b-0 md:border-r-2 ${index % 2 === 1 ? "md:border-r-0" : ""} xl:border-b-0 xl:border-r-2 xl:last:border-r-0`}>
+              <motion.div key={card.title} variants={fadeUp} className={`${card.color} min-h-[240px] border-b-2 border-foreground p-6 last:border-b-0 md:border-r-2 ${index % 2 === 1 ? "md:border-r-0" : ""} xl:border-b-0 xl:border-r-2 xl:last:border-r-0`}>
                 <div className="mb-6 inline-flex h-12 w-12 items-center justify-center border-2 border-current/40">{card.icon}</div>
                 <h3 className="text-2xl uppercase" style={fonts.display}>{card.title}</h3>
                 <p className="mt-4 text-base leading-relaxed opacity-85">{card.body}</p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      <section className="bg-[#171717] py-16 text-white md:py-20">
+      <section className="bg-foreground py-16 text-white md:py-20">
         <div className="mx-auto max-w-[1450px] px-5 sm:px-8 md:px-12 lg:px-16">
           <div className="mb-10 flex items-end justify-between gap-6">
             <div>
-              <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Upcoming</BrutalBadge>
-              <h2 className="mt-5 text-5xl leading-none sm:text-6xl lg:text-7xl" style={fonts.display}>EVENTS</h2>
+              <BrutalBadge color="bg-highlight" text="text-foreground">Upcoming</BrutalBadge>
+              <motion.h2 variants={slideLeft} initial="hidden" whileInView="visible" viewport={defaultViewport} className="mt-5 text-5xl leading-none sm:text-6xl lg:text-7xl" style={fonts.display}>EVENTS</motion.h2>
             </div>
             <Link to="/events" className="hidden items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/55 hover:text-white sm:flex">
               All Events <ArrowRight size={16} />
@@ -243,49 +280,62 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#F4EFEB] py-12 md:py-16">
+      <section className="bg-background py-12 md:py-16">
         <div className="mx-auto grid max-w-[1320px] gap-8 px-5 sm:px-8 md:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:px-12">
           <div>
-            <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Who we are</BrutalBadge>
-            <h2 className="mt-4 max-w-[470px] text-4xl leading-[0.92] text-[#171717] sm:text-5xl lg:text-6xl" style={fonts.display}>
+            <BrutalBadge color="bg-highlight" text="text-foreground">Who we are</BrutalBadge>
+            <motion.h2
+              variants={slideLeft}
+              initial="hidden"
+              whileInView="visible"
+              viewport={defaultViewport}
+              className="mt-4 max-w-[470px] text-4xl leading-[0.92] text-foreground sm:text-5xl lg:text-6xl"
+              style={fonts.display}
+            >
               WE ARE THE STUDENTS WHO STAYED CURIOUS.
-            </h2>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg" style={fonts.serif}>
+            </motion.h2>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg" style={fonts.serif}>
               The BDS program at SMS gives you the foundation. Data Sarathi exists for everything else - the projects you want to build, the peers you want to learn with, and the portfolio that proves you can do the work. Anyone at SMS TU is welcome here.
             </p>
             <Link to="/about" className="mt-7 inline-block">
-              <BrutalButton color="bg-[#FFE800]">Read Our Story</BrutalButton>
+              <BrutalButton color="bg-highlight">Read Our Story</BrutalButton>
             </Link>
           </div>
 
-          <div className="space-y-4 lg:pt-8">
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={defaultViewport}
+            className="space-y-4 lg:pt-8"
+          >
             {identityCards.map((card) => (
-              <div key={card.title} className="flex gap-4 border-2 border-[#171717] bg-white p-5 brutal-shadow">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center border-2 border-[#171717] bg-[#FFE800]">
+              <motion.div key={card.title} variants={fadeUp} className="flex gap-4 border-2 border-foreground bg-white p-5 brutal-shadow">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center border-2 border-foreground bg-highlight">
                   {card.icon}
                 </div>
                 <div>
                   <h3 className="text-base font-bold uppercase tracking-widest">{card.title}</h3>
-                  <p className="mt-2 text-base leading-relaxed text-slate-600">{card.body}</p>
+                  <p className="mt-2 text-base leading-relaxed text-muted-foreground">{card.body}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      <section className="relative border-y-2 border-[#171717] bg-[#2563EB] py-20 text-center text-white md:py-24">
+      <section className="relative border-y-2 border-foreground bg-primary py-20 text-center text-white md:py-24">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
         <div className="relative z-10 mx-auto max-w-4xl px-5">
-          <BrutalBadge color="bg-white" text="text-[#2563EB]">Open to all SMS TU students</BrutalBadge>
-          <h2 className="mt-6 text-5xl leading-[0.92] sm:text-6xl md:text-7xl" style={fonts.display}>YOUR SARATHI IS WAITING.</h2>
+          <BrutalBadge color="bg-white" text="text-primary">Open to all SMS TU students</BrutalBadge>
+          <motion.h2 variants={slideLeft} initial="hidden" whileInView="visible" viewport={defaultViewport} className="mt-6 text-5xl leading-[0.92] sm:text-6xl md:text-7xl" style={fonts.display}>YOUR SARATHI IS WAITING.</motion.h2>
           <p className="mx-auto mt-6 max-w-3xl text-xl leading-relaxed opacity-90" style={fonts.serif}>
             Data Sarathi is new. The community is still forming. This is the moment to show up - before it becomes something you wish you had joined earlier.
           </p>
           <p className="mt-6 font-mono text-sm text-white/70">Free to join - Open to all SMS TU students - No prior experience needed.</p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <Link to="/events"><BrutalButton color="bg-[#FFE800]">See Events</BrutalButton></Link>
-            <Link to="/contact"><BrutalButton color="bg-white" text="text-[#2563EB]">Get In Touch</BrutalButton></Link>
+            <Link to="/events"><BrutalButton color="bg-highlight">See Events</BrutalButton></Link>
+            <Link to="/contact"><BrutalButton color="bg-white" text="text-primary">Get In Touch</BrutalButton></Link>
           </div>
         </div>
       </section>

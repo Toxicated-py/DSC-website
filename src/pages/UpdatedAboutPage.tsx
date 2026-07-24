@@ -12,9 +12,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Github, Linkedin, Mail } from "lucide-react";
+import { motion } from "motion/react";
 import { useSiteSettings } from "../lib/siteSettings";
-import { BrutalCard } from "../components/ui/brutal";
+import { BrutalCard } from "../components/ui";
 import { fonts } from "../config/fonts";
+import { defaultViewport, fadeUp, scaleIn, slideLeft } from "../utils/animations";
 
 const DiscordIcon = ({ size = 20 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -27,45 +29,45 @@ export function UpdatedAboutPage() {
   const settings = useSiteSettings();
 
   const socialLinks = [
-    { icon: <Github size={20} />, url: settings.socialLinks.github, label: "GitHub", color: "bg-[#171717]", textColor: "text-white" },
-    { icon: <Linkedin size={20} />, url: settings.socialLinks.linkedin, label: "LinkedIn", color: "bg-[#2563EB]", textColor: "text-white" },
-    { icon: <DiscordIcon />, url: settings.socialLinks.discord || "#", label: "Discord", color: "bg-[#7C3AED]", textColor: "text-white" },
-    { icon: <Mail size={20} />, url: `mailto:${settings.contactEmail}`, label: "Email", color: "bg-[#FFE800]", textColor: "text-[#171717]" },
+    { icon: <Github size={20} />, url: settings.socialLinks.github, label: "GitHub", color: "bg-foreground", textColor: "text-white" },
+    { icon: <Linkedin size={20} />, url: settings.socialLinks.linkedin, label: "LinkedIn", color: "bg-primary", textColor: "text-white" },
+    { icon: <DiscordIcon />, url: settings.socialLinks.discord || "#", label: "Discord", color: "bg-violet-600", textColor: "text-white" },
+    { icon: <Mail size={20} />, url: `mailto:${settings.contactEmail}`, label: "Email", color: "bg-highlight", textColor: "text-foreground" },
   ].filter((social) => social.url && social.url !== "mailto:");
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
-      <Link to="/" className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-12 hover:text-[#2563EB]">
+      <Link to="/" className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-12 hover:text-primary">
         <ArrowLeft size={16} /> Back
       </Link>
 
       <h1 className="text-6xl md:text-8xl uppercase mb-8" style={fonts.display}>Our Story</h1>
 
-      <div className="prose prose-lg max-w-none text-[#171717]">
-        <p className="text-2xl font-serif italic mb-8">
+      <div className="prose prose-lg max-w-none text-foreground">
+        <motion.p variants={fadeUp} initial="hidden" whileInView="visible" viewport={defaultViewport} className="text-2xl font-serif italic mb-8">
           Data Sarathi started as a small group of students at the School of Mathematical Sciences who wanted to do more than just pass exams.
-        </p>
-        <p>
+        </motion.p>
+        <motion.p variants={fadeUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
           We realized that theoretical knowledge wasn't enough to tackle real-world problems. We needed practical experience, datasets, and a community to share our struggles with algorithmic complexities and model training over coffee.
-        </p>
-        <BrutalCard className="my-10 bg-[#FFE800] rotate-1">
+        </motion.p>
+        <BrutalCard variants={scaleIn} initial="hidden" whileInView="visible" viewport={defaultViewport} className="my-10 bg-highlight rotate-1">
           <h3 className="text-2xl uppercase mb-2" style={fonts.display}>The Mission</h3>
-          <p className="m-0 font-bold">To demystify data science and provide a sandbox for TU's brightest minds to innovate.</p>
+          <motion.p variants={fadeUp} className="m-0 font-bold">To demystify data science and provide a sandbox for TU's brightest minds to innovate.</motion.p>
         </BrutalCard>
-        <p>
+        <motion.p variants={fadeUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
           Today, we host hackathons, conduct workshops, and maintain an open-source culture. We are proudly student-run, completely independent, and deeply passionate about the future of AI in Nepal.
-        </p>
+        </motion.p>
       </div>
 
-      <div className="mt-16 border-t-2 border-[#171717] pt-12">
-        <BrutalCard color="bg-[#FFE800]">
-          <h2 className="text-4xl md:text-5xl uppercase mb-4" style={fonts.display}>People Behind The Club</h2>
-          <p className="mb-6 text-slate-700">
+      <div className="mt-16 border-t-2 border-foreground pt-12">
+        <BrutalCard variants={scaleIn} initial="hidden" whileInView="visible" viewport={defaultViewport} color="bg-highlight">
+          <motion.h2 variants={slideLeft} className="text-4xl md:text-5xl uppercase mb-4" style={fonts.display}>People Behind The Club</motion.h2>
+          <motion.p variants={fadeUp} className="mb-6 text-slate-700">
             View the executive board, faculty advisors, and community members of the Data Science Club.
-          </p>
+          </motion.p>
           <Link
             to="/team"
-            className="inline-flex border-2 border-[#171717] bg-[#171717] px-6 py-3 text-sm font-bold uppercase tracking-widest text-white brutal-shadow brutal-shadow-hover"
+            className="inline-flex border-2 border-foreground bg-foreground px-6 py-3 text-sm font-bold uppercase tracking-widest text-white brutal-shadow brutal-shadow-hover"
           >
             View Team
           </Link>
@@ -73,9 +75,9 @@ export function UpdatedAboutPage() {
       </div>
 
       {/* Community Photo Section */}
-      <div className="mt-16 border-t-2 border-[#171717] pt-12">
-        <h2 className="text-4xl md:text-5xl uppercase mb-6" style={fonts.display}>Our Community</h2>
-        <BrutalCard className="p-0 overflow-hidden">
+      <div className="mt-16 border-t-2 border-foreground pt-12">
+        <motion.h2 variants={slideLeft} initial="hidden" whileInView="visible" viewport={defaultViewport} className="text-4xl md:text-5xl uppercase mb-6" style={fonts.display}>Our Community</motion.h2>
+        <BrutalCard variants={scaleIn} initial="hidden" whileInView="visible" viewport={defaultViewport} className="p-0 overflow-hidden">
           <div className="aspect-video bg-slate-200">
             <img loading="lazy"
               src="/assets/logo reveal group.jpg"
@@ -85,28 +87,32 @@ export function UpdatedAboutPage() {
           </div>
           <div className="p-6">
             <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>Our Amazing Team</h3>
-            <p className="text-slate-600">
+            <motion.p variants={fadeUp} className="text-muted-foreground">
               The incredible members of Data Science Club at our Logo Revealing Ceremony - 30th May, 2026. Together, we're building the future of data-driven innovation in Nepal.
-            </p>
+            </motion.p>
           </div>
         </BrutalCard>
       </div>
 
       {/* Connect With Us Section */}
-      <div className="mt-16 border-t-2 border-[#171717] pt-12">
-        <h2 className="text-4xl md:text-5xl uppercase mb-6" style={fonts.display}>Connect With Us</h2>
-        <p className="text-lg text-slate-600 mb-8" style={fonts.sans}>
+      <div className="mt-16 border-t-2 border-foreground pt-12">
+        <motion.h2 variants={slideLeft} initial="hidden" whileInView="visible" viewport={defaultViewport} className="text-4xl md:text-5xl uppercase mb-6" style={fonts.display}>Connect With Us</motion.h2>
+        <motion.p variants={fadeUp} initial="hidden" whileInView="visible" viewport={defaultViewport} className="text-lg text-muted-foreground mb-8" style={fonts.sans}>
           Stay updated with our latest events, projects, and community highlights.
-        </p>
+        </motion.p>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {socialLinks.map((social) => (
-            <a
+            <motion.a
               key={social.label}
+              variants={scaleIn}
+              initial="hidden"
+              whileInView="visible"
+              viewport={defaultViewport}
               href={social.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={`${social.color} ${social.textColor} border-2 border-[#171717] p-6 flex flex-col items-center justify-center gap-3 brutal-shadow brutal-shadow-hover transition-all group`}
+              className={`${social.color} ${social.textColor} border-2 border-foreground p-6 flex flex-col items-center justify-center gap-3 brutal-shadow brutal-shadow-hover transition-all group`}
             >
               <div className="transform group-hover:scale-110 transition-transform">
                 {social.icon}
@@ -114,7 +120,7 @@ export function UpdatedAboutPage() {
               <span className="text-xs font-bold uppercase tracking-widest" style={fonts.sans}>
                 {social.label}
               </span>
-            </a>
+            </motion.a>
           ))}
         </div>
       </div>

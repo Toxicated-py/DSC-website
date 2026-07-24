@@ -10,7 +10,7 @@ import { DSC_LOGO_SRC } from "../../config/assets";
 import { userFriendlyErrorMessage } from "../../lib/apiClient";
 
 
-import { BrutalButton } from "../ui/brutal";
+import { BrutalButton } from "../ui";
 import { fonts } from "../../config/fonts";
 
 // âââ New Login/Signup Page with Google Auth âââââââââââââââââââââââââââââââââââ
@@ -302,10 +302,10 @@ export function NewLoginPage() {
 
   if (isResetPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-[#2563EB]">
-        <div className="w-full max-w-lg bg-white border-4 border-[#171717] brutal-shadow-lg p-8">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-primary">
+        <div className="w-full max-w-lg bg-white border-4 border-foreground brutal-shadow-lg p-8">
           <h1 className="text-4xl uppercase mb-3" style={fonts.display}>Reset Password</h1>
-          <p className="font-mono text-sm text-slate-600 mb-6">
+          <p className="font-mono text-sm text-muted-foreground mb-6">
             {canUpdatePassword ? "Enter your new password." : "Send a reset link to your email."}
           </p>
           <form onSubmit={canUpdatePassword ? handlePasswordUpdate : handlePasswordResetRequest} className="space-y-4">
@@ -316,7 +316,7 @@ export function NewLoginPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="New password"
-                  className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30"
+                  className="w-full border-2 border-foreground p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-secondary/30"
                   required
                 />
                 <input
@@ -324,7 +324,7 @@ export function NewLoginPage() {
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="Confirm new password"
-                  className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30"
+                  className="w-full border-2 border-foreground p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-secondary/30"
                   required
                 />
               </>
@@ -334,20 +334,20 @@ export function NewLoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30"
+                className="w-full border-2 border-foreground p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-secondary/30"
                 required
               />
             )}
             {captchaEnabled && !canUpdatePassword && (
               <TurnstileChallenge siteKey={turnstileSiteKey} onToken={handleResetCaptcha} resetKey={resetCaptchaResetKey} />
             )}
-            {error && <p className="text-xs font-bold text-[#FB7185]">{error}</p>}
-            {notice && <p className="text-xs font-bold text-[#2563EB]">{notice}</p>}
-            <BrutalButton type="submit" color="bg-[#171717]" text="text-white" className="w-full disabled:opacity-50" disabled={isSubmitting}>
+            {error && <p className="text-xs font-bold text-secondary">{error}</p>}
+            {notice && <p className="text-xs font-bold text-primary">{notice}</p>}
+            <BrutalButton type="submit" color="bg-foreground" text="text-white" className="w-full disabled:opacity-50" disabled={isSubmitting}>
               {isSubmitting ? "Please Wait..." : canUpdatePassword ? "Save New Password" : "Send Reset Link"}
             </BrutalButton>
           </form>
-          <button type="button" onClick={() => navigate("/login")} className="mt-5 text-xs font-bold uppercase tracking-widest text-[#2563EB]">
+          <button type="button" onClick={() => navigate("/login")} className="mt-5 text-xs font-bold uppercase tracking-widest text-primary">
             Back to login
           </button>
         </div>
@@ -356,20 +356,20 @@ export function NewLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-[#2563EB]">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-primary">
       <button
         type="button"
         onClick={() => navigate("/")}
         aria-label="Close login"
-        className="fixed top-6 right-6 z-20 w-12 h-12 bg-white border-2 border-[#171717] brutal-shadow brutal-shadow-hover transition-all flex items-center justify-center"
+        className="fixed top-6 right-6 z-20 w-12 h-12 bg-white border-2 border-foreground brutal-shadow brutal-shadow-hover transition-all flex items-center justify-center"
       >
         <X size={22} strokeWidth={3} />
       </button>
 
-      <div className="w-full max-w-4xl bg-white border-4 border-[#171717] brutal-shadow-lg flex flex-col md:flex-row overflow-hidden mt-16">
+      <div className="w-full max-w-4xl bg-white border-4 border-foreground brutal-shadow-lg flex flex-col md:flex-row overflow-hidden mt-16">
 
         {/* Left Panel */}
-        <div className="md:w-1/2 p-8 md:p-12 border-b-4 md:border-b-0 md:border-r-4 border-[#171717] flex flex-col justify-center bg-[#FFE800]">
+        <div className="md:w-1/2 p-8 md:p-12 border-b-4 md:border-b-0 md:border-r-4 border-foreground flex flex-col justify-center bg-highlight">
           <div className="mb-6 flex items-center gap-3">
             <div className="w-20 h-20 bg-white flex items-center justify-center p-2">
               <img loading="lazy" src={DSC_LOGO_SRC} alt="Data Science Club logo" className="w-full h-full object-contain" />
@@ -385,24 +385,24 @@ export function NewLoginPage() {
               : "Access the hub, register for exclusive events, and submit your projects."
             }
           </p>
-          <div className="font-mono text-sm font-bold p-4 bg-white border-2 border-[#171717] mb-6">
+          <div className="font-mono text-sm font-bold p-4 bg-white border-2 border-foreground mb-6">
             Sign in with any email address.
           </div>
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-[#2563EB] border-2 border-[#171717] flex items-center justify-center">
+              <div className="w-6 h-6 bg-primary border-2 border-foreground flex items-center justify-center">
                 <Check size={14} className="text-white" strokeWidth={3} />
               </div>
               <span className="text-sm font-bold">Member Dashboard Access</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-[#2563EB] border-2 border-[#171717] flex items-center justify-center">
+              <div className="w-6 h-6 bg-primary border-2 border-foreground flex items-center justify-center">
                 <Check size={14} className="text-white" strokeWidth={3} />
               </div>
               <span className="text-sm font-bold">Event Registration</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-[#2563EB] border-2 border-[#171717] flex items-center justify-center">
+              <div className="w-6 h-6 bg-primary border-2 border-foreground flex items-center justify-center">
                 <Check size={14} className="text-white" strokeWidth={3} />
               </div>
               <span className="text-sm font-bold">Project Submissions</span>
@@ -416,11 +416,11 @@ export function NewLoginPage() {
             <h3 className="text-2xl font-bold uppercase mb-2" style={fonts.display}>
               {isSignup ? "Create Account" : "Sign In"}
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               {isSignup ? "Already have an account? " : "Don't have an account? "}
               <Link
                 to={isSignup ? "/login" : "/register"}
-                className="text-[#2563EB] font-bold hover:underline"
+                className="text-primary font-bold hover:underline"
               >
                 {isSignup ? "Sign In" : "Sign Up"}
               </Link>
@@ -436,7 +436,7 @@ export function NewLoginPage() {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="Ashish Adhikari"
-                  className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30 transition-all"
+                  className="w-full border-2 border-foreground p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-secondary/30 transition-all"
                   required
                 />
               </div>
@@ -444,12 +444,12 @@ export function NewLoginPage() {
             {isSignup && (
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest mb-2">Phone</label>
-                <div className="flex border-2 border-[#171717] focus-within:ring-4 focus-within:ring-[#FB7185]/30 transition-all">
+                <div className="flex border-2 border-foreground focus-within:ring-4 focus-within:ring-secondary/30 transition-all">
                   <input
                     type="tel"
                     value={phoneCode}
                     onChange={e => setPhoneCode(`+${e.target.value.replace(/\D/g, "").slice(0, 4)}`)}
-                    className="w-20 border-r-2 border-[#171717] bg-[#F4EFEB] px-3 py-3 font-mono text-sm text-slate-600 focus:outline-none"
+                    className="w-20 border-r-2 border-foreground bg-background px-3 py-3 font-mono text-sm text-muted-foreground focus:outline-none"
                     aria-label="Country code"
                     required
                   />
@@ -473,20 +473,20 @@ export function NewLoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30 transition-all"
+                className="w-full border-2 border-foreground p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-secondary/30 transition-all"
                 required
               />
-              {error && <p className="text-xs font-bold text-[#FB7185] mt-2">{error}</p>}
-              {notice && <p className="text-xs font-bold text-[#2563EB] mt-2">{notice}</p>}
+              {error && <p className="text-xs font-bold text-secondary mt-2">{error}</p>}
+              {notice && <p className="text-xs font-bold text-primary mt-2">{notice}</p>}
             </div>
             {isSignup && (
-              <div className="border-2 border-[#171717] bg-[#F4EFEB] p-4">
+              <div className="border-2 border-foreground bg-background p-4">
                 <label className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest">
                   <input
                     type="checkbox"
                     checked={isSmsStudent}
                     onChange={(event) => setIsSmsStudent(event.target.checked)}
-                    className="w-4 h-4 accent-[#2563EB]"
+                    className="w-4 h-4 accent-primary"
                   />
                   Are you a student of SMS TU?
                 </label>
@@ -498,10 +498,10 @@ export function NewLoginPage() {
                       value={studentEmail}
                       onChange={(event) => setStudentEmail(event.target.value)}
                       placeholder="your.name@sms.tu.edu.np"
-                      className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all bg-white"
+                      className="w-full border-2 border-foreground p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/30 transition-all bg-white"
                       required={isSmsStudent}
                     />
-                    <p className="mt-2 text-[11px] font-bold text-slate-500">
+                    <p className="mt-2 text-[11px] font-bold text-muted-foreground">
                       Student access is granted after this SMS TU email is verified.
                     </p>
                   </div>
@@ -518,14 +518,14 @@ export function NewLoginPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full border-2 border-[#171717] p-3 pr-12 font-mono focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30 transition-all"
+                  className="w-full border-2 border-foreground p-3 pr-12 font-mono focus:outline-none focus:ring-4 focus:ring-secondary/30 transition-all"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-[#171717] transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -556,20 +556,20 @@ export function NewLoginPage() {
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
                     placeholder="Repeat your password"
-                    className="w-full border-2 border-[#171717] p-3 pr-12 font-mono focus:outline-none focus:ring-4 focus:ring-[#FB7185]/30 transition-all"
+                    className="w-full border-2 border-foreground p-3 pr-12 font-mono focus:outline-none focus:ring-4 focus:ring-secondary/30 transition-all"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-[#171717] transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
                 {confirmPassword && password !== confirmPassword && (
-                  <p className="text-xs font-bold text-[#FB7185] mt-2">Passwords do not match.</p>
+                  <p className="text-xs font-bold text-secondary mt-2">Passwords do not match.</p>
                 )}
               </div>
             )}
@@ -579,7 +579,7 @@ export function NewLoginPage() {
             )}
             <BrutalButton
               type="submit"
-              color="bg-[#171717]"
+              color="bg-foreground"
               text="text-white"
               className="w-full disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting || (isSignup && (!isStrongPassword || password !== confirmPassword))}
@@ -590,7 +590,7 @@ export function NewLoginPage() {
               <button
                 type="button"
                 onClick={() => setShowForgotPassword(!showForgotPassword)}
-                className="w-full text-xs font-bold uppercase tracking-widest text-[#2563EB] hover:underline"
+                className="w-full text-xs font-bold uppercase tracking-widest text-primary hover:underline"
               >
                 Forgot password?
               </button>
@@ -598,25 +598,25 @@ export function NewLoginPage() {
           </form>
 
           {showForgotPassword && !isSignup && (
-            <form onSubmit={handlePasswordResetRequest} className="mt-4 border-2 border-[#171717] bg-[#F4EFEB] p-4 space-y-3">
+            <form onSubmit={handlePasswordResetRequest} className="mt-4 border-2 border-foreground bg-background p-4 space-y-3">
               <p className="text-xs font-bold uppercase tracking-widest">Reset Password</p>
               <input
                 type="email"
                 value={resetEmail}
                 onChange={e => setResetEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 bg-white"
+                className="w-full border-2 border-foreground p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/30 bg-white"
                 required
               />
               {captchaEnabled && (
                 <TurnstileChallenge siteKey={turnstileSiteKey} onToken={handleResetCaptcha} resetKey={resetCaptchaResetKey} />
               )}
               {resetStatus && (
-                <p className={`text-xs font-bold ${resetStatus.toLowerCase().includes("sent") ? "text-[#2563EB]" : "text-[#FB7185]"}`}>
+                <p className={`text-xs font-bold ${resetStatus.toLowerCase().includes("sent") ? "text-primary" : "text-secondary"}`}>
                   {resetStatus}
                 </p>
               )}
-              <BrutalButton type="submit" color="bg-[#FFE800]" text="text-[#171717]" className="w-full disabled:opacity-50" disabled={isSubmitting}>
+              <BrutalButton type="submit" color="bg-highlight" text="text-foreground" className="w-full disabled:opacity-50" disabled={isSubmitting}>
                 {isSubmitting ? "Sending..." : "Send Reset Link"}
               </BrutalButton>
             </form>
@@ -624,9 +624,9 @@ export function NewLoginPage() {
 
           {/* Divider */}
           <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 border-t-2 border-[#171717]"></div>
+            <div className="flex-1 border-t-2 border-foreground"></div>
             <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Or</span>
-            <div className="flex-1 border-t-2 border-[#171717]"></div>
+            <div className="flex-1 border-t-2 border-foreground"></div>
           </div>
 
           {/* Social Auth Buttons */}
@@ -636,13 +636,13 @@ export function NewLoginPage() {
               type="button"
               onClick={handleGoogleAuth}
               disabled={isGoogleSubmitting || isSubmitting}
-              className="w-full border-2 border-[#171717] p-3 bg-white hover:bg-[#F4EFEB] transition-all flex items-center justify-center gap-3 brutal-shadow brutal-shadow-hover font-bold uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full border-2 border-foreground p-3 bg-white hover:bg-background transition-all flex items-center justify-center gap-3 brutal-shadow brutal-shadow-hover font-bold uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-                <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z" fill="#34A853"/>
-                <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9.002c0 1.454.348 2.829.957 4.045l3.007-2.335z" fill="#FBBC05"/>
-                <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.428 0 9.003 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
+                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" className="fill-google-blue"/>
+                <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z" className="fill-google-green"/>
+                <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9.002c0 1.454.348 2.829.957 4.045l3.007-2.335z" className="fill-google-yellow"/>
+                <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.428 0 9.003 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29c.708-2.127 2.692-3.71 5.036-3.71z" className="fill-google-red"/>
               </svg>
               {isGoogleSubmitting ? "Opening Google..." : isSignup ? "Sign Up with Google" : "Sign In with Google"}
             </button>
@@ -663,7 +663,7 @@ export function UserBadge({ role, designation, verified }: { role?: string, desi
 
   if (normalizedRole === "admin") {
     return (
-      <div className="inline-flex items-center gap-1 px-2 py-1 bg-[#FB7185] text-white border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest">
+      <div className="inline-flex items-center gap-1 px-2 py-1 bg-secondary text-white border-2 border-foreground text-[10px] font-bold uppercase tracking-widest">
         <Crown size={10} /> {label || "ADMIN"}
       </div>
     );
@@ -671,7 +671,7 @@ export function UserBadge({ role, designation, verified }: { role?: string, desi
 
   if (normalizedRole === "president") {
     return (
-      <div className="inline-flex items-center gap-1 px-2 py-1 bg-[#FB7185] text-white border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest">
+      <div className="inline-flex items-center gap-1 px-2 py-1 bg-secondary text-white border-2 border-foreground text-[10px] font-bold uppercase tracking-widest">
         <Crown size={10} /> {label || "PRESIDENT"}
       </div>
     );
@@ -679,7 +679,7 @@ export function UserBadge({ role, designation, verified }: { role?: string, desi
 
   if (normalizedRole === "event_manager") {
     return (
-      <div className="inline-flex items-center gap-1 px-2 py-1 bg-[#7C3AED] text-white border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest">
+      <div className="inline-flex items-center gap-1 px-2 py-1 bg-violet-600 text-white border-2 border-foreground text-[10px] font-bold uppercase tracking-widest">
         <GraduationCap size={10} /> {label || "EVENT MANAGER"}
       </div>
     );
@@ -687,7 +687,7 @@ export function UserBadge({ role, designation, verified }: { role?: string, desi
 
   if (normalizedRole === "teacher") {
     return (
-      <div className="inline-flex items-center gap-1 px-2 py-1 bg-[#FFE800] text-[#171717] border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest">
+      <div className="inline-flex items-center gap-1 px-2 py-1 bg-highlight text-foreground border-2 border-foreground text-[10px] font-bold uppercase tracking-widest">
         <UserCheck size={10} /> {label || "TEACHER"}
       </div>
     );
@@ -695,14 +695,14 @@ export function UserBadge({ role, designation, verified }: { role?: string, desi
 
   if ((normalizedRole === "member" || normalizedRole === "club member") && verified) {
     return (
-      <div className="inline-flex items-center gap-1 px-2 py-1 bg-[#2563EB] text-white border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest">
+      <div className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-white border-2 border-foreground text-[10px] font-bold uppercase tracking-widest">
         <UserCheck size={10} /> {label || "MEMBER"}
       </div>
     );
   }
 
   return (
-    <div className="inline-flex items-center gap-1 px-2 py-1 bg-slate-400 text-white border-2 border-[#171717] text-[10px] font-bold uppercase tracking-widest">
+    <div className="inline-flex items-center gap-1 px-2 py-1 bg-slate-400 text-white border-2 border-foreground text-[10px] font-bold uppercase tracking-widest">
       <User size={10} /> {label || (normalizedRole === "student" ? "STUDENT" : "MEMBER")}
     </div>
   );

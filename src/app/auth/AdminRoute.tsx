@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Shield } from "lucide-react";
 import { Navigate, useLocation } from "react-router-dom";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
-import { BrutalCard } from "../../components/ui/brutal";
+import { BrutalCard } from "../../components/ui";
 import { fonts } from "../../config/fonts";
 
 
@@ -68,7 +68,7 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="pt-32 pb-20 px-6 min-h-screen flex items-center justify-center">
         <BrutalCard color="bg-white">
-          <p className="font-mono text-sm text-slate-500">Checking admin access...</p>
+          <p className="font-mono text-sm text-muted-foreground">Checking admin access...</p>
         </BrutalCard>
       </div>
     );
@@ -81,7 +81,7 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   if (status === "forbidden") {
     return (
       <div className="pt-32 pb-20 px-6 min-h-screen flex items-center justify-center">
-        <BrutalCard color="bg-[#FFE800]" className="max-w-xl text-center">
+        <BrutalCard color="bg-highlight" className="max-w-xl text-center">
           <Shield size={40} className="mx-auto mb-4" />
           <h1 className="text-3xl uppercase mb-3" style={fonts.display}>Admin Access Required</h1>
           <p className="text-sm font-mono text-slate-700">

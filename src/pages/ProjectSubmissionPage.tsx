@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { getPersistenceLabel, submitProject } from "../lib/contentApi";
 
 import { userFriendlyErrorMessage } from "../lib/apiClient";
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui";
 import { requireLoginForAction } from "../utils/authNavigation";
 import { fonts } from "../config/fonts";
 
@@ -58,14 +58,14 @@ export function ProjectSubmissionPage() {
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1200px] mx-auto min-h-screen">
-      <button onClick={() => navigate("/projects")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+      <button onClick={() => navigate("/projects")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-primary">
         <ArrowLeft size={16} /> Back to Projects
       </button>
 
-      <div className="border-b-4 border-[#171717] pb-8 mb-10">
-        <BrutalBadge color="bg-[#FB7185]" className="mb-4 inline-block">Project Submission</BrutalBadge>
+      <div className="border-b-4 border-foreground pb-8 mb-10">
+        <BrutalBadge color="bg-secondary" className="mb-4 inline-block">Project Submission</BrutalBadge>
         <h1 className="text-5xl md:text-7xl uppercase leading-none" style={fonts.display}>Submit Project</h1>
-        <p className="mt-3 text-slate-600 max-w-2xl">Create a full project case study for the public gallery and submit it to the online review queue.</p>
+        <p className="mt-3 text-muted-foreground max-w-2xl">Create a full project case study for the public gallery and submit it to the online review queue.</p>
       </div>
 
       <form onSubmit={submitProjectForm} className="grid lg:grid-cols-[1fr_380px] gap-8">
@@ -82,25 +82,25 @@ export function ProjectSubmissionPage() {
         </BrutalCard>
 
         <div className="space-y-6">
-          <BrutalCard color="bg-[#FFE800]">
+          <BrutalCard color="bg-highlight">
             <h2 className="text-3xl uppercase mb-4" style={fonts.display}>Preview</h2>
-            <div className="border-2 border-[#171717] bg-white p-4 mb-4">
-              {form.thumbnailUrl && <img src={form.thumbnailUrl} alt="" className="mb-4 aspect-video w-full border-2 border-[#171717] object-cover" />}
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#FB7185]">{form.category || "Category"}</p>
+            <div className="border-2 border-foreground bg-white p-4 mb-4">
+              {form.thumbnailUrl && <img src={form.thumbnailUrl} alt="" className="mb-4 aspect-video w-full border-2 border-foreground object-cover" />}
+              <p className="text-[10px] font-bold uppercase tracking-widest text-secondary">{form.category || "Category"}</p>
               <h3 className="text-2xl uppercase leading-tight mt-2" style={fonts.display}>{form.title || "Project title"}</h3>
-              <p className="text-sm text-slate-600 mt-2">{form.summary || "Your summary preview will appear here."}</p>
+              <p className="text-sm text-muted-foreground mt-2">{form.summary || "Your summary preview will appear here."}</p>
             </div>
             <p className="text-xs font-mono text-slate-700">Submissions are saved to the online review queue.</p>
           </BrutalCard>
 
           {status && (
-            <div className="border-2 border-[#171717] bg-white p-4 text-sm font-bold">
+            <div className="border-2 border-foreground bg-white p-4 text-sm font-bold">
               {status}
             </div>
           )}
 
           <div className="flex flex-col gap-3">
-            <BrutalButton type="submit" color="bg-[#FB7185]" text="text-white" className="w-full" disabled={submittingProject}>
+            <BrutalButton type="submit" color="bg-secondary" text="text-white" className="w-full" disabled={submittingProject}>
               {submittingProject ? "Submitting..." : "Submit for Review"}
             </BrutalButton>
           </div>

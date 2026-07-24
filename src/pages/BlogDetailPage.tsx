@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
-import { BrutalCard, BrutalBadge } from "../components/ui/brutal";
+import { BrutalCard, BrutalBadge } from "../components/ui";
 
 import { fonts } from "../config/fonts";
 
@@ -58,7 +58,7 @@ export function BlogDetailPage() {
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1100px] mx-auto min-h-screen">
-      <button onClick={() => navigate("/blog")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+      <button onClick={() => navigate("/blog")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-primary">
         <ArrowLeft size={16} /> Back to Blog
       </button>
 
@@ -68,21 +68,21 @@ export function BlogDetailPage() {
         </BrutalCard>
       ) : !post ? (
         <BrutalCard color="bg-white">
-          <BrutalBadge color="bg-[#FB7185]" className="mb-4 inline-block">Not Found</BrutalBadge>
+          <BrutalBadge color="bg-secondary" className="mb-4 inline-block">Not Found</BrutalBadge>
           <h1 className="text-4xl md:text-6xl uppercase mb-4" style={fonts.display}>Post unavailable</h1>
-          <p className="text-slate-600">This post is not published yet or has been removed.</p>
+          <p className="text-muted-foreground">This post is not published yet or has been removed.</p>
         </BrutalCard>
       ) : (
         <article>
-          <div className="border-b-4 border-[#171717] pb-8 mb-8">
+          <div className="border-b-4 border-foreground pb-8 mb-8">
             <div className="flex flex-wrap gap-2 mb-5">
               {(post.tags || ["Blog"]).map((tag: string) => (
-                <BrutalBadge key={tag} color="bg-[#2563EB]">{tag}</BrutalBadge>
+                <BrutalBadge key={tag} color="bg-primary">{tag}</BrutalBadge>
               ))}
             </div>
             <h1 className="text-5xl md:text-8xl uppercase leading-none mb-5" style={fonts.display}>{post.title}</h1>
             <p className="text-xl md:text-2xl text-slate-700 max-w-3xl" style={fonts.serif}>{post.summary}</p>
-            <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-mono uppercase tracking-widest text-slate-500">
+            <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-mono uppercase tracking-widest text-muted-foreground">
               <span>{author?.full_name || author?.email || "Data Science Club"}</span>
               <span>{publishedDate}</span>
               <span>{readTime}</span>
@@ -90,13 +90,13 @@ export function BlogDetailPage() {
           </div>
 
           {post.cover_image_url && (
-            <div className="mb-10 border-2 border-[#171717] brutal-shadow-lg overflow-hidden bg-[#2563EB]">
+            <div className="mb-10 border-2 border-foreground brutal-shadow-lg overflow-hidden bg-primary">
               <img loading="lazy" src={post.cover_image_url} alt={post.title} className="w-full max-h-[480px] object-cover" />
             </div>
           )}
 
           <BrutalCard color="bg-white" className="max-w-none">
-            <div className="space-y-6 text-lg leading-8 text-[#171717]" style={fonts.serif}>
+            <div className="space-y-6 text-lg leading-8 text-foreground" style={fonts.serif}>
               {paragraphs.map((block, index) => {
                 if (block.startsWith("## ")) {
                   return <h2 key={index} className="pt-4 text-3xl md:text-4xl uppercase leading-tight" style={fonts.display}>{block.replace(/^##\s+/, "")}</h2>;

@@ -274,15 +274,15 @@ export function CertificatesTab() {
       <div className="grid md:grid-cols-3 gap-4">
         <BrutalCard>
           <p className="text-4xl font-bold">{certificates.length}</p>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Total certificates issued</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Total certificates issued</p>
         </BrutalCard>
         <BrutalCard>
           <p className="text-4xl font-bold">{stats.eventCount}</p>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Events with certificates</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Events with certificates</p>
         </BrutalCard>
         <BrutalCard>
           <p className="text-4xl font-bold">{relativeTime(stats.lastImported)}</p>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Last imported</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Last imported</p>
         </BrutalCard>
       </div>
 
@@ -299,7 +299,7 @@ export function CertificatesTab() {
           >
             <Download size={16} /> Download CSV Template
           </BrutalButton>
-          <div className="border-2 border-[#171717] bg-[#F4EFEB] p-3 font-mono text-xs">
+          <div className="border-2 border-foreground bg-background p-3 font-mono text-xs">
             Required headers: <b>required_email</b>, <b>required_name</b>, <b>required_certificate_id</b>
           </div>
         </div>
@@ -317,7 +317,7 @@ export function CertificatesTab() {
               placeholder="Search or type event name"
             />
             {eventQuery && matchingEvents.length > 0 && (
-              <div className="absolute z-20 -mt-3 w-full border-2 border-[#171717] bg-white brutal-shadow max-h-64 overflow-y-auto">
+              <div className="absolute z-20 -mt-3 w-full border-2 border-foreground bg-white brutal-shadow max-h-64 overflow-y-auto">
                 {matchingEvents.map((event) => (
                   <button
                     key={event.id}
@@ -327,7 +327,7 @@ export function CertificatesTab() {
                       setEventName(event.title);
                       setEventQuery(event.title);
                     }}
-                    className="block w-full border-b-2 border-[#171717] px-3 py-2 text-left text-xs font-bold uppercase hover:bg-[#FFE800]"
+                    className="block w-full border-b-2 border-foreground px-3 py-2 text-left text-xs font-bold uppercase hover:bg-highlight"
                   >
                     {event.title}
                   </button>
@@ -354,26 +354,26 @@ export function CertificatesTab() {
           />
         </div>
 
-        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-[#171717] bg-[#F4EFEB] p-8 text-center brutal-shadow-hover">
-          <FileUp size={32} className="text-[#2563EB]" />
+        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-foreground bg-background p-8 text-center brutal-shadow-hover">
+          <FileUp size={32} className="text-primary" />
           <span className="font-bold uppercase tracking-widest">Upload CSV</span>
-          <span className="font-mono text-xs text-slate-500">Click here and select a .csv file</span>
+          <span className="font-mono text-xs text-muted-foreground">Click here and select a .csv file</span>
           <input type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => handleFile(event.target.files?.[0])} />
         </label>
 
         {csvHeaders.length > 0 && (
           <div className="mt-5">
             {csvError ? (
-              <div className="border-2 border-[#171717] bg-[#FB7185] p-3 text-sm font-bold text-white">{csvError}</div>
+              <div className="border-2 border-foreground bg-secondary p-3 text-sm font-bold text-white">{csvError}</div>
             ) : (
-              <div className="flex items-center gap-2 border-2 border-[#171717] bg-[#DCFCE7] p-3 text-sm font-bold">
+              <div className="flex items-center gap-2 border-2 border-foreground bg-green-100 p-3 text-sm font-bold">
                 <CheckCircle2 size={18} /> Columns look good
               </div>
             )}
             <p className="mt-3 font-mono text-sm">{csvRows.length} certificates ready to import</p>
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[680px] border-2 border-[#171717] text-sm">
-                <thead className="bg-[#171717] text-white">
+              <table className="w-full min-w-[680px] border-2 border-foreground text-sm">
+                <thead className="bg-foreground text-white">
                   <tr>
                     <th className="p-2 text-left">Name</th>
                     <th className="p-2 text-left">Email</th>
@@ -382,7 +382,7 @@ export function CertificatesTab() {
                 </thead>
                 <tbody>
                   {csvRows.slice(0, 5).map((row, index) => (
-                    <tr key={`${row.required_certificate_id}-${index}`} className="border-t-2 border-[#171717]">
+                    <tr key={`${row.required_certificate_id}-${index}`} className="border-t-2 border-foreground">
                       <td className="p-2">{row.required_name}</td>
                       <td className="p-2">{row.required_email}</td>
                       <td className="p-2 font-mono">{row.required_certificate_id}</td>
@@ -395,14 +395,14 @@ export function CertificatesTab() {
         )}
 
         {importBlocker && (
-          <p className="mt-4 border-2 border-[#171717] bg-[#FFE800] p-3 text-xs font-bold uppercase tracking-widest">
+          <p className="mt-4 border-2 border-foreground bg-highlight p-3 text-xs font-bold uppercase tracking-widest">
             {importBlocker}
           </p>
         )}
         <BrutalButton
           type="button"
           className={`mt-5 w-full ${!canImport || importing ? "cursor-not-allowed opacity-50 brutal-shadow-none hover:translate-x-0 hover:translate-y-0" : ""}`}
-          color="bg-[#2563EB]"
+          color="bg-primary"
           text="text-white"
           onClick={importCertificates}
           disabled={!canImport || importing}
@@ -431,9 +431,9 @@ export function CertificatesTab() {
           placeholder="Search by name, email, or certificate ID"
         />
         {loading ? (
-          <p className="font-mono text-sm text-slate-500">Loading certificates...</p>
+          <p className="font-mono text-sm text-muted-foreground">Loading certificates...</p>
         ) : certificates.length === 0 ? (
-          <div className="border-2 border-dashed border-[#171717] p-8 text-center">
+          <div className="border-2 border-dashed border-foreground p-8 text-center">
             <p className="font-bold uppercase tracking-widest text-sm">No certificates imported yet</p>
           </div>
         ) : (
@@ -441,12 +441,12 @@ export function CertificatesTab() {
             {Object.entries(groupedCertificates).map(([group, rows]) => (
               <div key={group}>
                 <div className="mb-2 flex items-center gap-2">
-                  <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{group}</BrutalBadge>
-                  <span className="font-mono text-xs text-slate-500">{rows.length} certificate{rows.length === 1 ? "" : "s"}</span>
+                  <BrutalBadge color="bg-highlight" text="text-foreground">{group}</BrutalBadge>
+                  <span className="font-mono text-xs text-muted-foreground">{rows.length} certificate{rows.length === 1 ? "" : "s"}</span>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[980px] border-2 border-[#171717] text-sm">
-                    <thead className="bg-[#171717] text-white">
+                  <table className="w-full min-w-[980px] border-2 border-foreground text-sm">
+                    <thead className="bg-foreground text-white">
                       <tr>
                         {["Certificate ID", "Recipient Name", "Email", "Type", "Event", "Issued Date", "Actions"].map((heading) => (
                           <th key={heading} className="p-2 text-left">{heading}</th>
@@ -455,7 +455,7 @@ export function CertificatesTab() {
                     </thead>
                     <tbody>
                       {rows.map((row) => (
-                        <tr key={row.id} className="border-t-2 border-[#171717]">
+                        <tr key={row.id} className="border-t-2 border-foreground">
                           <td className="p-2 font-mono">{row.certificate_id}</td>
                           <td className="p-2">{row.recipient_name}</td>
                           <td className="p-2">{row.recipient_email}</td>
@@ -469,7 +469,7 @@ export function CertificatesTab() {
                               aria-label="Edit certificate"
                               title="Edit certificate"
                               onClick={() => setEditRow({ ...row, issued_at: row.issued_at?.slice(0, 10) || "" })}
-                              className="inline-flex size-8 items-center justify-center border-2 border-[#171717] bg-white hover:bg-[#FFE800]"
+                              className="inline-flex size-8 items-center justify-center border-2 border-foreground bg-white hover:bg-highlight"
                             >
                               <Edit size={15} />
                             </button>
@@ -479,7 +479,7 @@ export function CertificatesTab() {
                               title="Delete certificate"
                               onClick={() => deleteCertificate(row)}
                               disabled={deletingId === row.id}
-                              className="inline-flex size-8 items-center justify-center border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex size-8 items-center justify-center border-2 border-foreground bg-secondary text-white hover:bg-destructive disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <Trash2 size={15} />
                             </button>
@@ -493,7 +493,7 @@ export function CertificatesTab() {
               </div>
             ))}
             {pageCount > 1 && (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-[#171717] bg-[#F4EFEB] p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-foreground bg-background p-3">
                 <span className="font-mono text-xs">
                   Page {currentPage} of {pageCount} - showing {visibleCertificates.length} of {filteredCertificates.length}
                 </span>
@@ -502,7 +502,7 @@ export function CertificatesTab() {
                     type="button"
                     onClick={() => setPage((value) => Math.max(1, value - 1))}
                     disabled={currentPage === 1}
-                    className="border-2 border-[#171717] bg-white px-3 py-1 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50"
+                    className="border-2 border-foreground bg-white px-3 py-1 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Prev
                   </button>
@@ -510,7 +510,7 @@ export function CertificatesTab() {
                     type="button"
                     onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
                     disabled={currentPage === pageCount}
-                    className="border-2 border-[#171717] bg-white px-3 py-1 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50"
+                    className="border-2 border-foreground bg-white px-3 py-1 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Next
                   </button>
@@ -526,7 +526,7 @@ export function CertificatesTab() {
           <BrutalCard className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="mb-5 flex items-center justify-between gap-3">
               <h2 className="text-3xl uppercase" style={fonts.display}>Edit Certificate</h2>
-              <button type="button" onClick={() => setEditRow(null)} className="border-2 border-[#171717] bg-white p-2">
+              <button type="button" onClick={() => setEditRow(null)} className="border-2 border-foreground bg-white p-2">
                 <X size={18} />
               </button>
             </div>
@@ -535,7 +535,7 @@ export function CertificatesTab() {
             <BrutalInput label="Certificate Type" value={editRow.certificate_type} onChange={(event: any) => setEditRow({ ...editRow, certificate_type: event.target.value })} />
             <BrutalInput label="Event Name" value={editRow.event_name} onChange={(event: any) => setEditRow({ ...editRow, event_name: event.target.value })} />
             <BrutalInput label="Issued Date" type="date" value={editRow.issued_at} onChange={(event: any) => setEditRow({ ...editRow, issued_at: event.target.value })} />
-            <BrutalButton type="button" color="bg-[#2563EB]" text="text-white" className="w-full" onClick={saveEdit} disabled={savingEdit}>
+            <BrutalButton type="button" color="bg-primary" text="text-white" className="w-full" onClick={saveEdit} disabled={savingEdit}>
               {savingEdit ? "Saving..." : "Save Certificate"}
             </BrutalButton>
           </BrutalCard>

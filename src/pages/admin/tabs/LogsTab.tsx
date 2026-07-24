@@ -1,9 +1,10 @@
+import type { AdminTabContext } from "../types";
 import { Search, Activity, ListFilter } from "lucide-react";
 
 import { fonts } from "../../../config/fonts";
 import { BrutalBadge, BrutalCard } from "../AdminPrimitives";
 
-export function LogsTab({ ctx }: { ctx: any }) {
+export function LogsTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -316,15 +317,15 @@ export function LogsTab({ ctx }: { ctx: any }) {
 {activeTab === "logs" && isFullAdmin && (
         <div className="space-y-6">
           <div className="grid sm:grid-cols-3 gap-4">
-            <BrutalCard color="bg-[#2563EB]" className="text-white">
+            <BrutalCard color="bg-primary" className="text-white">
               <div className="text-4xl font-bold mb-1" style={fonts.display}>{auditLogs.length}</div>
               <div className="text-xs font-bold uppercase tracking-widest opacity-80">Total Logs</div>
             </BrutalCard>
-            <BrutalCard color="bg-[#FFE800]">
+            <BrutalCard color="bg-highlight">
               <div className="text-4xl font-bold mb-1" style={fonts.display}>{todayAuditCount}</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-600">Today</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Today</div>
             </BrutalCard>
-            <BrutalCard color="bg-[#FB7185]" className="text-white">
+            <BrutalCard color="bg-secondary" className="text-white">
               <div className="text-4xl font-bold mb-1" style={fonts.display}>{destructiveAuditCount}</div>
               <div className="text-xs font-bold uppercase tracking-widest opacity-80">Delete / Revoke</div>
             </BrutalCard>
@@ -334,24 +335,24 @@ export function LogsTab({ ctx }: { ctx: any }) {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Activity Logs</h2>
-                <p className="text-sm text-slate-600">Search admin actions, resources, actors, and record ids.</p>
+                <p className="text-sm text-muted-foreground">Search admin actions, resources, actors, and record ids.</p>
               </div>
               <div className="relative w-full lg:w-96">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input value={logSearchQuery} onChange={(event) => setLogSearchQuery(event.target.value)} placeholder="Search logs..." className="w-full pl-10 pr-4 py-3 border-2 border-[#171717] bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB] font-mono text-sm" />
+                <input value={logSearchQuery} onChange={(event) => setLogSearchQuery(event.target.value)} placeholder="Search logs..." className="w-full pl-10 pr-4 py-3 border-2 border-foreground bg-white focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm" />
               </div>
             </div>
 
             {filteredAuditLogs.length === 0 ? (
-              <div className="border-2 border-dashed border-[#171717] p-10 text-center">
-                <ListFilter size={36} className="mx-auto mb-3 text-[#2563EB]" />
+              <div className="border-2 border-dashed border-foreground p-10 text-center">
+                <ListFilter size={36} className="mx-auto mb-3 text-primary" />
                 <p className="font-bold uppercase tracking-widest">No logs found</p>
-                <p className="mt-2 text-sm text-slate-600">If this stays empty, apply the audit log migration to Supabase.</p>
+                <p className="mt-2 text-sm text-muted-foreground">If this stays empty, apply the audit log migration to Supabase.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full border-2 border-[#171717] text-sm">
-                  <thead className="bg-[#171717] text-white">
+                <table className="w-full border-2 border-foreground text-sm">
+                  <thead className="bg-foreground text-white">
                     <tr>
                       <th className="p-3 text-left uppercase tracking-widest text-xs">Time</th>
                       <th className="p-3 text-left uppercase tracking-widest text-xs">Actor</th>
@@ -362,18 +363,18 @@ export function LogsTab({ ctx }: { ctx: any }) {
                   </thead>
                   <tbody>
                     {filteredAuditLogs.map((log) => (
-                      <tr key={log.id} className="border-t-2 border-[#171717] bg-white align-top">
+                      <tr key={log.id} className="border-t-2 border-foreground bg-white align-top">
                         <td className="p-3 font-mono text-xs whitespace-nowrap">{log.created_at ? new Date(log.created_at).toLocaleString() : "-"}</td>
                         <td className="p-3 font-mono text-xs">{log.actor_email || "System"}</td>
-                        <td className="p-3"><BrutalBadge color={["delete", "revoke"].includes(log.action) ? "bg-[#FB7185]" : "bg-[#FFE800]"}>{String(log.action || "").replaceAll("_", " ")}</BrutalBadge></td>
+                        <td className="p-3"><BrutalBadge color={["delete", "revoke"].includes(log.action) ? "bg-secondary" : "bg-highlight"}>{String(log.action || "").replaceAll("_", " ")}</BrutalBadge></td>
                         <td className="p-3">
                           <p className="font-bold uppercase">{log.resource}</p>
-                          {log.resource_id && <p className="text-[11px] font-mono text-slate-500 break-all">{log.resource_id}</p>}
+                          {log.resource_id && <p className="text-[11px] font-mono text-muted-foreground break-all">{log.resource_id}</p>}
                         </td>
                         <td className="p-3">
                           <p>{log.summary || "-"}</p>
                           {log.metadata && Object.keys(log.metadata).length > 0 && (
-                            <details className="mt-2 text-xs font-mono text-slate-500">
+                            <details className="mt-2 text-xs font-mono text-muted-foreground">
                               <summary className="cursor-pointer font-bold uppercase">Details</summary>
                               <pre className="mt-2 whitespace-pre-wrap break-words">{JSON.stringify(log.metadata, null, 2)}</pre>
                             </details>

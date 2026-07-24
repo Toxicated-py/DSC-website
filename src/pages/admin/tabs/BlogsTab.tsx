@@ -1,9 +1,10 @@
+import type { AdminTabContext } from "../types";
 import { Edit } from "lucide-react";
 
 import { fonts } from "../../../config/fonts";
 import { BrutalBadge, BrutalCard } from "../AdminPrimitives";
 
-export function BlogsTab({ ctx }: { ctx: any }) {
+export function BlogsTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -318,7 +319,7 @@ export function BlogsTab({ ctx }: { ctx: any }) {
             <>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Blog Posts</h2>
-                <button onClick={() => openBlogModal()} className="px-5 py-3 bg-[#171717] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-xs brutal-shadow brutal-shadow-hover">
+                <button onClick={() => openBlogModal()} className="px-5 py-3 bg-foreground text-white border-2 border-foreground font-bold uppercase tracking-widest text-xs brutal-shadow brutal-shadow-hover">
                   Create Blog
                 </button>
               </div>
@@ -328,11 +329,11 @@ export function BlogsTab({ ctx }: { ctx: any }) {
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div>
                         <h3 className="font-bold uppercase text-lg">{post.title}</h3>
-                        <p className="text-xs font-mono text-slate-500">By {post.author} - {post.publishedDate || "date pending"}</p>
-                        <p className="text-sm text-slate-600 mt-2">{post.summary}</p>
+                        <p className="text-xs font-mono text-muted-foreground">By {post.author} - {post.publishedDate || "date pending"}</p>
+                        <p className="text-sm text-muted-foreground mt-2">{post.summary}</p>
                       </div>
                       <div className="flex gap-2 flex-wrap">
-                        <BrutalBadge color={post.status === "published" ? "bg-green-500" : "bg-[#FFE800]"} text={post.status === "published" ? "text-white" : "text-[#171717]"}>
+                        <BrutalBadge color={post.status === "published" ? "bg-green-500" : "bg-highlight"} text={post.status === "published" ? "text-white" : "text-foreground"}>
                           {post.status}
                         </BrutalBadge>
                         <button
@@ -353,16 +354,16 @@ export function BlogsTab({ ctx }: { ctx: any }) {
                             imageUrl: post.cover_image_url,
                             content: post.content,
                           })}
-                          className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs"
+                          className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white font-bold uppercase text-xs"
                         >
                           View
                         </button>
-                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
+                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white font-bold uppercase text-xs">Edit</button>
                         {isFullAdmin && post.status !== "published" && (
-                          <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Publish</button>
+                          <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-foreground bg-green-500 text-white font-bold uppercase text-xs">Publish</button>
                         )}
-                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>}
-                        {isFullAdmin && <button onClick={() => deleteContentItem("blog-posts", post.id, "blog post")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>}
+                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-secondary hover:text-white font-bold uppercase text-xs">Archive</button>}
+                        {isFullAdmin && <button onClick={() => deleteContentItem("blog-posts", post.id, "blog post")} className="px-3 py-1 border-2 border-foreground bg-secondary text-white hover:bg-destructive font-bold uppercase text-xs">Delete</button>}
                       </div>
                     </div>
                   </BrutalCard>
@@ -376,14 +377,14 @@ export function BlogsTab({ ctx }: { ctx: any }) {
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div>
                         <h3 className="font-bold uppercase text-lg">{post.title}</h3>
-                        <p className="text-xs font-mono text-slate-500">By {post.author} - {post.publishedDate || "date pending"}</p>
-                        <p className="text-sm text-slate-600 mt-2">{post.summary}</p>
+                        <p className="text-xs font-mono text-muted-foreground">By {post.author} - {post.publishedDate || "date pending"}</p>
+                        <p className="text-sm text-muted-foreground mt-2">{post.summary}</p>
                       </div>
                       <div className="flex gap-2 flex-wrap">
                         <BrutalBadge color="bg-green-500">{post.status}</BrutalBadge>
-                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Archive</button>}
-                        {isFullAdmin && <button onClick={() => deleteContentItem("blog-posts", post.id, "blog post")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>}
+                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white font-bold uppercase text-xs">Edit</button>
+                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "archived")} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-secondary hover:text-white font-bold uppercase text-xs">Archive</button>}
+                        {isFullAdmin && <button onClick={() => deleteContentItem("blog-posts", post.id, "blog post")} className="px-3 py-1 border-2 border-foreground bg-secondary text-white hover:bg-destructive font-bold uppercase text-xs">Delete</button>}
                       </div>
                     </div>
                   </BrutalCard>
@@ -397,13 +398,13 @@ export function BlogsTab({ ctx }: { ctx: any }) {
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div>
                         <h3 className="font-bold uppercase text-lg">{post.title}</h3>
-                        <p className="text-xs font-mono text-slate-500">By {post.author}</p>
+                        <p className="text-xs font-mono text-muted-foreground">By {post.author}</p>
                       </div>
                       <div className="flex gap-2 flex-wrap">
-                        <BrutalBadge color="bg-[#FB7185]">{post.status}</BrutalBadge>
-                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>}
-                        {isFullAdmin && <button onClick={() => deleteContentItem("blog-posts", post.id, "blog post")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>}
+                        <BrutalBadge color="bg-secondary">{post.status}</BrutalBadge>
+                        <button onClick={() => openBlogModal(post)} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white font-bold uppercase text-xs">Edit</button>
+                        {isFullAdmin && <button onClick={() => updateBlogStatus(post.id, "published")} className="px-3 py-1 border-2 border-foreground bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>}
+                        {isFullAdmin && <button onClick={() => deleteContentItem("blog-posts", post.id, "blog post")} className="px-3 py-1 border-2 border-foreground bg-secondary text-white hover:bg-destructive font-bold uppercase text-xs">Delete</button>}
                       </div>
                     </div>
                   </BrutalCard>

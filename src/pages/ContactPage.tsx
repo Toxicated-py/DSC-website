@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { useSiteSettings } from "../lib/siteSettings";
 import { apiPost, userFriendlyErrorMessage } from "../lib/apiClient";
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui";
 import { fonts } from "../config/fonts";
 
 const contactFallbackMessage = "Could not send message right now. Please email us directly.";
@@ -77,10 +77,10 @@ export function ContactPage() {
   };
 
   const FAQItem = ({ question, answer, isOpen, onClick }: any) => (
-    <div className="border-2 border-[#171717] mb-4">
+    <div className="border-2 border-foreground mb-4">
       <button
         onClick={onClick}
-        className="w-full p-4 flex items-center justify-between bg-white hover:bg-[#F4EFEB] transition-all text-left"
+        className="w-full p-4 flex items-center justify-between bg-white hover:bg-background transition-all text-left"
       >
         <span className="font-bold uppercase tracking-wide text-sm pr-4">{question}</span>
         <ChevronDown
@@ -89,14 +89,14 @@ export function ContactPage() {
         />
       </button>
       {isOpen && (
-        <div className="p-4 bg-[#F4EFEB] border-t-2 border-[#171717]">
+        <div className="p-4 bg-background border-t-2 border-foreground">
           <p className="text-sm text-slate-700">{answer}</p>
         </div>
       )}
     </div>
   );
 
-  const contactColorClasses = ["bg-[#2563EB]", "bg-[#7C3AED]", "bg-[#FB7185]", "bg-[#FFE800] text-[#171717]"];
+  const contactColorClasses = ["bg-primary", "bg-violet-600", "bg-secondary", "bg-highlight text-foreground"];
   const getContactIcon = (type: string) => {
     if (type === "email") return <Mail size={24} className="flex-shrink-0" />;
     if (type === "phone") return <Phone size={24} className="flex-shrink-0" />;
@@ -113,13 +113,13 @@ export function ContactPage() {
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-12 text-center">
-        <BrutalBadge color="bg-[#2563EB]" className="mb-4 inline-flex items-center gap-1">
+        <BrutalBadge color="bg-primary" className="mb-4 inline-flex items-center gap-1">
           <Mail size={10} /> GET IN TOUCH
         </BrutalBadge>
         <h1 className="text-5xl md:text-7xl uppercase leading-none mb-4" style={fonts.display}>
           Contact Us
         </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
         </p>
       </div>
@@ -156,12 +156,12 @@ export function ContactPage() {
               onChange={(e: any) => setFormData({ ...formData, message: e.target.value })}
               required
             />
-            <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full" disabled={submittingMessage}>
+            <BrutalButton type="submit" color="bg-primary" text="text-white" className="w-full" disabled={submittingMessage}>
               <Send size={16} className="inline mr-2" /> {submittingMessage ? "Sending..." : "Send Message"}
             </BrutalButton>
             {contactStatus && (
-              <div className={`mt-4 border-2 border-[#171717] p-3 text-xs font-bold uppercase tracking-widest ${
-                contactStatusType === "success" ? "bg-[#FFE800]" : "bg-[#FB7185] text-white"
+              <div className={`mt-4 border-2 border-foreground p-3 text-xs font-bold uppercase tracking-widest ${
+                contactStatusType === "success" ? "bg-highlight" : "bg-secondary text-white"
               }`}>
                 {contactStatus}
               </div>
@@ -196,7 +196,7 @@ export function ContactPage() {
             );
           })}
 
-          <BrutalCard color="bg-[#FFE800]">
+          <BrutalCard color="bg-highlight">
             <div className="flex items-start gap-4">
               <Globe size={24} className="flex-shrink-0" />
               <div>
@@ -213,13 +213,13 @@ export function ContactPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl uppercase mb-2" style={fonts.display}>Our Location</h2>
-            <p className="text-sm text-slate-600">Open the club location directly in Google Maps.</p>
+            <p className="text-sm text-muted-foreground">Open the club location directly in Google Maps.</p>
           </div>
           <a
             href="https://maps.app.goo.gl/c1rvMgY3tpjtVwcUA"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#FFE800] text-[#171717] border-2 border-[#171717] font-bold uppercase tracking-widest brutal-shadow brutal-shadow-hover"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-highlight text-foreground border-2 border-foreground font-bold uppercase tracking-widest brutal-shadow brutal-shadow-hover"
           >
             <MapPin size={16} /> SMS, TU
           </a>
@@ -227,14 +227,14 @@ export function ContactPage() {
       </BrutalCard>
 
       {/* FAQ Section */}
-      <div className="mt-16 border-t-2 border-[#171717] pt-12">
+      <div className="mt-16 border-t-2 border-foreground pt-12">
         <div className="flex items-center gap-3 mb-8">
           <MessageSquare size={32} />
           <h2 className="text-4xl md:text-5xl uppercase" style={fonts.display}>
             Frequently Asked Questions
           </h2>
         </div>
-        <p className="text-lg text-slate-600 mb-8">
+        <p className="text-lg text-muted-foreground mb-8">
           Everything you need to know about joining and participating in our community
         </p>
 
@@ -250,7 +250,7 @@ export function ContactPage() {
           ))}
         </div>
 
-        <BrutalCard color="bg-[#2563EB]" className="mt-8 text-white text-center">
+        <BrutalCard color="bg-primary" className="mt-8 text-white text-center">
           <h3 className="text-2xl uppercase mb-2" style={fonts.display}>Still Have Questions?</h3>
           <p className="mb-4 opacity-90">
             Feel free to use the contact form above or reach out directly. We're here to help!

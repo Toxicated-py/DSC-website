@@ -1,9 +1,10 @@
+import type { AdminTabContext } from "../types";
 import { Settings, Save, Phone } from "lucide-react";
 
 
 import { BrutalButton, BrutalInput, BrutalSelect, BrutalTextarea } from "../AdminPrimitives";
 
-export function SettingsTab({ ctx }: { ctx: any }) {
+export function SettingsTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -316,14 +317,14 @@ export function SettingsTab({ ctx }: { ctx: any }) {
 {activeTab === "settings" && isFullAdmin && (
         <div className="space-y-6">
           {settingsStatus && (
-            <div className="border-2 border-[#171717] bg-[#FFE800] p-3 font-bold text-sm uppercase tracking-widest brutal-shadow">
+            <div className="border-2 border-foreground bg-highlight p-3 font-bold text-sm uppercase tracking-widest brutal-shadow">
               {settingsStatus}
             </div>
           )}
           <SettingsSection openSettingsSections={openSettingsSections} setOpenSettingsSections={setOpenSettingsSections} id="site" title="Site Settings" description="Main website name and tagline.">
             <BrutalInput label="Site Name" value={siteSettings.siteName} onChange={(e: any) => setSiteSettings({...siteSettings, siteName: e.target.value})} />
             <BrutalInput label="Tagline" value={siteSettings.tagline} onChange={(e: any) => setSiteSettings({...siteSettings, tagline: e.target.value})} />
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
+            <BrutalButton color="bg-primary" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Settings"}
             </BrutalButton>
           </SettingsSection>
@@ -336,7 +337,7 @@ export function SettingsTab({ ctx }: { ctx: any }) {
             />
             <div className="space-y-4">
               {siteSettings.contactItems.map((item) => (
-                <div key={item.id} className="grid lg:grid-cols-[160px_220px_1fr_auto] gap-3 items-end border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                <div key={item.id} className="grid lg:grid-cols-[160px_220px_1fr_auto] gap-3 items-end border-2 border-foreground bg-background p-3">
                   <BrutalSelect
                     label="Type"
                     value={item.type}
@@ -369,14 +370,14 @@ export function SettingsTab({ ctx }: { ctx: any }) {
                   <button
                     type="button"
                     onClick={() => removeContactItem(item.id)}
-                    className="h-[52px] px-4 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                    className="h-[52px] px-4 border-2 border-foreground bg-secondary text-white hover:bg-destructive font-bold uppercase tracking-widest text-xs brutal-shadow"
                   >
                     Remove
                   </button>
                 </div>
               ))}
 
-              <div className="grid lg:grid-cols-[160px_220px_1fr_auto] gap-3 items-end border-2 border-dashed border-[#171717] bg-white p-3">
+              <div className="grid lg:grid-cols-[160px_220px_1fr_auto] gap-3 items-end border-2 border-dashed border-foreground bg-white p-3">
                 <BrutalSelect
                   label="New Type"
                   value={newContactItem.type}
@@ -403,13 +404,13 @@ export function SettingsTab({ ctx }: { ctx: any }) {
                 <button
                   type="button"
                   onClick={addContactItem}
-                  className="h-[52px] px-4 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                  className="h-[52px] px-4 border-2 border-foreground bg-green-500 text-white hover:bg-green-600 font-bold uppercase tracking-widest text-xs brutal-shadow"
                 >
                   Add Contact
                 </button>
               </div>
             </div>
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
+            <BrutalButton color="bg-primary" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Contact Info"}
             </BrutalButton>
           </SettingsSection>
@@ -417,7 +418,7 @@ export function SettingsTab({ ctx }: { ctx: any }) {
           <SettingsSection openSettingsSections={openSettingsSections} setOpenSettingsSections={setOpenSettingsSections} id="social" title="Social Media Links" description="Add, remove, or edit footer and contact social links.">
             <div className="space-y-4">
               {Object.entries(siteSettings.socialLinks).map(([platform, url]) => (
-                <div key={platform} className="grid lg:grid-cols-[220px_1fr_auto] gap-3 items-end border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                <div key={platform} className="grid lg:grid-cols-[220px_1fr_auto] gap-3 items-end border-2 border-foreground bg-background p-3">
                   <BrutalInput
                     label="Platform"
                     value={platform}
@@ -431,14 +432,14 @@ export function SettingsTab({ ctx }: { ctx: any }) {
                   <button
                     type="button"
                     onClick={() => removeSocialLink(platform)}
-                    className="h-[52px] px-4 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                    className="h-[52px] px-4 border-2 border-foreground bg-secondary text-white hover:bg-destructive font-bold uppercase tracking-widest text-xs brutal-shadow"
                   >
                     Remove
                   </button>
                 </div>
               ))}
 
-              <div className="grid lg:grid-cols-[220px_1fr_auto] gap-3 items-end border-2 border-dashed border-[#171717] bg-white p-3">
+              <div className="grid lg:grid-cols-[220px_1fr_auto] gap-3 items-end border-2 border-dashed border-foreground bg-white p-3">
                 <BrutalInput
                   label="New Platform"
                   placeholder="YouTube, TikTok, Website"
@@ -454,13 +455,13 @@ export function SettingsTab({ ctx }: { ctx: any }) {
                 <button
                   type="button"
                   onClick={addSocialLink}
-                  className="h-[52px] px-4 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                  className="h-[52px] px-4 border-2 border-foreground bg-green-500 text-white hover:bg-green-600 font-bold uppercase tracking-widest text-xs brutal-shadow"
                 >
                   Add Link
                 </button>
               </div>
             </div>
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
+            <BrutalButton color="bg-primary" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Social Links"}
             </BrutalButton>
           </SettingsSection>
@@ -468,7 +469,7 @@ export function SettingsTab({ ctx }: { ctx: any }) {
           <SettingsSection openSettingsSections={openSettingsSections} setOpenSettingsSections={setOpenSettingsSections} id="team" title="Team Members" description="Profile-linked executives/members and manual advisors shown on Team page.">
             <div className="space-y-4">
               {siteSettings.teamMembers.map((member) => (
-                <div key={member.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                <div key={member.id} className="border-2 border-foreground bg-background p-3">
                   <div className="mb-3 grid md:grid-cols-[180px_1fr_auto] gap-3 items-end">
                     <BrutalSelect
                       label="Source"
@@ -488,7 +489,7 @@ export function SettingsTab({ ctx }: { ctx: any }) {
                     <button
                       type="button"
                       onClick={() => linkTeamMemberToProfile(member.id, member.profileEmail)}
-                      className="h-[52px] px-4 border-2 border-[#171717] bg-[#FFE800] text-[#171717] hover:bg-yellow-300 font-bold uppercase tracking-widest text-xs brutal-shadow"
+                      className="h-[52px] px-4 border-2 border-foreground bg-highlight text-foreground hover:bg-yellow-300 font-bold uppercase tracking-widest text-xs brutal-shadow"
                     >
                       Link Profile
                     </button>
@@ -516,14 +517,14 @@ export function SettingsTab({ ctx }: { ctx: any }) {
                   <button
                     type="button"
                     onClick={() => removeTeamMember(member.id)}
-                    className="px-4 py-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                    className="px-4 py-2 border-2 border-foreground bg-secondary text-white hover:bg-destructive font-bold uppercase tracking-widest text-xs brutal-shadow"
                   >
                     Remove Member
                   </button>
                 </div>
               ))}
 
-              <div className="border-2 border-dashed border-[#171717] bg-white p-3">
+              <div className="border-2 border-dashed border-foreground bg-white p-3">
                 <div className="grid md:grid-cols-[180px_1fr] gap-3">
                   <BrutalSelect
                     label="New Source"
@@ -571,13 +572,13 @@ export function SettingsTab({ ctx }: { ctx: any }) {
                 <button
                   type="button"
                   onClick={addTeamMember}
-                  className="px-4 py-2 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                  className="px-4 py-2 border-2 border-foreground bg-green-500 text-white hover:bg-green-600 font-bold uppercase tracking-widest text-xs brutal-shadow"
                 >
                   Add Team Member
                 </button>
               </div>
             </div>
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
+            <BrutalButton color="bg-primary" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save Team"}
             </BrutalButton>
           </SettingsSection>
@@ -585,7 +586,7 @@ export function SettingsTab({ ctx }: { ctx: any }) {
           <SettingsSection openSettingsSections={openSettingsSections} setOpenSettingsSections={setOpenSettingsSections} id="faqs" title="Frequently Asked Questions" description="Questions and answers shown on the Contact page.">
             <div className="space-y-4">
               {siteSettings.faqs.map((faq) => (
-                <div key={faq.id} className="border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                <div key={faq.id} className="border-2 border-foreground bg-background p-3">
                   <BrutalInput
                     label="Question"
                     value={faq.question}
@@ -599,14 +600,14 @@ export function SettingsTab({ ctx }: { ctx: any }) {
                   <button
                     type="button"
                     onClick={() => removeFAQ(faq.id)}
-                    className="px-4 py-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                    className="px-4 py-2 border-2 border-foreground bg-secondary text-white hover:bg-destructive font-bold uppercase tracking-widest text-xs brutal-shadow"
                   >
                     Remove FAQ
                   </button>
                 </div>
               ))}
 
-              <div className="border-2 border-dashed border-[#171717] bg-white p-3">
+              <div className="border-2 border-dashed border-foreground bg-white p-3">
                 <BrutalInput
                   label="New Question"
                   value={newFAQ.question}
@@ -620,13 +621,13 @@ export function SettingsTab({ ctx }: { ctx: any }) {
                 <button
                   type="button"
                   onClick={addFAQ}
-                  className="px-4 py-2 border-2 border-[#171717] bg-[#22C55E] text-white hover:bg-[#16A34A] font-bold uppercase tracking-widest text-xs brutal-shadow"
+                  className="px-4 py-2 border-2 border-foreground bg-green-500 text-white hover:bg-green-600 font-bold uppercase tracking-widest text-xs brutal-shadow"
                 >
                   Add FAQ
                 </button>
               </div>
             </div>
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
+            <BrutalButton color="bg-primary" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> {savingSettings ? "Saving..." : "Save FAQs"}
             </BrutalButton>
           </SettingsSection>

@@ -1,9 +1,10 @@
+import type { AdminTabContext } from "../types";
 import { Users, Save, Plus } from "lucide-react";
 
 import { fonts } from "../../../config/fonts";
 import { BrutalButton, BrutalCard, BrutalInput, BrutalTextarea } from "../AdminPrimitives";
 
-export function ContentTab({ ctx }: { ctx: any }) {
+export function ContentTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -336,11 +337,11 @@ export function ContentTab({ ctx }: { ctx: any }) {
             <div className="space-y-4">
               <h3 className="text-xl uppercase" style={fonts.display}>Homepage Feature Cards</h3>
               {siteSettings.home.featureItems.map((item) => (
-                <div key={item.id} className="grid md:grid-cols-[180px_1fr_1fr] gap-4 border-2 border-[#171717] p-4">
+                <div key={item.id} className="grid md:grid-cols-[180px_1fr_1fr] gap-4 border-2 border-foreground p-4">
                   <select
                     value={item.icon}
                     onChange={(e) => updateHomeFeature(item.id, { icon: e.target.value as any })}
-                    className="w-full px-3 py-3 border-2 border-[#171717] bg-white font-mono text-sm brutal-shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FFE800]"
+                    className="w-full px-3 py-3 border-2 border-foreground bg-white font-mono text-sm brutal-shadow-sm focus:outline-none focus:ring-2 focus:ring-highlight"
                   >
                     <option value="users">Users</option>
                     <option value="database">Database</option>
@@ -360,7 +361,7 @@ export function ContentTab({ ctx }: { ctx: any }) {
             {settingsStatus && (
               <p className={`mb-4 text-sm font-bold ${settingsStatus.toLowerCase().includes("saved") ? "text-green-700" : "text-red-700"}`}>{settingsStatus}</p>
             )}
-            <BrutalButton color="bg-[#2563EB]" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
+            <BrutalButton color="bg-primary" text="text-white" onClick={saveSiteSettings} disabled={savingSettings}>
               <Save size={16} className="inline mr-2" /> Save Changes
             </BrutalButton>
           </BrutalCard>
@@ -369,15 +370,15 @@ export function ContentTab({ ctx }: { ctx: any }) {
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>About Page Content</h2>
             <BrutalTextarea label="Mission Statement" defaultValue="We empower students through data science education..." />
             <BrutalTextarea label="Vision Statement" defaultValue="To be the leading student data science community..." />
-            <BrutalButton color="bg-[#2563EB]" text="text-white">
+            <BrutalButton color="bg-primary" text="text-white">
               <Save size={16} className="inline mr-2" /> Save Changes
             </BrutalButton>
           </BrutalCard>
 
           <BrutalCard>
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Team Management</h2>
-            <p className="text-sm text-slate-600 mb-4">Manage team members displayed on the About page</p>
-            <BrutalButton color="bg-[#7C3AED]" text="text-white">
+            <p className="text-sm text-muted-foreground mb-4">Manage team members displayed on the About page</p>
+            <BrutalButton color="bg-violet-600" text="text-white">
               <Plus size={16} className="inline mr-2" /> Add Team Member
             </BrutalButton>
           </BrutalCard>

@@ -18,6 +18,7 @@ import { User, UserCheck, GraduationCap, Settings, Edit, Crown, Calendar, Users,
 import { adminCreateResource, adminCreateEventFromProposal, adminDeleteContact, adminDeleteResource, adminListAuditLogs, adminListContacts, adminListResource, adminListEventStaff, adminReplaceEventStaff, adminSaveSiteSettings, adminUpdateContactStatus, adminUpdateResource, adminUpdateResourceStatus } from "../lib/adminApi";
 import { apiGet } from "../lib/apiClient";
 import { ContactItem, defaultSiteSettings, FAQItem, mergeSiteSettings, TeamMember } from "../lib/siteSettings";
+import { themeColor } from "../lib/themeColor";
 import { deleteCertificate as deleteCertificateRecord, getCertificatesByEvent, issueCheckedInBulk, issueSingleCertificate, revokeCertificate, updateCertificate, uploadCertificateTemplateImage, uploadSignatureImage } from "../services/certificateService";
 import { CertificateRenderer } from "../components/CertificateRenderer";
 import { fonts } from "../config/fonts";
@@ -45,9 +46,9 @@ const SettingsSection = ({ id, title, description, children, openSettingsSection
       >
         <div>
           <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>{title}</h2>
-          {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
+          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
         </div>
-        <span className="border-2 border-[#171717] bg-[#FFE800] px-3 py-1 text-xs font-bold uppercase tracking-widest">
+        <span className="border-2 border-foreground bg-highlight px-3 py-1 text-xs font-bold uppercase tracking-widest">
           {isOpen ? "Hide" : "Edit"}
         </span>
       </button>
@@ -81,8 +82,8 @@ export function ComprehensiveAdminPanel() {
     templateNameY: 45,
     templateNameSize: 74,
     templateDetailY: 57,
-    templateNameColor: "#0066B3",
-    templateDetailColor: "#073B91",
+    templateNameColor: themeColor("--certificate-blue"),
+    templateDetailColor: themeColor("--certificate-ink"),
     eventTitleSnapshot: "",
     recipientNameSnapshot: "",
     description: "For actively participating in this program and demonstrating commitment and enthusiasm.",
@@ -564,7 +565,7 @@ export function ComprehensiveAdminPanel() {
 
   const addTeamMember = () => {
     const profile = newTeamMember.source === "profile" ? findProfileByEmail(newTeamMember.profileEmail) : null;
-    const profileFields = profile ? profileToTeamFields(profile) : {};
+    const profileFields: Partial<ReturnType<typeof profileToTeamFields>> = profile ? profileToTeamFields(profile) : {};
     const name = (profileFields.name || newTeamMember.name).trim();
     const position = newTeamMember.position.trim();
     if (!position || (!name && !newTeamMember.profileEmail?.trim())) {
@@ -682,16 +683,16 @@ export function ComprehensiveAdminPanel() {
   // Helper functions
   const getRoleBadge = (role: string, verified: boolean) => {
     if (role === "admin") {
-      return <BrutalBadge color="bg-[#FB7185]" className="inline-flex items-center gap-1"><Crown size={10} /> ADMIN</BrutalBadge>;
+      return <BrutalBadge color="bg-secondary" className="inline-flex items-center gap-1"><Crown size={10} /> ADMIN</BrutalBadge>;
     }
     if (role === "president") {
-      return <BrutalBadge color="bg-[#FB7185]" className="inline-flex items-center gap-1"><Crown size={10} /> PRESIDENT</BrutalBadge>;
+      return <BrutalBadge color="bg-secondary" className="inline-flex items-center gap-1"><Crown size={10} /> PRESIDENT</BrutalBadge>;
     }
     if (role === "event_manager") {
-      return <BrutalBadge color="bg-[#7C3AED]" className="inline-flex items-center gap-1"><GraduationCap size={10} /> EVENT MANAGER</BrutalBadge>;
+      return <BrutalBadge color="bg-violet-600" className="inline-flex items-center gap-1"><GraduationCap size={10} /> EVENT MANAGER</BrutalBadge>;
     }
     if (role === "member" && verified) {
-      return <BrutalBadge color="bg-[#2563EB]" className="inline-flex items-center gap-1"><UserCheck size={10} /> MEMBER</BrutalBadge>;
+      return <BrutalBadge color="bg-primary" className="inline-flex items-center gap-1"><UserCheck size={10} /> MEMBER</BrutalBadge>;
     }
     return <BrutalBadge color="bg-slate-400" className="inline-flex items-center gap-1"><User size={10} /> {role === "student" ? "STUDENT" : "MEMBER"}</BrutalBadge>;
   };
@@ -827,8 +828,8 @@ export function ComprehensiveAdminPanel() {
       templateNameY: 45,
       templateNameSize: 74,
       templateDetailY: 57,
-      templateNameColor: "#0066B3",
-      templateDetailColor: "#073B91",
+      templateNameColor: themeColor("--certificate-blue"),
+      templateDetailColor: themeColor("--certificate-ink"),
       eventTitleSnapshot: "",
       recipientNameSnapshot: "",
       description: "For actively participating in this program and demonstrating commitment and enthusiasm.",
@@ -933,9 +934,9 @@ export function ComprehensiveAdminPanel() {
     recipient_x: Number(certificateForm.templateNameX) || 50,
     recipient_y: Number(certificateForm.templateNameY) || 45,
     recipient_font_size: Number(certificateForm.templateNameSize) || 74,
-    recipient_color: certificateForm.templateNameColor || "#0066B3",
+    recipient_color: certificateForm.templateNameColor || themeColor("--certificate-blue"),
     detail_y: Number(certificateForm.templateDetailY) || 57,
-    detail_color: certificateForm.templateDetailColor || "#073B91",
+    detail_color: certificateForm.templateDetailColor || themeColor("--certificate-ink"),
     show_title: true,
     show_description: true,
     show_event: true,
@@ -1608,8 +1609,8 @@ export function ComprehensiveAdminPanel() {
       templateNameY: templateData.recipient_y ?? 45,
       templateNameSize: templateData.recipient_font_size ?? 74,
       templateDetailY: templateData.detail_y ?? 57,
-      templateNameColor: templateData.recipient_color || "#0066B3",
-      templateDetailColor: templateData.detail_color || "#073B91",
+      templateNameColor: templateData.recipient_color || themeColor("--certificate-blue"),
+      templateDetailColor: templateData.detail_color || themeColor("--certificate-ink"),
       eventTitleSnapshot: certificate.event_title_snapshot || (Array.isArray(certificate.events) ? certificate.events[0]?.title : certificate.events?.title) || "",
       recipientNameSnapshot: certificate.recipient_name_snapshot || "",
       description: certificate.description || "For actively participating in this program and demonstrating commitment and enthusiasm.",
@@ -2109,12 +2110,12 @@ export function ComprehensiveAdminPanel() {
   }
 
   return (
-    <div className="pt-32 pb-20 px-4 md:px-6 max-w-[1600px] mx-auto min-h-screen bg-[#F4EFEB]">
+    <div className="pt-32 pb-20 px-4 md:px-6 max-w-[1600px] mx-auto min-h-screen bg-background">
       <AdminShellHeader isFullAdmin={isFullAdmin} navigate={navigate} />
       <AdminTabs visibleTabs={visibleTabs} activeTab={activeTab} openAdminTab={openAdminTab} />
 
       {adminStatus && (
-        <div className="mb-6 border-2 border-[#171717] bg-[#FFE800] p-4 font-bold text-sm">
+        <div className="mb-6 border-2 border-foreground bg-highlight p-4 font-bold text-sm">
           {adminStatus}
         </div>
       )}
@@ -2171,7 +2172,7 @@ export function ComprehensiveAdminPanel() {
               </h2>
               <button
                 onClick={() => setCertificateModal(null)}
-                className="px-4 py-2 border-2 border-[#171717] bg-white text-[#171717] font-bold uppercase tracking-widest text-xs"
+                className="px-4 py-2 border-2 border-foreground bg-white text-foreground font-bold uppercase tracking-widest text-xs"
               >
                 Close
               </button>
@@ -2193,48 +2194,48 @@ export function ComprehensiveAdminPanel() {
             {reviewPreview.preview && (
               <div className="mb-6">
                 {reviewPreview.preview.kind === "event" && (
-                  <div className="border-2 border-[#171717] bg-[#F4EFEB] p-6 brutal-shadow">
-                    <BrutalBadge color="bg-[#2563EB]" className="mb-4">{reviewPreview.preview.category}</BrutalBadge>
+                  <div className="border-2 border-foreground bg-background p-6 brutal-shadow">
+                    <BrutalBadge color="bg-primary" className="mb-4">{reviewPreview.preview.category}</BrutalBadge>
                     <h3 className="text-4xl uppercase leading-tight mb-3" style={fonts.display}>{reviewPreview.preview.title}</h3>
                     <p className="text-slate-700 mb-5">{reviewPreview.preview.summary}</p>
                     <div className="grid sm:grid-cols-3 gap-3 text-xs font-mono">
-                      <div className="border-2 border-[#171717] bg-white p-3">Date<br /><b>{reviewPreview.preview.date}</b></div>
-                      <div className="border-2 border-[#171717] bg-white p-3">Venue<br /><b>{reviewPreview.preview.location}</b></div>
-                      <div className="border-2 border-[#171717] bg-white p-3">Capacity<br /><b>{reviewPreview.preview.capacity}</b></div>
+                      <div className="border-2 border-foreground bg-white p-3">Date<br /><b>{reviewPreview.preview.date}</b></div>
+                      <div className="border-2 border-foreground bg-white p-3">Venue<br /><b>{reviewPreview.preview.location}</b></div>
+                      <div className="border-2 border-foreground bg-white p-3">Capacity<br /><b>{reviewPreview.preview.capacity}</b></div>
                     </div>
                   </div>
                 )}
                 {reviewPreview.preview.kind === "project" && (
-                  <div className="border-2 border-[#171717] bg-white overflow-hidden brutal-shadow">
-                    {reviewPreview.preview.imageUrl && <img loading="lazy" src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-56 object-cover border-b-2 border-[#171717]" />}
+                  <div className="border-2 border-foreground bg-white overflow-hidden brutal-shadow">
+                    {reviewPreview.preview.imageUrl && <img loading="lazy" src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-56 object-cover border-b-2 border-foreground" />}
                     <div className="p-6">
-                      <BrutalBadge color="bg-[#FB7185]" className="mb-3">{reviewPreview.preview.category}</BrutalBadge>
+                      <BrutalBadge color="bg-secondary" className="mb-3">{reviewPreview.preview.category}</BrutalBadge>
                       <h3 className="text-4xl uppercase leading-tight mb-2" style={fonts.display}>{reviewPreview.preview.title}</h3>
-                      <p className="text-xs font-mono text-slate-500 mb-4">By {reviewPreview.preview.author}</p>
+                      <p className="text-xs font-mono text-muted-foreground mb-4">By {reviewPreview.preview.author}</p>
                       <p className="text-slate-700 mb-4">{reviewPreview.preview.summary}</p>
-                      <div className="flex gap-2 flex-wrap">{(reviewPreview.preview.tags || []).map((tag: string) => <BrutalBadge key={tag} color="bg-[#2563EB]">{tag}</BrutalBadge>)}</div>
+                      <div className="flex gap-2 flex-wrap">{(reviewPreview.preview.tags || []).map((tag: string) => <BrutalBadge key={tag} color="bg-primary">{tag}</BrutalBadge>)}</div>
                     </div>
                   </div>
                 )}
                 {reviewPreview.preview.kind === "blog" && (
-                  <article className="border-2 border-[#171717] bg-white overflow-hidden brutal-shadow">
-                    {reviewPreview.preview.imageUrl && <img loading="lazy" src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-56 object-cover border-b-2 border-[#171717]" />}
+                  <article className="border-2 border-foreground bg-white overflow-hidden brutal-shadow">
+                    {reviewPreview.preview.imageUrl && <img loading="lazy" src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-56 object-cover border-b-2 border-foreground" />}
                     <div className="p-6">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#7C3AED] mb-3">{(reviewPreview.preview.tags || []).join(" / ") || "Blog"}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-violet-600 mb-3">{(reviewPreview.preview.tags || []).join(" / ") || "Blog"}</p>
                       <h3 className="text-4xl uppercase leading-tight mb-3" style={fonts.display}>{reviewPreview.preview.title}</h3>
-                      <p className="text-xs font-mono text-slate-500 mb-4">By {reviewPreview.preview.author}</p>
+                      <p className="text-xs font-mono text-muted-foreground mb-4">By {reviewPreview.preview.author}</p>
                       <p className="text-lg text-slate-700 mb-5">{reviewPreview.preview.summary}</p>
-                      <pre className="whitespace-pre-wrap border-2 border-[#171717] bg-[#F4EFEB] p-4 text-xs font-mono max-h-72 overflow-auto">{reviewPreview.preview.content}</pre>
+                      <pre className="whitespace-pre-wrap border-2 border-foreground bg-background p-4 text-xs font-mono max-h-72 overflow-auto">{reviewPreview.preview.content}</pre>
                     </div>
                   </article>
                 )}
                 {reviewPreview.preview.kind === "gallery" && (
-                  <div className="border-2 border-[#171717] bg-white overflow-hidden brutal-shadow">
-                    <img loading="lazy" src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-80 object-cover border-b-2 border-[#171717]" />
+                  <div className="border-2 border-foreground bg-white overflow-hidden brutal-shadow">
+                    <img loading="lazy" src={reviewPreview.preview.imageUrl} alt={reviewPreview.preview.title} className="w-full h-80 object-cover border-b-2 border-foreground" />
                     <div className="p-5">
                       <div className="flex items-center justify-between mb-2">
-                        <BrutalBadge color="bg-[#2563EB]">{reviewPreview.preview.event}</BrutalBadge>
-                        <span className="text-xs font-mono text-slate-500">{reviewPreview.preview.date}</span>
+                        <BrutalBadge color="bg-primary">{reviewPreview.preview.event}</BrutalBadge>
+                        <span className="text-xs font-mono text-muted-foreground">{reviewPreview.preview.date}</span>
                       </div>
                       <h3 className="text-3xl uppercase" style={fonts.display}>{reviewPreview.preview.title}</h3>
                     </div>
@@ -2244,15 +2245,15 @@ export function ComprehensiveAdminPanel() {
             )}
             <div className="space-y-3">
               {reviewPreview.rows.map((row: any) => (
-                <div key={row.label} className="border-2 border-[#171717] bg-white p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{row.label}</p>
+                <div key={row.label} className="border-2 border-foreground bg-white p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{row.label}</p>
                   <p className="text-sm whitespace-pre-wrap break-words">{row.value}</p>
                 </div>
               ))}
             </div>
             <button
               onClick={() => setReviewPreview(null)}
-              className="mt-6 w-full px-6 py-3 border-2 border-[#171717] bg-[#171717] text-white hover:bg-black transition-all font-bold uppercase tracking-widest"
+              className="mt-6 w-full px-6 py-3 border-2 border-foreground bg-foreground text-white hover:bg-black transition-all font-bold uppercase tracking-widest"
             >
               Close
             </button>
@@ -2297,16 +2298,16 @@ export function ComprehensiveAdminPanel() {
                             return next.includes("member") ? next : ["member", ...next];
                           });
                         }}
-                        className={`border-2 border-[#171717] px-3 py-2 text-xs font-bold uppercase tracking-widest ${
-                          active ? "bg-[#2563EB] text-white" : "bg-white text-[#171717]"
-                        } ${role === "member" ? "cursor-not-allowed opacity-80" : "hover:bg-[#FFE800]"}`}
+                        className={`border-2 border-foreground px-3 py-2 text-xs font-bold uppercase tracking-widest ${
+                          active ? "bg-primary text-white" : "bg-white text-foreground"
+                        } ${role === "member" ? "cursor-not-allowed opacity-80" : "hover:bg-highlight"}`}
                       >
                         {role.replace("_", " ")}
                       </button>
                     );
                   })}
                 </div>
-                <p className="mt-2 font-mono text-xs text-slate-500">
+                <p className="mt-2 font-mono text-xs text-muted-foreground">
                   Primary role: {primaryRoleFrom(userRoleDraft).replace("_", " ")}
                 </p>
               </div>
@@ -2321,13 +2322,13 @@ export function ComprehensiveAdminPanel() {
                 ]}
               />
               <div className="flex flex-col sm:flex-row gap-3">
-                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1" disabled={savingUser}>
+                <BrutalButton type="submit" color="bg-primary" text="text-white" className="flex-1" disabled={savingUser}>
                   <Save size={16} className="inline mr-2" /> {savingUser ? "Saving..." : "Save User"}
                 </BrutalButton>
                 <button
                   type="button"
                   onClick={() => setShowUserModal(false)}
-                  className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
+                  className="flex-1 px-6 py-3 border-2 border-foreground bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
                 >
                   Cancel
                 </button>
@@ -2398,18 +2399,18 @@ export function ComprehensiveAdminPanel() {
                   type="checkbox"
                   checked={eventForm.registrationOpen}
                   onChange={(event) => setEventForm({ ...eventForm, registrationOpen: event.target.checked })}
-                  className="w-4 h-4 accent-[#2563EB]"
+                  className="w-4 h-4 accent-primary"
                 />
                 Registration open
               </label>
               <div className="flex gap-3">
-                <BrutalButton type="submit" color="bg-[#7C3AED]" text="text-white" className="flex-1" disabled={savingEvent}>
+                <BrutalButton type="submit" color="bg-violet-600" text="text-white" className="flex-1" disabled={savingEvent}>
                   <Save size={16} className="inline mr-2" /> {savingEvent ? "Saving..." : "Save Event"}
                 </BrutalButton>
               <button
                 type="button"
                 onClick={() => { resetEventForm(); setShowEventModal(false); }}
-                className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
+                className="flex-1 px-6 py-3 border-2 border-foreground bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
               >
                 Cancel
               </button>
@@ -2452,13 +2453,13 @@ export function ComprehensiveAdminPanel() {
                 ]}
               />
               <div className="flex gap-3">
-                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1" disabled={savingProject}>
+                <BrutalButton type="submit" color="bg-primary" text="text-white" className="flex-1" disabled={savingProject}>
                   <Save size={16} className="inline mr-2" /> {savingProject ? "Saving..." : "Save Project"}
                 </BrutalButton>
                 <button
                   type="button"
                   onClick={() => { resetProjectForm(); setShowProjectModal(false); }}
-                  className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
+                  className="flex-1 px-6 py-3 border-2 border-foreground bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
                 >
                   Cancel
                 </button>
@@ -2498,13 +2499,13 @@ export function ComprehensiveAdminPanel() {
                 ]}
               />
               <div className="flex gap-3">
-                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1" disabled={savingBlog}>
+                <BrutalButton type="submit" color="bg-primary" text="text-white" className="flex-1" disabled={savingBlog}>
                   <Save size={16} className="inline mr-2" /> {savingBlog ? "Saving..." : editingBlogId ? "Save Post" : "Create Post"}
                 </BrutalButton>
                 <button
                   type="button"
                   onClick={() => { resetBlogForm(); setShowBlogModal(false); }}
-                  className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
+                  className="flex-1 px-6 py-3 border-2 border-foreground bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
                 >
                   Cancel
                 </button>
@@ -2542,13 +2543,13 @@ export function ComprehensiveAdminPanel() {
                 ]}
               />
               <div className="flex gap-3">
-                <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="flex-1">
+                <BrutalButton type="submit" color="bg-primary" text="text-white" className="flex-1">
                   <Save size={16} className="inline mr-2" /> Save Partner
                 </BrutalButton>
                 <button
                   type="button"
                   onClick={() => { resetPartnerForm(); setShowPartnerModal(false); }}
-                  className="flex-1 px-6 py-3 border-2 border-[#171717] bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
+                  className="flex-1 px-6 py-3 border-2 border-foreground bg-white hover:bg-slate-100 transition-all font-bold uppercase tracking-widest"
                 >
                   Cancel
                 </button>

@@ -1,9 +1,10 @@
+import type { AdminTabContext } from "../types";
 
 
 import { fonts } from "../../../config/fonts";
 import { BrutalButton, BrutalCard, BrutalInput, BrutalTextarea } from "../AdminPrimitives";
 
-export function ResourcesTab({ ctx }: { ctx: any }) {
+export function ResourcesTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -322,7 +323,7 @@ export function ResourcesTab({ ctx }: { ctx: any }) {
                   <BrutalInput label="Category" value={resourceForm.category} onChange={(event: any) => setResourceForm({ ...resourceForm, category: event.target.value })} required />
                   <BrutalInput label="Resource URL" value={resourceForm.resourceUrl} onChange={(event: any) => setResourceForm({ ...resourceForm, resourceUrl: event.target.value })} required />
                   <BrutalTextarea label="Description" value={resourceForm.description} onChange={(event: any) => setResourceForm({ ...resourceForm, description: event.target.value })} />
-                  <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full">Publish Material</BrutalButton>
+                  <BrutalButton type="submit" color="bg-primary" text="text-white" className="w-full">Publish Material</BrutalButton>
                 </form>
               </BrutalCard>
               <div className="space-y-3">
@@ -331,12 +332,12 @@ export function ResourcesTab({ ctx }: { ctx: any }) {
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
                       <div>
                         <h3 className="font-bold uppercase">{material.title}</h3>
-                        <p className="text-xs font-mono text-slate-500">{material.category} - {material.status}</p>
-                        <p className="text-sm text-slate-600 mt-2">{material.description}</p>
+                        <p className="text-xs font-mono text-muted-foreground">{material.category} - {material.status}</p>
+                        <p className="text-sm text-muted-foreground mt-2">{material.description}</p>
                       </div>
                       <div className="flex gap-2">
-                        <a href={material.resource_url} target="_blank" rel="noopener noreferrer" className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Open</a>
-                        <button onClick={() => deleteLearningMaterial(material.id)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Delete</button>
+                        <a href={material.resource_url} target="_blank" rel="noopener noreferrer" className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white font-bold uppercase text-xs">Open</a>
+                        <button onClick={() => deleteLearningMaterial(material.id)} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-secondary hover:text-white font-bold uppercase text-xs">Delete</button>
                       </div>
                     </div>
                   </BrutalCard>

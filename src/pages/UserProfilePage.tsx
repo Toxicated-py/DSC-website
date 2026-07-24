@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Edit, ExternalLink, Github, Linkedin, Save, User } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet, apiPatch, userFriendlyErrorMessage } from "../lib/apiClient";
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalInput, BrutalTextarea } from "../components/ui";
 import { fonts } from "../config/fonts";
 
 function splitPhone(value: string) {
@@ -221,15 +221,15 @@ export function UserProfilePage() {
 
   const statusColor = (status: string) => {
     if (status === "published" || status === "approved") return "bg-green-500";
-    if (status === "rejected" || status === "archived") return "bg-[#FB7185]";
-    return "bg-[#FFE800]";
+    if (status === "rejected" || status === "archived") return "bg-secondary";
+    return "bg-highlight";
   };
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-12">
-        <BrutalBadge color="bg-[#2563EB]" className="mb-4 inline-flex items-center gap-1">
+        <BrutalBadge color="bg-primary" className="mb-4 inline-flex items-center gap-1">
           <User size={10} /> YOUR PROFILE
         </BrutalBadge>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -237,7 +237,7 @@ export function UserProfilePage() {
             Profile
           </h1>
           <BrutalButton
-            color={isEditing ? "bg-green-500" : "bg-[#2563EB]"}
+            color={isEditing ? "bg-green-500" : "bg-primary"}
             text="text-white"
             onClick={handleEditToggle}
             className="text-xs sm:text-sm px-4 py-2 sm:px-6 sm:py-3 w-full sm:w-auto"
@@ -259,11 +259,11 @@ export function UserProfilePage() {
         <div className="lg:col-span-2 space-y-6">
           <BrutalCard>
             {loadingProfile ? (
-              <p className="font-mono text-sm text-slate-500">Loading profile...</p>
+              <p className="font-mono text-sm text-muted-foreground">Loading profile...</p>
             ) : (
             <>
             <div className="flex items-start gap-6 mb-6">
-              <div className="w-32 h-32 bg-[#2563EB] border-2 border-[#171717] flex items-center justify-center text-white text-4xl font-bold flex-shrink-0">
+              <div className="w-32 h-32 bg-primary border-2 border-foreground flex items-center justify-center text-white text-4xl font-bold flex-shrink-0">
                 {profile.name
                   .split(" ")
                   .filter(Boolean)
@@ -285,12 +285,12 @@ export function UserProfilePage() {
                     />
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-widest mb-2">Phone</label>
-                      <div className="flex border-2 border-[#171717] focus-within:ring-4 focus-within:ring-[#FB7185]/30 transition-all">
+                      <div className="flex border-2 border-foreground focus-within:ring-4 focus-within:ring-secondary/30 transition-all">
                         <input
                           type="tel"
                           value={phoneCode}
                           onChange={(e) => setPhoneCode(`+${e.target.value.replace(/\D/g, "").slice(0, 4)}`)}
-                          className="w-20 border-r-2 border-[#171717] bg-[#F4EFEB] px-3 py-3 font-mono text-sm text-slate-600 focus:outline-none"
+                          className="w-20 border-r-2 border-foreground bg-background px-3 py-3 font-mono text-sm text-muted-foreground focus:outline-none"
                           aria-label="Country code"
                         />
                         <input
@@ -307,13 +307,13 @@ export function UserProfilePage() {
                 ) : (
                   <>
                     <h2 className="text-3xl font-bold uppercase mb-1" style={fonts.display}>{profile.name}</h2>
-                    <p className="text-slate-600 font-mono text-sm mb-2">{profile.email}</p>
-                    {profile.phone && <p className="text-slate-600 font-mono text-sm mb-2">{profile.phone}</p>}
+                    <p className="text-muted-foreground font-mono text-sm mb-2">{profile.email}</p>
+                    {profile.phone && <p className="text-muted-foreground font-mono text-sm mb-2">{profile.phone}</p>}
                     <div className="flex gap-2">
-                      <BrutalBadge color="bg-[#2563EB]">MEMBER</BrutalBadge>
-                      <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">SIGNED IN</BrutalBadge>
+                      <BrutalBadge color="bg-primary">MEMBER</BrutalBadge>
+                      <BrutalBadge color="bg-highlight" text="text-foreground">SIGNED IN</BrutalBadge>
                       {profile.designation && profile.designationStatus === "approved" && (
-                        <BrutalBadge color="bg-[#7C3AED]">{profile.designation}</BrutalBadge>
+                        <BrutalBadge color="bg-violet-600">{profile.designation}</BrutalBadge>
                       )}
                     </div>
                   </>
@@ -360,7 +360,7 @@ export function UserProfilePage() {
                 </div>
               </>
             )}
-            {saveStatus && <p className="mt-4 text-xs font-bold text-[#2563EB]">{saveStatus}</p>}
+            {saveStatus && <p className="mt-4 text-xs font-bold text-primary">{saveStatus}</p>}
             </>
             )}
           </BrutalCard>
@@ -370,12 +370,12 @@ export function UserProfilePage() {
             <div className="flex gap-2 flex-wrap">
               {profile.skills.map((skill, idx) => (
                 <span key={idx} className="inline-flex items-center gap-2">
-                  <BrutalBadge color="bg-[#7C3AED]">{skill}</BrutalBadge>
+                  <BrutalBadge color="bg-violet-600">{skill}</BrutalBadge>
                   {isEditing && (
                     <button
                       type="button"
                       onClick={() => removeSkill(skill)}
-                      className="text-xs font-bold text-[#FB7185]"
+                      className="text-xs font-bold text-secondary"
                     >
                       x
                     </button>
@@ -395,12 +395,12 @@ export function UserProfilePage() {
                     }
                   }}
                   placeholder="Add a skill"
-                  className="flex-1 border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all"
+                  className="flex-1 border-2 border-foreground p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/30 transition-all"
                 />
                 <button
                   type="button"
                   onClick={addSkill}
-                  className="px-4 py-3 border-2 border-dashed border-[#171717] text-xs font-bold uppercase tracking-widest hover:bg-[#F4EFEB] transition-all"
+                  className="px-4 py-3 border-2 border-dashed border-foreground text-xs font-bold uppercase tracking-widest hover:bg-background transition-all"
                 >
                   Add Skill
                 </button>
@@ -423,9 +423,9 @@ export function UserProfilePage() {
                   onChange={(e: any) => setProfile({ ...profile, linkedin: e.target.value })}
                 />
                 <div className="mt-4 space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Custom Links</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Custom Links</p>
                   {profile.profileLinks.map((link, index) => (
-                    <div key={link.id || index} className="grid md:grid-cols-[180px_1fr_auto] gap-3 items-end border-2 border-[#171717] bg-[#F4EFEB] p-3">
+                    <div key={link.id || index} className="grid md:grid-cols-[180px_1fr_auto] gap-3 items-end border-2 border-foreground bg-background p-3">
                       <BrutalInput
                         label="Label"
                         value={link.label}
@@ -441,13 +441,13 @@ export function UserProfilePage() {
                       <button
                         type="button"
                         onClick={() => removeProfileLink(index)}
-                        className="h-[52px] px-4 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase tracking-widest text-xs brutal-shadow"
+                        className="h-[52px] px-4 border-2 border-foreground bg-secondary text-white font-bold uppercase tracking-widest text-xs brutal-shadow"
                       >
                         Remove
                       </button>
                     </div>
                   ))}
-                  <div className="grid md:grid-cols-[180px_1fr_auto] gap-3 items-end border-2 border-dashed border-[#171717] bg-white p-3">
+                  <div className="grid md:grid-cols-[180px_1fr_auto] gap-3 items-end border-2 border-dashed border-foreground bg-white p-3">
                     <BrutalInput
                       label="New Label"
                       value={newProfileLink.label}
@@ -469,7 +469,7 @@ export function UserProfilePage() {
                     <button
                       type="button"
                       onClick={addProfileLink}
-                      className="h-[52px] px-4 border-2 border-[#171717] bg-[#22C55E] text-white font-bold uppercase tracking-widest text-xs brutal-shadow"
+                      className="h-[52px] px-4 border-2 border-foreground bg-green-500 text-white font-bold uppercase tracking-widest text-xs brutal-shadow"
                     >
                       Add Link
                     </button>
@@ -483,7 +483,7 @@ export function UserProfilePage() {
                     href={ensureUrl(profile.github.startsWith("http") ? profile.github : `github.com/${profile.github.replace(/^@/, "")}`)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 bg-[#171717] text-white border-2 border-[#171717] font-bold uppercase text-xs hover:bg-[#000] transition-all flex items-center gap-2"
+                    className="px-4 py-2 bg-foreground text-white border-2 border-foreground font-bold uppercase text-xs hover:bg-black transition-all flex items-center gap-2"
                   >
                     <Github size={14} /> GitHub
                   </a>
@@ -493,7 +493,7 @@ export function UserProfilePage() {
                     href={ensureUrl(profile.linkedin.startsWith("http") ? profile.linkedin : `linkedin.com/in/${profile.linkedin.replace(/^@/, "")}`)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 bg-[#2563EB] text-white border-2 border-[#171717] font-bold uppercase text-xs hover:bg-[#1D4ED8] transition-all flex items-center gap-2"
+                    className="px-4 py-2 bg-primary text-white border-2 border-foreground font-bold uppercase text-xs hover:bg-blue-700 transition-all flex items-center gap-2"
                   >
                     <Linkedin size={14} /> LinkedIn
                   </a>
@@ -504,13 +504,13 @@ export function UserProfilePage() {
                     href={ensureUrl(link.url)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 bg-white text-[#171717] border-2 border-[#171717] font-bold uppercase text-xs hover:bg-[#FFE800] transition-all flex items-center gap-2"
+                    className="px-4 py-2 bg-white text-foreground border-2 border-foreground font-bold uppercase text-xs hover:bg-highlight transition-all flex items-center gap-2"
                   >
                     <ExternalLink size={14} /> {link.label}
                   </a>
                 ))}
                 {!profile.github && !profile.linkedin && profile.profileLinks.length === 0 && (
-                  <p className="text-sm font-mono text-slate-500">No links added yet.</p>
+                  <p className="text-sm font-mono text-muted-foreground">No links added yet.</p>
                 )}
               </div>
             )}
@@ -519,21 +519,21 @@ export function UserProfilePage() {
           <BrutalCard>
             <h3 className="text-2xl uppercase mb-4" style={fonts.display}>My Submissions</h3>
             {submissions.length === 0 ? (
-              <p className="text-sm text-slate-500 font-mono">No submissions yet.</p>
+              <p className="text-sm text-muted-foreground font-mono">No submissions yet.</p>
             ) : (
               <div className="space-y-3">
                 {submissions.map((item) => (
-                  <div key={`${item.type}-${item.id}`} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div key={`${item.type}-${item.id}`} className="border-2 border-foreground bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">{item.type}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-primary">{item.type}</p>
                       <h4 className="font-bold uppercase">{item.title}</h4>
-                      <p className="text-xs font-mono text-slate-500">
+                      <p className="text-xs font-mono text-muted-foreground">
                         {item.date ? new Date(item.date).toLocaleDateString() : "Date pending"}
                       </p>
                     </div>
                     <BrutalBadge
                       color={statusColor(item.status)}
-                      text={item.status === "pending" || item.status === "submitted" || item.status === "draft" ? "text-[#171717]" : "text-white"}
+                      text={item.status === "pending" || item.status === "submitted" || item.status === "draft" ? "text-foreground" : "text-white"}
                     >
                       {item.status}
                     </BrutalBadge>
@@ -547,7 +547,7 @@ export function UserProfilePage() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Stats */}
-          <BrutalCard color="bg-[#2563EB]" className="text-white">
+          <BrutalCard color="bg-primary" className="text-white">
             <h3 className="text-xl uppercase mb-4" style={fonts.display}>Stats</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center pb-2 border-b border-white/20">
@@ -570,9 +570,9 @@ export function UserProfilePage() {
           </BrutalCard>
 
           {/* Badges/Achievements */}
-          <BrutalCard color="bg-[#FFE800]">
+          <BrutalCard color="bg-highlight">
             <h3 className="text-xl uppercase mb-4" style={fonts.display}>Badges</h3>
-            <p className="text-sm font-mono text-[#171717]/70">Verified badges will appear here when issued.</p>
+            <p className="text-sm font-mono text-foreground/70">Verified badges will appear here when issued.</p>
           </BrutalCard>
 
           {/* Recent Activity */}
@@ -580,7 +580,7 @@ export function UserProfilePage() {
             <h3 className="text-xl uppercase mb-4" style={fonts.display}>Activity</h3>
             <div className="space-y-3">
               {recentActivity.length === 0 ? (
-                <p className="text-sm font-mono text-slate-500">No recent activity yet.</p>
+                <p className="text-sm font-mono text-muted-foreground">No recent activity yet.</p>
               ) : recentActivity.map((activity, idx) => (
                 <div key={idx} className="pb-3 border-b border-slate-200 last:border-0">
                   <p className="text-sm font-bold">{activity.title}</p>

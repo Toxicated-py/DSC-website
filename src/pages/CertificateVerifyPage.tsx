@@ -13,9 +13,9 @@ type VerifiedCertificate = {
   issued_at: string;
 };
 
-const Button = ({ children, color = "bg-[#FFE800]", text = "text-[#171717]", className = "", ...props }: any) => (
+const Button = ({ children, color = "bg-highlight", text = "text-foreground", className = "", ...props }: any) => (
   <button
-    className={`px-6 py-3 ${color} ${text} border-2 border-[#171717] font-bold uppercase tracking-widest brutal-shadow brutal-shadow-hover transition-all disabled:opacity-50 ${className}`}
+    className={`px-6 py-3 ${color} ${text} border-2 border-foreground font-bold uppercase tracking-widest brutal-shadow brutal-shadow-hover transition-all disabled:opacity-50 ${className}`}
     {...props}
   >
     {children}
@@ -23,7 +23,7 @@ const Button = ({ children, color = "bg-[#FFE800]", text = "text-[#171717]", cla
 );
 
 const Card = ({ children, color = "bg-white", className = "" }: any) => (
-  <div className={`border-2 border-[#171717] p-6 brutal-shadow-lg ${color} ${className}`}>{children}</div>
+  <div className={`border-2 border-foreground p-6 brutal-shadow-lg ${color} ${className}`}>{children}</div>
 );
 
 const formatDate = (value: string) =>
@@ -86,7 +86,7 @@ export function CertificateVerifyPage() {
         <h1 className="text-5xl md:text-7xl uppercase leading-none mb-4" style={fonts.display}>
           Verify Certificate
         </h1>
-        <p className="text-slate-600">
+        <p className="text-muted-foreground">
           Enter the certificate ID and the email address it was issued to.
         </p>
       </div>
@@ -99,7 +99,7 @@ export function CertificateVerifyPage() {
               value={certificateId}
               onChange={(event) => setCertificateId(event.target.value)}
               placeholder="e.g. DSC-2026-001"
-              className="w-full border-2 border-[#171717] p-3 font-mono text-sm uppercase focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30"
+              className="w-full border-2 border-foreground p-3 font-mono text-sm uppercase focus:outline-none focus:ring-4 focus:ring-primary/30"
             />
           </div>
           <div>
@@ -109,21 +109,21 @@ export function CertificateVerifyPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="Enter the recipient email"
-              className="w-full border-2 border-[#171717] p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30"
+              className="w-full border-2 border-foreground p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/30"
             />
           </div>
-          <Button type="submit" color="bg-[#2563EB]" text="text-white" className="w-full" disabled={loading}>
+          <Button type="submit" color="bg-primary" text="text-white" className="w-full" disabled={loading}>
             <Search size={16} className="inline mr-2" /> {loading ? "Verifying..." : "Verify Certificate"}
           </Button>
         </form>
       </Card>
 
       {status === "verified" && certificate && (
-        <Card color="bg-[#DCFCE7]">
+        <Card color="bg-green-100">
           <div className="flex items-start gap-4">
             <CheckCircle2 size={42} className="text-green-700 flex-shrink-0" />
             <div className="min-w-0">
-              <span className="inline-block mb-4 border-2 border-[#171717] bg-green-600 px-3 py-1 text-xs font-bold uppercase tracking-widest text-white">
+              <span className="inline-block mb-4 border-2 border-foreground bg-green-600 px-3 py-1 text-xs font-bold uppercase tracking-widest text-white">
                 Verified
               </span>
               <h2 className="text-4xl uppercase leading-none mb-4" style={fonts.display}>
@@ -136,7 +136,7 @@ export function CertificateVerifyPage() {
                 <p><b>Issued by:</b> Data Science Club, School of Mathematical Sciences, Tribhuvan University</p>
                 <p><b>Issued Date:</b> {formatDate(certificate.issued_at)}</p>
               </div>
-              <p className="mt-6 border-t-2 border-[#171717] pt-4 font-mono text-xs text-slate-600">
+              <p className="mt-6 border-t-2 border-foreground pt-4 font-mono text-xs text-muted-foreground">
                 DSC Certificate ID: {certificate.certificate_id}
               </p>
             </div>
@@ -145,8 +145,8 @@ export function CertificateVerifyPage() {
       )}
 
       {status === "not-found" && (
-        <Card color="bg-[#FEE2E2]">
-          <AlertTriangle size={42} className="mb-4 text-[#FB7185]" />
+        <Card color="bg-red-100">
+          <AlertTriangle size={42} className="mb-4 text-secondary" />
           <h2 className="text-4xl uppercase leading-none mb-3" style={fonts.display}>Certificate Not Found</h2>
           <p className="mb-5 text-slate-700">
             No certificate was found matching that ID and email combination. Please check both fields and try again.
@@ -156,7 +156,7 @@ export function CertificateVerifyPage() {
       )}
 
       {status === "error" && (
-        <Card color="bg-[#FFE800]">
+        <Card color="bg-highlight">
           <AlertTriangle size={38} className="mb-4" />
           <h2 className="text-3xl uppercase leading-none mb-3" style={fonts.display}>Verification Error</h2>
           <p className="mb-5 text-sm font-mono">{message || "Could not verify certificate. Please try again."}</p>

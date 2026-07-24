@@ -1,9 +1,10 @@
+import type { AdminTabContext } from "../types";
 
 import React, { useState } from "react";
 import { fonts } from "../../../config/fonts";
 import { BrutalCard } from "../AdminPrimitives";
 
-export function GalleryTab({ ctx }: { ctx: any }) {
+export function GalleryTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -352,30 +353,30 @@ export function GalleryTab({ ctx }: { ctx: any }) {
 
   const renderGalleryItem = (item: any, actions: React.ReactNode) => (
     <BrutalCard key={item.id} color="bg-white" className="p-4">
-      <div className="h-40 bg-slate-100 border-2 border-[#171717] mb-3 overflow-hidden">
+      <div className="h-40 bg-slate-100 border-2 border-foreground mb-3 overflow-hidden">
         <img loading="lazy" src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
       </div>
       {editingGalleryId === item.id ? (
         <div className="grid gap-2">
-          <input value={galleryEditForm.title} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, title: event.target.value })} className="border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Title" />
-          <input value={galleryEditForm.event_type} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, event_type: event.target.value })} className="border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Event type" />
-          <textarea value={galleryEditForm.caption} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, caption: event.target.value })} className="min-h-20 border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Caption" />
-          <input value={galleryEditForm.tags} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, tags: event.target.value })} className="border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Tags, comma separated" />
-          <input value={galleryEditForm.event_name} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, event_name: event.target.value })} className="border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Event title" />
-          <input value={galleryEditForm.image_url} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, image_url: event.target.value })} className="border-2 border-[#171717] p-2 font-mono text-xs" placeholder="Image URL" />
+          <input value={galleryEditForm.title} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, title: event.target.value })} className="border-2 border-foreground p-2 font-mono text-xs" placeholder="Title" />
+          <input value={galleryEditForm.event_type} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, event_type: event.target.value })} className="border-2 border-foreground p-2 font-mono text-xs" placeholder="Event type" />
+          <textarea value={galleryEditForm.caption} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, caption: event.target.value })} className="min-h-20 border-2 border-foreground p-2 font-mono text-xs" placeholder="Caption" />
+          <input value={galleryEditForm.tags} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, tags: event.target.value })} className="border-2 border-foreground p-2 font-mono text-xs" placeholder="Tags, comma separated" />
+          <input value={galleryEditForm.event_name} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, event_name: event.target.value })} className="border-2 border-foreground p-2 font-mono text-xs" placeholder="Event title" />
+          <input value={galleryEditForm.image_url} onChange={(event) => setGalleryEditForm({ ...galleryEditForm, image_url: event.target.value })} className="border-2 border-foreground p-2 font-mono text-xs" placeholder="Image URL" />
           <div className="flex gap-2">
-            <button onClick={saveGalleryEdit} className="px-3 py-1 border-2 border-[#171717] bg-[#2563EB] text-white font-bold uppercase text-xs">Save</button>
-            <button onClick={() => setEditingGalleryId(null)} className="px-3 py-1 border-2 border-[#171717] bg-white font-bold uppercase text-xs">Cancel</button>
+            <button onClick={saveGalleryEdit} className="px-3 py-1 border-2 border-foreground bg-primary text-white font-bold uppercase text-xs">Save</button>
+            <button onClick={() => setEditingGalleryId(null)} className="px-3 py-1 border-2 border-foreground bg-white font-bold uppercase text-xs">Cancel</button>
           </div>
         </div>
       ) : (
         <>
           <h3 className="font-bold uppercase leading-tight">{item.title}</h3>
-          <p className="mt-1 text-xs font-mono text-slate-500">{item.event_name || "General gallery"} - {item.event_type || "Event type"} - {item.status}</p>
-          {item.caption && <p className="mt-2 max-h-10 overflow-hidden text-sm text-slate-600">{item.caption}</p>}
-          {Array.isArray(item.tags) && item.tags.length > 0 && <p className="mt-2 text-xs font-bold text-slate-500">{item.tags.map((tag: string) => `#${tag}`).join(" ")}</p>}
+          <p className="mt-1 text-xs font-mono text-muted-foreground">{item.event_name || "General gallery"} - {item.event_type || "Event type"} - {item.status}</p>
+          {item.caption && <p className="mt-2 max-h-10 overflow-hidden text-sm text-muted-foreground">{item.caption}</p>}
+          {Array.isArray(item.tags) && item.tags.length > 0 && <p className="mt-2 text-xs font-bold text-muted-foreground">{item.tags.map((tag: string) => `#${tag}`).join(" ")}</p>}
           <div className="mt-3 flex gap-2 flex-wrap">
-            <button onClick={() => startGalleryEdit(item)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FFE800] font-bold uppercase text-xs">Edit</button>
+            <button onClick={() => startGalleryEdit(item)} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-highlight font-bold uppercase text-xs">Edit</button>
             {actions}
           </div>
         </>
@@ -408,13 +409,13 @@ export function GalleryTab({ ctx }: { ctx: any }) {
                           imageUrl: item.image_url,
                           date: item.created_at ? new Date(item.created_at).toLocaleDateString() : "",
                         })}
-                        className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs"
+                        className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white font-bold uppercase text-xs"
                       >
                         View
                       </button>
-                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Approve</button>
-                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white font-bold uppercase text-xs">Reject</button>
-                      <button onClick={() => deleteContentItem("gallery", item.id, "gallery item")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>
+                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-foreground bg-green-500 text-white font-bold uppercase text-xs">Approve</button>
+                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-foreground bg-secondary text-white font-bold uppercase text-xs">Reject</button>
+                      <button onClick={() => deleteContentItem("gallery", item.id, "gallery item")} className="px-3 py-1 border-2 border-foreground bg-secondary text-white hover:bg-destructive font-bold uppercase text-xs">Delete</button>
                     </>
                   ))
                 ))}
@@ -425,8 +426,8 @@ export function GalleryTab({ ctx }: { ctx: any }) {
                 {approvedGallery.map((item) => (
                   renderGalleryItem(item, (
                     <>
-                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white font-bold uppercase text-xs">Move to Rejected</button>
-                      <button onClick={() => deleteContentItem("gallery", item.id, "gallery item")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>
+                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "rejected")} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-secondary hover:text-white font-bold uppercase text-xs">Move to Rejected</button>
+                      <button onClick={() => deleteContentItem("gallery", item.id, "gallery item")} className="px-3 py-1 border-2 border-foreground bg-secondary text-white hover:bg-destructive font-bold uppercase text-xs">Delete</button>
                     </>
                   ))
                 ))}
@@ -437,8 +438,8 @@ export function GalleryTab({ ctx }: { ctx: any }) {
                 {rejectedGallery.map((item) => (
                   renderGalleryItem(item, (
                     <>
-                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
-                      <button onClick={() => deleteContentItem("gallery", item.id, "gallery item")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>
+                      <button onClick={() => updateSubmissionStatus("gallery_submissions", item.id, "approved")} className="px-3 py-1 border-2 border-foreground bg-green-500 text-white font-bold uppercase text-xs">Unarchive</button>
+                      <button onClick={() => deleteContentItem("gallery", item.id, "gallery item")} className="px-3 py-1 border-2 border-foreground bg-secondary text-white hover:bg-destructive font-bold uppercase text-xs">Delete</button>
                     </>
                   ))
                 ))}

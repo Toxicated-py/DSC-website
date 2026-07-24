@@ -1,10 +1,11 @@
+import type { AdminTabContext } from "../types";
 import { Search, Edit, Calendar, MapPin, Users, Plus, Star, MessageSquare } from "lucide-react";
 
 import { fonts } from "../../../config/fonts";
 import { isEventRegistrationOpen } from "../adminUtils";
 import { BrutalBadge, BrutalCard } from "../AdminPrimitives";
 
-export function EventsTab({ ctx }: { ctx: any }) {
+export function EventsTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -326,13 +327,13 @@ export function EventsTab({ ctx }: { ctx: any }) {
                 placeholder="Search events..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full border-2 border-[#171717] p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all brutal-shadow"
+                className="w-full border-2 border-foreground p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/30 transition-all brutal-shadow"
               />
             </div>
             {isFullAdmin && (
               <button
                 onClick={() => void openEventModal()}
-                className="px-6 py-3 bg-[#7C3AED] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-sm brutal-shadow brutal-shadow-hover flex items-center gap-2 justify-center"
+                className="px-6 py-3 bg-violet-600 text-white border-2 border-foreground font-bold uppercase tracking-widest text-sm brutal-shadow brutal-shadow-hover flex items-center gap-2 justify-center"
               >
                 <Plus size={16} /> Create Event
               </button>
@@ -345,52 +346,52 @@ export function EventsTab({ ctx }: { ctx: any }) {
               return (
               <BrutalCard key={event.id} color="bg-white">
                 <div className="flex items-start justify-between mb-4">
-                  <BrutalBadge color={event.status === "Upcoming" ? "bg-[#2563EB]" : "bg-slate-400"}>
+                  <BrutalBadge color={event.status === "Upcoming" ? "bg-primary" : "bg-slate-400"}>
                     {event.status}
                   </BrutalBadge>
-                  {event.featured && <Star size={16} className="text-[#FFE800] fill-[#FFE800]" />}
+                  {event.featured && <Star size={16} className="text-highlight fill-highlight" />}
                 </div>
                 <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>{event.title}</h3>
                 <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Calendar size={14} />
                     <span>{event.date}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <MapPin size={14} />
                     <span>{event.location}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Users size={14} />
                     <span>{event.attendees} attendees</span>
                   </div>
                 </div>
-                <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]" className="mb-4">
+                <BrutalBadge color="bg-highlight" text="text-foreground" className="mb-4">
                   {event.category}
                 </BrutalBadge>
                 <div className="flex gap-2 pt-4 border-t-2 border-slate-200">
                   <button
                     onClick={() => void openEventModal(event)}
-                    className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
+                    className="flex-1 p-2 border-2 border-foreground bg-white hover:bg-primary hover:text-white transition-all font-bold uppercase text-xs"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => toggleEventRegistration(event)}
-                    className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FFE800] transition-all font-bold uppercase text-xs"
+                    className="flex-1 p-2 border-2 border-foreground bg-white hover:bg-highlight transition-all font-bold uppercase text-xs"
                   >
                     {registrationOpen ? "Close Reg" : "Open Reg"}
                   </button>
                   {isFullAdmin && (
                     <button
                       onClick={() => handleArchiveEvent(event.id)}
-                      className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs"
+                      className="flex-1 p-2 border-2 border-foreground bg-white hover:bg-secondary hover:text-white transition-all font-bold uppercase text-xs"
                     >
                       Archive
                     </button>
                   )}
                   {isFullAdmin && (
-                    <button onClick={() => deleteContentItem("events", event.id, "event")} className="flex-1 p-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs">
+                    <button onClick={() => deleteContentItem("events", event.id, "event")} className="flex-1 p-2 border-2 border-foreground bg-secondary text-white hover:bg-destructive transition-all font-bold uppercase text-xs">
                       Delete
                     </button>
                   )}
@@ -412,23 +413,23 @@ export function EventsTab({ ctx }: { ctx: any }) {
                     <BrutalBadge color="bg-slate-400" className="mb-4">Past</BrutalBadge>
                     <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>{event.title}</h3>
                     <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Calendar size={14} />
                         <span>{event.date}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <MapPin size={14} />
                         <span>{event.location}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Users size={14} />
                         <span>{event.attendees} attendees</span>
                       </div>
                     </div>
                     <div className="flex gap-2 pt-4 border-t-2 border-slate-200">
-                      <button onClick={() => void openEventModal(event)} className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
-                      {isFullAdmin && <button onClick={() => handleArchiveEvent(event.id)} className="flex-1 p-2 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs">Archive</button>}
-                      {isFullAdmin && <button onClick={() => deleteContentItem("events", event.id, "event")} className="flex-1 p-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs">Delete</button>}
+                      <button onClick={() => void openEventModal(event)} className="flex-1 p-2 border-2 border-foreground bg-white hover:bg-primary hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
+                      {isFullAdmin && <button onClick={() => handleArchiveEvent(event.id)} className="flex-1 p-2 border-2 border-foreground bg-white hover:bg-secondary hover:text-white transition-all font-bold uppercase text-xs">Archive</button>}
+                      {isFullAdmin && <button onClick={() => deleteContentItem("events", event.id, "event")} className="flex-1 p-2 border-2 border-foreground bg-secondary text-white hover:bg-destructive transition-all font-bold uppercase text-xs">Delete</button>}
                     </div>
                   </BrutalCard>
                 ))}
@@ -439,14 +440,14 @@ export function EventsTab({ ctx }: { ctx: any }) {
           {isFullAdmin && <div className="mt-10">
             <div className="flex items-center justify-between gap-4 mb-5">
               <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Pending Event Proposals</h2>
-              <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">{pendingEventProposals.length}</BrutalBadge>
+              <BrutalBadge color="bg-highlight" text="text-foreground">{pendingEventProposals.length}</BrutalBadge>
             </div>
             <div className="grid gap-6">
               {pendingEventProposals.length === 0 ? (
                 <BrutalCard color="bg-white" className="text-center">
-                  <MessageSquare size={36} className="mx-auto mb-3 text-[#2563EB]" />
+                  <MessageSquare size={36} className="mx-auto mb-3 text-primary" />
                   <h3 className="text-2xl uppercase mb-2" style={fonts.display}>No Pending Proposals</h3>
-                  <p className="text-sm text-slate-600">New event ideas will appear here for review.</p>
+                  <p className="text-sm text-muted-foreground">New event ideas will appear here for review.</p>
                 </BrutalCard>
               ) : (
                 pendingEventProposals.map((proposal) => (
@@ -455,16 +456,16 @@ export function EventsTab({ ctx }: { ctx: any }) {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 flex-wrap mb-2">
                           <h3 className="text-xl font-bold uppercase" style={fonts.display}>{proposal.title}</h3>
-                          <BrutalBadge color="bg-[#2563EB]">{proposal.event_type}</BrutalBadge>
-                          <BrutalBadge color={proposal.status === "approved" ? "bg-green-500" : proposal.status === "rejected" ? "bg-[#FB7185]" : "bg-[#FFE800]"} text={proposal.status === "pending" ? "text-[#171717]" : "text-white"}>
+                          <BrutalBadge color="bg-primary">{proposal.event_type}</BrutalBadge>
+                          <BrutalBadge color={proposal.status === "approved" ? "bg-green-500" : proposal.status === "rejected" ? "bg-secondary" : "bg-highlight"} text={proposal.status === "pending" ? "text-foreground" : "text-white"}>
                             {proposal.status}
                           </BrutalBadge>
                         </div>
-                        <p className="text-sm text-slate-600 mb-3">
+                        <p className="text-sm text-muted-foreground mb-3">
                           by <span className="font-bold">{proposal.proposer}</span> - {proposal.submittedDate}
                         </p>
                         <p className="text-sm text-slate-700 mb-3">{proposal.summary}</p>
-                        <div className="flex gap-4 flex-wrap text-xs font-mono text-slate-500">
+                        <div className="flex gap-4 flex-wrap text-xs font-mono text-muted-foreground">
                           <span>Date: {proposal.proposed_date || "TBA"}</span>
                           <span>Venue: {proposal.venue || "TBA"}</span>
                           <span>Capacity: {proposal.capacity || "TBA"}</span>
@@ -491,19 +492,19 @@ export function EventsTab({ ctx }: { ctx: any }) {
                             location: proposal.venue || "Venue TBD",
                             capacity: proposal.capacity || "Capacity TBD",
                           })}
-                          className="px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
+                          className="px-3 py-2 border-2 border-foreground bg-white hover:bg-primary hover:text-white transition-all font-bold uppercase text-xs"
                         >
                           View
                         </button>
                         <button
                           onClick={() => createEventFromProposal(proposal)}
-                          className="px-3 py-2 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs"
+                          className="px-3 py-2 border-2 border-foreground bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs"
                         >
                           Approve + Create
                         </button>
                         <button
                           onClick={() => updateProposalStatus(proposal.id, "rejected")}
-                          className="px-3 py-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs"
+                          className="px-3 py-2 border-2 border-foreground bg-secondary text-white hover:bg-destructive transition-all font-bold uppercase text-xs"
                         >
                           Reject
                         </button>
@@ -517,23 +518,23 @@ export function EventsTab({ ctx }: { ctx: any }) {
               <h3 className="text-xl uppercase mb-4" style={fonts.display}>Rejected</h3>
               <div className="grid gap-3">
                 {rejectedEventProposals.map((proposal) => (
-                  <div key={`proposal-${proposal.id}`} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div key={`proposal-${proposal.id}`} className="border-2 border-foreground bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
                       <p className="font-bold uppercase">{proposal.title}</p>
-                      <p className="text-xs font-mono text-slate-500">{proposal.proposer} - {proposal.submittedDate}</p>
+                      <p className="text-xs font-mono text-muted-foreground">{proposal.proposer} - {proposal.submittedDate}</p>
                     </div>
-                    <BrutalBadge color="bg-[#FB7185]">Rejected</BrutalBadge>
+                    <BrutalBadge color="bg-secondary">Rejected</BrutalBadge>
                   </div>
                 ))}
                 {archivedEvents.map((event) => (
-                  <div key={`event-${event.id}`} className="border-2 border-[#171717] bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div key={`event-${event.id}`} className="border-2 border-foreground bg-white p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
                       <p className="font-bold uppercase">{event.title}</p>
-                      <p className="text-xs font-mono text-slate-500">{event.date} - {event.location}</p>
+                      <p className="text-xs font-mono text-muted-foreground">{event.date} - {event.location}</p>
                     </div>
-                    <button onClick={() => void openEventModal(event)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white font-bold uppercase text-xs">Edit</button>
-                    <button onClick={() => updateEventStatus(event.id, "approved")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 font-bold uppercase text-xs">Unarchive</button>
-                    <button onClick={() => deleteContentItem("events", event.id, "event")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] font-bold uppercase text-xs">Delete</button>
+                    <button onClick={() => void openEventModal(event)} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white font-bold uppercase text-xs">Edit</button>
+                    <button onClick={() => updateEventStatus(event.id, "approved")} className="px-3 py-1 border-2 border-foreground bg-green-500 text-white hover:bg-green-600 font-bold uppercase text-xs">Unarchive</button>
+                    <button onClick={() => deleteContentItem("events", event.id, "event")} className="px-3 py-1 border-2 border-foreground bg-secondary text-white hover:bg-destructive font-bold uppercase text-xs">Delete</button>
                   </div>
                 ))}
                 {rejectedEventProposals.length === 0 && archivedEvents.length === 0 && (

@@ -1,9 +1,10 @@
+import type { AdminTabContext } from "../types";
 import { Search, Edit, Star } from "lucide-react";
 
 import { fonts } from "../../../config/fonts";
 import { BrutalBadge, BrutalCard } from "../AdminPrimitives";
 
-export function ProjectsTab({ ctx }: { ctx: any }) {
+export function ProjectsTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -324,7 +325,7 @@ export function ProjectsTab({ ctx }: { ctx: any }) {
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full border-2 border-[#171717] p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all brutal-shadow"
+                className="w-full border-2 border-foreground p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/30 transition-all brutal-shadow"
               />
             </div>
           </div>
@@ -337,19 +338,19 @@ export function ProjectsTab({ ctx }: { ctx: any }) {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-xl font-bold uppercase" style={fonts.display}>{project.title}</h3>
-                      {project.featured && <Star size={16} className="text-[#FFE800] fill-[#FFE800]" />}
+                      {project.featured && <Star size={16} className="text-highlight fill-highlight" />}
                     </div>
-                    <p className="text-sm text-slate-600 mb-3">
+                    <p className="text-sm text-muted-foreground mb-3">
                       by <span className="font-bold">{project.author}</span> â¢ {project.submittedDate}
                     </p>
                     <div className="flex gap-2 flex-wrap">
-                      {project.tags.map(tag => (
-                        <BrutalBadge key={tag} color="bg-[#2563EB]" className="text-[9px]">{tag}</BrutalBadge>
+                      {project.tags.map((tag: string) => (
+                        <BrutalBadge key={tag} color="bg-primary" className="text-[9px]">{tag}</BrutalBadge>
                       ))}
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 md:items-end">
-                    <BrutalBadge color={project.status === "published" || project.status === "approved" ? "bg-green-500" : "bg-[#FFE800]"} text={project.status === "published" || project.status === "approved" ? "text-white" : "text-[#171717]"}>
+                    <BrutalBadge color={project.status === "published" || project.status === "approved" ? "bg-green-500" : "bg-highlight"} text={project.status === "published" || project.status === "approved" ? "text-white" : "text-foreground"}>
                       {project.status}
                     </BrutalBadge>
                     <div className="flex gap-2">
@@ -373,20 +374,20 @@ export function ProjectsTab({ ctx }: { ctx: any }) {
                           tags: project.tags,
                           imageUrl: project.thumbnail_url,
                         })}
-                        className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
+                        className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white transition-all font-bold uppercase text-xs"
                       >
                         View
                       </button>
                       <button
                         onClick={() => openProjectModal(project)}
-                        className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs"
+                        className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white transition-all font-bold uppercase text-xs"
                       >
                         Edit
                       </button>
                       {isFullAdmin && project.status !== "published" && (
                         <button
                           onClick={() => updateProjectStatus(project.id, "published")}
-                          className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs"
+                          className="px-3 py-1 border-2 border-foreground bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs"
                         >
                           Publish
                         </button>
@@ -394,12 +395,12 @@ export function ProjectsTab({ ctx }: { ctx: any }) {
                       {isFullAdmin && (
                         <button
                           onClick={() => updateProjectStatus(project.id, "rejected")}
-                          className="px-3 py-1 border-2 border-[#171717] bg-[#FFE800] hover:bg-[#FCD34D] transition-all font-bold uppercase text-xs"
+                          className="px-3 py-1 border-2 border-foreground bg-highlight hover:bg-amber-300 transition-all font-bold uppercase text-xs"
                         >
                           Reject
                         </button>
                       )}
-                      {isFullAdmin && <button onClick={() => deleteContentItem("projects", project.id, "project")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs">Delete</button>}
+                      {isFullAdmin && <button onClick={() => deleteContentItem("projects", project.id, "project")} className="px-3 py-1 border-2 border-foreground bg-secondary text-white hover:bg-destructive transition-all font-bold uppercase text-xs">Delete</button>}
                     </div>
                   </div>
                 </div>
@@ -415,13 +416,13 @@ export function ProjectsTab({ ctx }: { ctx: any }) {
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div className="flex-1">
                     <h3 className="text-xl font-bold uppercase mb-2" style={fonts.display}>{project.title}</h3>
-                    <p className="text-sm text-slate-600 mb-3">by <span className="font-bold">{project.author}</span> - {project.submittedDate}</p>
+                    <p className="text-sm text-muted-foreground mb-3">by <span className="font-bold">{project.author}</span> - {project.submittedDate}</p>
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <BrutalBadge color="bg-green-500">{project.status}</BrutalBadge>
-                    <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
-                    {isFullAdmin && <button onClick={() => updateProjectStatus(project.id, "archived")} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#FB7185] hover:text-white transition-all font-bold uppercase text-xs">Archive</button>}
-                    {isFullAdmin && <button onClick={() => deleteContentItem("projects", project.id, "project")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs">Delete</button>}
+                    <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
+                    {isFullAdmin && <button onClick={() => updateProjectStatus(project.id, "archived")} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-secondary hover:text-white transition-all font-bold uppercase text-xs">Archive</button>}
+                    {isFullAdmin && <button onClick={() => deleteContentItem("projects", project.id, "project")} className="px-3 py-1 border-2 border-foreground bg-secondary text-white hover:bg-destructive transition-all font-bold uppercase text-xs">Delete</button>}
                   </div>
                 </div>
               </BrutalCard>
@@ -436,13 +437,13 @@ export function ProjectsTab({ ctx }: { ctx: any }) {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h3 className="text-xl font-bold uppercase mb-1" style={fonts.display}>{project.title}</h3>
-                    <p className="text-sm text-slate-600">by <span className="font-bold">{project.author}</span></p>
+                    <p className="text-sm text-muted-foreground">by <span className="font-bold">{project.author}</span></p>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <BrutalBadge color="bg-[#FB7185]">{project.status}</BrutalBadge>
-                    <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-[#171717] bg-white hover:bg-[#2563EB] hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
-                    {isFullAdmin && <button onClick={() => updateProjectStatus(project.id, "published")} className="px-3 py-1 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs">Unarchive</button>}
-                    {isFullAdmin && <button onClick={() => deleteContentItem("projects", project.id, "project")} className="px-3 py-1 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs">Delete</button>}
+                    <BrutalBadge color="bg-secondary">{project.status}</BrutalBadge>
+                    <button onClick={() => openProjectModal(project)} className="px-3 py-1 border-2 border-foreground bg-white hover:bg-primary hover:text-white transition-all font-bold uppercase text-xs">Edit</button>
+                    {isFullAdmin && <button onClick={() => updateProjectStatus(project.id, "published")} className="px-3 py-1 border-2 border-foreground bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs">Unarchive</button>}
+                    {isFullAdmin && <button onClick={() => deleteContentItem("projects", project.id, "project")} className="px-3 py-1 border-2 border-foreground bg-secondary text-white hover:bg-destructive transition-all font-bold uppercase text-xs">Delete</button>}
                   </div>
                 </div>
               </BrutalCard>

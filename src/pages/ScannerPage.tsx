@@ -6,7 +6,7 @@ import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 
 
 import { apiGet, apiPost } from "../lib/apiClient";
-import { BrutalButton } from "../components/ui/brutal";
+import { BrutalButton } from "../components/ui";
 
 import { fonts } from "../config/fonts";
 
@@ -159,30 +159,30 @@ export function ScannerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#171717] pt-12 pb-20 px-6 flex flex-col items-center justify-center text-white relative">
+    <div className="min-h-screen bg-foreground pt-12 pb-20 px-6 flex flex-col items-center justify-center text-white relative">
       <div className="text-center mb-8">
         <h1 className="text-5xl uppercase" style={fonts.display}>Scanner Protocol</h1>
         <p className="font-mono text-slate-400 mt-2">{scannerStatus}</p>
         {scannerEvent && (
-          <p className="font-mono text-xs text-slate-500 mt-2">
+          <p className="font-mono text-xs text-muted-foreground mt-2">
             {scannerEvent.start_time ? new Date(scannerEvent.start_time).toLocaleString() : "Date TBA"} - {scannerEvent.venue || "Venue TBA"}
           </p>
         )}
       </div>
 
-      <div className="relative w-full max-w-sm aspect-square bg-black border-4 border-[#2563EB] mb-12 overflow-hidden flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.3)]">
+      <div className="relative w-full max-w-sm aspect-square bg-black border-4 border-primary mb-12 overflow-hidden flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.3)]">
         {/* Viewfinder brackets */}
-        <div className="absolute top-4 left-4 w-12 h-12 border-t-4 border-l-4 border-[#FFE800]" />
-        <div className="absolute top-4 right-4 w-12 h-12 border-t-4 border-r-4 border-[#FFE800]" />
-        <div className="absolute bottom-4 left-4 w-12 h-12 border-b-4 border-l-4 border-[#FFE800]" />
-        <div className="absolute bottom-4 right-4 w-12 h-12 border-b-4 border-r-4 border-[#FFE800]" />
+        <div className="absolute top-4 left-4 w-12 h-12 border-t-4 border-l-4 border-highlight" />
+        <div className="absolute top-4 right-4 w-12 h-12 border-t-4 border-r-4 border-highlight" />
+        <div className="absolute bottom-4 left-4 w-12 h-12 border-b-4 border-l-4 border-highlight" />
+        <div className="absolute bottom-4 right-4 w-12 h-12 border-b-4 border-r-4 border-highlight" />
 
         {/* Scanning line */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-[#FB7185] shadow-[0_0_15px_#FB7185] animate-[scan_2s_ease-in-out_infinite]" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-secondary shadow-[0_0_15px_var(--color-secondary)] animate-[scan_2s_ease-in-out_infinite]" />
 
         <video ref={videoRef} className={`absolute inset-0 h-full w-full object-cover ${cameraActive ? "block" : "hidden"}`} muted playsInline />
         {!cameraActive && (
-          <p className="font-mono text-slate-600 text-sm flex items-center gap-2">
+          <p className="font-mono text-muted-foreground text-sm flex items-center gap-2">
             <Camera size={16} /> {scannerReady ? "CAMERA READY" : "EVENT REQUIRED"}
           </p>
         )}
@@ -190,7 +190,7 @@ export function ScannerPage() {
 
       <p className="mb-4 max-w-sm text-center font-mono text-xs text-slate-400">{cameraStatus}</p>
       <div className="mb-4 flex flex-col sm:flex-row gap-3 w-full max-w-sm">
-        <BrutalButton onClick={cameraActive ? stopCameraScanner : startCameraScanner} color="bg-[#2563EB]" text="text-white" className="flex-1">
+        <BrutalButton onClick={cameraActive ? stopCameraScanner : startCameraScanner} color="bg-primary" text="text-white" className="flex-1">
           <Camera size={16} /> {cameraActive ? "Stop Camera" : "Start Camera"}
         </BrutalButton>
       </div>
@@ -201,16 +201,16 @@ export function ScannerPage() {
           onChange={(event) => setTicketCode(event.target.value)}
           placeholder="Ticket code"
           disabled={checkingIn}
-          className="flex-1 border-2 border-[#FFE800] bg-black p-3 font-mono text-sm text-white focus:outline-none disabled:opacity-40"
+          className="flex-1 border-2 border-highlight bg-black p-3 font-mono text-sm text-white focus:outline-none disabled:opacity-40"
         />
-        <BrutalButton onClick={() => scanTicket()} disabled={checkingIn || !ticketCode.trim()} color="bg-[#FFE800]" className="flex-1">
+        <BrutalButton onClick={() => scanTicket()} disabled={checkingIn || !ticketCode.trim()} color="bg-highlight" className="flex-1">
           {checkingIn ? "Checking..." : "Check In"}
         </BrutalButton>
       </div>
 
       {lastScan && (
-        <div className="mt-6 w-full max-w-sm border-2 border-[#FFE800] bg-black p-4 font-mono text-sm">
-          <p className="font-bold text-[#FFE800] uppercase">{lastScan.already_checked_in ? "Already checked in" : "Scan accepted"}</p>
+        <div className="mt-6 w-full max-w-sm border-2 border-highlight bg-black p-4 font-mono text-sm">
+          <p className="font-bold text-highlight uppercase">{lastScan.already_checked_in ? "Already checked in" : "Scan accepted"}</p>
           <p className="mt-2">{lastScan.profile?.full_name || lastScan.profile?.email || "Member"}</p>
           <p className="mt-1 break-all text-slate-400">{lastScan.registration?.ticket_code}</p>
         </div>

@@ -7,14 +7,14 @@ import { Users, Camera, Calendar, QrCode, Bell, Award, Clock, Code, User, FileTe
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { apiGet } from "../lib/apiClient";
 
-import { BrutalButton, BrutalCard, BrutalBadge } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge } from "../components/ui";
 
 import { fonts } from "../config/fonts";
 
 const rolePriority = ["president", "admin", "event_manager", "teacher", "student", "member"];
 const primaryRoleFrom = (roles: string[]) => rolePriority.find((role) => roles.includes(role)) || "member";
 const roleLabel = (role: string) => role.replace("_", " ");
-const roleColor = (role: string) => role === "president" || role === "admin" ? "bg-[#FB7185]" : role === "event_manager" ? "bg-[#7C3AED]" : role === "student" ? "bg-[#FFE800]" : "bg-[#2563EB]";
+const roleColor = (role: string) => role === "president" || role === "admin" ? "bg-secondary" : role === "event_manager" ? "bg-violet-600" : role === "student" ? "bg-highlight" : "bg-primary";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -102,10 +102,10 @@ export function DashboardPage() {
         memberSince: profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "New member",
       });
       setContributions([
-        ...(contributionProposals.data || []).map((item) => ({ ...item, kind: "Proposed Event", date: item.submitted_at, icon: <Calendar size={18} />, color: "bg-[#2563EB]" })),
-        ...(contributionProjects.data || []).map((item) => ({ ...item, kind: "Project Submitted", date: item.submitted_at, icon: <Code size={18} />, color: "bg-[#FB7185]" })),
-        ...(contributionBlogs.data || []).map((item) => ({ ...item, kind: "Blog Post", date: item.published_at, icon: <FileText size={18} />, color: "bg-[#FFE800]", iconText: "text-[#171717]" })),
-        ...(contributionGallery.data || []).map((item) => ({ ...item, kind: "Gallery Upload", date: item.created_at, icon: <Camera size={18} />, color: "bg-[#7C3AED]" })),
+        ...(contributionProposals.data || []).map((item) => ({ ...item, kind: "Proposed Event", date: item.submitted_at, icon: <Calendar size={18} />, color: "bg-primary" })),
+        ...(contributionProjects.data || []).map((item) => ({ ...item, kind: "Project Submitted", date: item.submitted_at, icon: <Code size={18} />, color: "bg-secondary" })),
+        ...(contributionBlogs.data || []).map((item) => ({ ...item, kind: "Blog Post", date: item.published_at, icon: <FileText size={18} />, color: "bg-highlight", iconText: "text-foreground" })),
+        ...(contributionGallery.data || []).map((item) => ({ ...item, kind: "Gallery Upload", date: item.created_at, icon: <Camera size={18} />, color: "bg-violet-600" })),
       ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()).slice(0, 6));
       setDashboardEvents(publicEvents.data || []);
       setDashboardProjects(publicProjects.data || []);
@@ -129,22 +129,22 @@ export function DashboardPage() {
   }));
 
   const quickActions = [
-    { label: "Register for Event", icon: <Calendar size={18} />, onClick: () => navigate("/events"), color: "bg-[#2563EB]" },
-    { label: "Submit Project", icon: <Code size={18} />, onClick: () => navigate("/projects"), color: "bg-[#FB7185]" },
+    { label: "Register for Event", icon: <Calendar size={18} />, onClick: () => navigate("/events"), color: "bg-primary" },
+    { label: "Submit Project", icon: <Code size={18} />, onClick: () => navigate("/projects"), color: "bg-secondary" },
   ];
   const accountCards = [
-    { label: "View Tickets", helper: "Open QR tickets for your registered events.", icon: <QrCode size={24} />, onClick: () => navigate("/tickets"), color: "bg-[#FFE800]", text: "text-[#171717]" },
-    { label: "My Certificates", helper: "View, print, and download issued certificates.", icon: <Award size={24} />, onClick: () => navigate("/certificates"), color: "bg-[#2563EB]", text: "text-white" },
+    { label: "View Tickets", helper: "Open QR tickets for your registered events.", icon: <QrCode size={24} />, onClick: () => navigate("/tickets"), color: "bg-highlight", text: "text-foreground" },
+    { label: "My Certificates", helper: "View, print, and download issued certificates.", icon: <Award size={24} />, onClick: () => navigate("/certificates"), color: "bg-primary", text: "text-white" },
   ];
 
   return (
-    <div className="pb-20 min-h-screen bg-[#F4EFEB]">
-      <section className="bg-[#171717] text-white px-6 pt-16 pb-14">
+    <div className="pb-20 min-h-screen bg-background">
+      <section className="bg-foreground text-white px-6 pt-16 pb-14">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div>
             <div className="flex flex-wrap items-center gap-3 mb-5">
-              <BrutalBadge color={roleColor(member.role)} text={member.role === "student" ? "text-[#171717]" : "text-white"}>{roleLabel(member.role)}</BrutalBadge>
-              {member.batchYear && <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]">Batch {member.batchYear}</BrutalBadge>}
+              <BrutalBadge color={roleColor(member.role)} text={member.role === "student" ? "text-foreground" : "text-white"}>{roleLabel(member.role)}</BrutalBadge>
+              {member.batchYear && <BrutalBadge color="bg-highlight" text="text-foreground">Batch {member.batchYear}</BrutalBadge>}
               <span className="font-mono text-xs text-slate-400">Member since {member.memberSince}</span>
             </div>
             <h1 className="text-6xl md:text-8xl uppercase leading-none" style={fonts.display}>{member.name}</h1>
@@ -154,7 +154,7 @@ export function DashboardPage() {
             <Bell size={14} className="inline mr-2" />
             Notifications ({announcements.length})
           </BrutalButton>
-          <BrutalButton color="bg-[#171717]" text="text-white" className="text-xs px-4 py-2 border-white/40" onClick={() => navigate("/profile")}>
+          <BrutalButton color="bg-foreground" text="text-white" className="text-xs px-4 py-2 border-white/40" onClick={() => navigate("/profile")}>
             <User size={14} className="inline mr-2" />
             Edit Profile
           </BrutalButton>
@@ -163,7 +163,7 @@ export function DashboardPage() {
       </section>
       <main className="px-6 pt-12 max-w-[1400px] mx-auto">
       {dashboardNotice && (
-        <div className="mb-6 border-2 border-[#171717] bg-[#FFE800] p-4 font-bold uppercase tracking-widest text-xs">
+        <div className="mb-6 border-2 border-foreground bg-highlight p-4 font-bold uppercase tracking-widest text-xs">
           {dashboardNotice}
         </div>
       )}
@@ -171,30 +171,30 @@ export function DashboardPage() {
       <section className="mb-10">
         <div className="mb-6">
           <h2 className="text-4xl md:text-5xl uppercase" style={fonts.display}>My Contributions</h2>
-          <p className="text-sm text-slate-500">Events proposed, projects, blogs, and gallery uploads</p>
+          <p className="text-sm text-muted-foreground">Events proposed, projects, blogs, and gallery uploads</p>
         </div>
         <BrutalCard color="bg-white" className="p-0 overflow-hidden">
           {contributions.length === 0 ? (
             <div className="p-6">
               <p className="font-bold uppercase">No contributions yet.</p>
-              <p className="mt-2 text-sm font-mono text-slate-500">Submit a project, write a blog, propose an event, or upload gallery photos.</p>
+              <p className="mt-2 text-sm font-mono text-muted-foreground">Submit a project, write a blog, propose an event, or upload gallery photos.</p>
             </div>
           ) : (
-            <div className="divide-y-2 divide-[#171717]">
+            <div className="divide-y-2 divide-foreground">
               {contributions.map((item) => (
                 <div key={`${item.kind}-${item.id}`} className="flex items-center justify-between gap-4 p-4 md:p-6">
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className={`h-12 w-12 shrink-0 border-2 border-[#171717] ${item.color} ${item.iconText || "text-white"} flex items-center justify-center`}>
+                    <div className={`h-12 w-12 shrink-0 border-2 border-foreground ${item.color} ${item.iconText || "text-white"} flex items-center justify-center`}>
                       {item.icon}
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-bold uppercase truncate" style={fonts.sans}>{item.title}</h3>
-                      <p className="font-mono text-xs text-slate-500">
+                      <p className="font-mono text-xs text-muted-foreground">
                         {item.kind} {item.date ? `- ${new Date(item.date).toLocaleDateString()}` : ""}
                       </p>
                     </div>
                   </div>
-                  <BrutalBadge className="shrink-0 text-[9px] sm:text-[10px] px-2 sm:px-3" color={["approved", "published", "featured"].includes(item.status) ? "bg-green-500" : item.status === "rejected" ? "bg-[#FB7185]" : "bg-[#FFE800]"} text={["approved", "published", "featured", "rejected"].includes(item.status) ? "text-white" : "text-[#171717]"}>
+                  <BrutalBadge className="shrink-0 text-[9px] sm:text-[10px] px-2 sm:px-3" color={["approved", "published", "featured"].includes(item.status) ? "bg-green-500" : item.status === "rejected" ? "bg-secondary" : "bg-highlight"} text={["approved", "published", "featured", "rejected"].includes(item.status) ? "text-white" : "text-foreground"}>
                     {item.status || "pending"}
                   </BrutalBadge>
                 </div>
@@ -218,30 +218,30 @@ export function DashboardPage() {
               <div className="p-5 md:p-6 cursor-pointer" onClick={() => navigate(`/events/${nextEvent.slug || nextEvent.id}`)}>
                 <div className="flex items-start justify-between gap-4 mb-5 md:mb-6">
                   <div>
-                    <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">NEXT UP</div>
-                    <div className="text-5xl md:text-6xl font-bold text-[#2563EB] mb-1" style={fonts.display}>
+                    <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">NEXT UP</div>
+                    <div className="text-5xl md:text-6xl font-bold text-primary mb-1" style={fonts.display}>
                       {new Date(nextEvent.start_time).toLocaleDateString(undefined, { day: "2-digit" })}
                     </div>
                     <div className="text-sm md:text-base font-bold uppercase tracking-widest text-slate-400">
                       {new Date(nextEvent.start_time).toLocaleDateString(undefined, { month: "short", year: "numeric" })}
                     </div>
                   </div>
-                  <BrutalBadge color="bg-[#2563EB]" className="text-xs md:text-sm px-3 md:px-4 py-2">
+                  <BrutalBadge color="bg-primary" className="text-xs md:text-sm px-3 md:px-4 py-2">
                     {(nextEvent.event_type || "EVENT").toUpperCase()}
                   </BrutalBadge>
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold uppercase mb-3 md:mb-4" style={fonts.display}>{nextEvent.title}</h3>
-                <div className="flex items-center gap-2 text-xs md:text-sm font-mono text-slate-600">
-                  <Users size={14} className="text-[#2563EB]" />
+                <div className="flex items-center gap-2 text-xs md:text-sm font-mono text-muted-foreground">
+                  <Users size={14} className="text-primary" />
                   <span className="font-bold">{nextEvent.capacity || "Open"}</span>
-                  <BrutalBadge color="bg-[#2563EB]" className="text-[10px]">spots</BrutalBadge>
+                  <BrutalBadge color="bg-primary" className="text-[10px]">spots</BrutalBadge>
                   <span className="text-slate-400">available</span>
                 </div>
               </div>
               ) : (
                 <div className="p-5 md:p-6">
                   <p className="font-bold uppercase">No upcoming events yet.</p>
-                  <p className="mt-2 text-sm font-mono text-slate-500">Approved events will appear here.</p>
+                  <p className="mt-2 text-sm font-mono text-muted-foreground">Approved events will appear here.</p>
                 </div>
               )}
             </BrutalCard>
@@ -251,31 +251,31 @@ export function DashboardPage() {
           <div>
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <h2 className="text-2xl md:text-3xl uppercase" style={fonts.display}>Announcements</h2>
-              <BrutalBadge color="bg-[#FB7185]">Live Feed</BrutalBadge>
+              <BrutalBadge color="bg-secondary">Live Feed</BrutalBadge>
             </div>
             <div className="space-y-3 md:space-y-4">
               {announcements.length === 0 ? (
                 <BrutalCard color="bg-white">
                   <p className="font-bold uppercase">No announcements yet.</p>
-                  <p className="mt-2 text-sm font-mono text-slate-500">Published blog posts will appear here.</p>
+                  <p className="mt-2 text-sm font-mono text-muted-foreground">Published blog posts will appear here.</p>
                 </BrutalCard>
               ) : announcements.map((announcement) => (
                 <div
                   key={announcement.id}
-                  className={`border-2 border-[#171717] p-4 md:p-5 bg-white brutal-shadow hover:brutal-shadow-hover transition-all cursor-pointer ${announcement.important ? "border-l-4 md:border-l-8 border-l-[#FB7185]" : ""}`}
+                  className={`border-2 border-foreground p-4 md:p-5 bg-white brutal-shadow hover:brutal-shadow-hover transition-all cursor-pointer ${announcement.important ? "border-l-4 md:border-l-8 border-l-secondary" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-3 md:gap-4 mb-2">
                     <h3 className="text-sm md:text-lg font-bold leading-tight" style={fonts.sans}>
                       {announcement.title}
                     </h3>
                     <BrutalBadge
-                      color={announcement.type === "EVENT" ? "bg-[#2563EB]" : "bg-[#171717]"}
+                      color={announcement.type === "EVENT" ? "bg-primary" : "bg-foreground"}
                       className="shrink-0 text-[9px] md:text-[10px]"
                     >
                       {announcement.type}
                     </BrutalBadge>
                   </div>
-                  <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-xs text-slate-500 font-mono">
+                  <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-xs text-muted-foreground font-mono">
                     <Clock size={12} />
                     {announcement.date}
                   </div>
@@ -295,13 +295,13 @@ export function DashboardPage() {
                 <button
                   key={card.label}
                   onClick={card.onClick}
-                  className="text-left border-2 border-[#171717] bg-white p-5 brutal-shadow brutal-shadow-hover transition-all"
+                  className="text-left border-2 border-foreground bg-white p-5 brutal-shadow brutal-shadow-hover transition-all"
                 >
-                  <div className={`mb-4 h-12 w-12 ${card.color} ${card.text} border-2 border-[#171717] flex items-center justify-center`}>
+                  <div className={`mb-4 h-12 w-12 ${card.color} ${card.text} border-2 border-foreground flex items-center justify-center`}>
                     {card.icon}
                   </div>
                   <h3 className="text-xl uppercase" style={fonts.display}>{card.label}</h3>
-                  <p className="mt-2 text-xs font-mono text-slate-500">{card.helper}</p>
+                  <p className="mt-2 text-xs font-mono text-muted-foreground">{card.helper}</p>
                 </button>
               ))}
             </div>
@@ -312,7 +312,7 @@ export function DashboardPage() {
                 <button
                   key={i}
                   onClick={action.onClick}
-                  className={`w-full ${action.color} ${action.color === "bg-[#FFE800]" ? "text-[#171717]" : "text-white"} border-2 border-[#171717] p-3 md:p-4 font-bold uppercase tracking-widest text-xs md:text-sm brutal-shadow brutal-shadow-hover transition-all flex items-center justify-center md:justify-start gap-2 md:gap-3`}
+                  className={`w-full ${action.color} ${action.color === "bg-highlight" ? "text-foreground" : "text-white"} border-2 border-foreground p-3 md:p-4 font-bold uppercase tracking-widest text-xs md:text-sm brutal-shadow brutal-shadow-hover transition-all flex items-center justify-center md:justify-start gap-2 md:gap-3`}
                 >
                   {action.icon}
                   {action.label}
@@ -325,13 +325,13 @@ export function DashboardPage() {
       </div>
 
       {/* Bottom CTA - Better responsive text */}
-      <BrutalCard color="bg-[#2563EB]" className="text-white text-center border-4">
+      <BrutalCard color="bg-primary" className="text-white text-center border-4">
         <div className="max-w-2xl mx-auto px-4">
           <h3 className="text-3xl md:text-4xl lg:text-5xl uppercase mb-3 md:mb-4" style={fonts.display}>Find your next event</h3>
           <p className="text-sm md:text-lg opacity-90 mb-4 md:mb-6" style={fonts.serif}>
             Browse approved events, reserve your spot, or propose something new for the club.
           </p>
-          <BrutalButton color="bg-[#FFE800]" onClick={() => navigate("/events")} className="w-full sm:w-auto">
+          <BrutalButton color="bg-highlight" onClick={() => navigate("/events")} className="w-full sm:w-auto">
             Explore Events
           </BrutalButton>
         </div>

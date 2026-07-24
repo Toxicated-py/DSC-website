@@ -10,10 +10,25 @@
   --popover-foreground: #171717;
   --primary: #2563EB;
   --color-brand: #2563EB;
-  --color-accent-pink: #FB7185;
+  --color-accent-pink: #E11D48;
   --color-brand-dark: #171717;
+  --highlight: #FFE800;
+  --highlight-soft: #FFF7A8;
+  --lavender: #E0DEF4;
+  --certificate-ink: #073B91;
+  --certificate-blue: #0066B3;
+  --certificate-accent: #0B65AE;
+  --certificate-cyan: #0783C2;
+  --certificate-cyan-bright: #0B85C8;
+  --certificate-blue-light: #9FC4E2;
+  --certificate-wash: #E2F2FD;
+  --certificate-paper: #FBFDFF;
+  --google-blue: #4285F4;
+  --google-green: #34A853;
+  --google-yellow: #FBBC05;
+  --google-red: #EA4335;
   --primary-foreground: #ffffff;
-  --secondary: #FB7185;
+  --secondary: #E11D48;
   --secondary-foreground: #ffffff;
   --muted: #e5e5e5;
   --muted-foreground: #595959;
@@ -53,7 +68,7 @@
   --popover-foreground: #F4EFEB;
   --primary: #3B82F6;
   --primary-foreground: #ffffff;
-  --secondary: #FB7185;
+  --secondary: #E11D48;
   --secondary-foreground: #ffffff;
   --muted: #2D2D30;
   --muted-foreground: #A0A0A5;
@@ -92,6 +107,21 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-soft: var(--highlight-soft);
+  --color-lavender: var(--lavender);
+  --color-certificate-ink: var(--certificate-ink);
+  --color-certificate-blue: var(--certificate-blue);
+  --color-certificate-accent: var(--certificate-accent);
+  --color-certificate-cyan: var(--certificate-cyan);
+  --color-certificate-cyan-bright: var(--certificate-cyan-bright);
+  --color-certificate-blue-light: var(--certificate-blue-light);
+  --color-certificate-wash: var(--certificate-wash);
+  --color-certificate-paper: var(--certificate-paper);
+  --color-google-blue: var(--google-blue);
+  --color-google-green: var(--google-green);
+  --color-google-yellow: var(--google-yellow);
+  --color-google-red: var(--google-red);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -138,6 +168,10 @@
     overflow-x: hidden;
   }
 
+  p {
+    line-height: 1.7;
+  }
+
   html {
     font-size: var(--font-size);
   }
@@ -145,21 +179,21 @@
   h1 {
     font-family: 'Anton', sans-serif;
     font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
+    font-weight: 400;
     line-height: 1.5;
   }
 
   h2 {
     font-family: 'Anton', sans-serif;
     font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
+    font-weight: 400;
     line-height: 1.5;
   }
 
   h3 {
     font-family: 'Anton', sans-serif;
     font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
+    font-weight: 400;
     line-height: 1.5;
   }
 
@@ -218,6 +252,15 @@
   button,
   a {
     min-height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

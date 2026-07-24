@@ -1,9 +1,10 @@
+import type { AdminTabContext } from "../types";
 import { MessageSquare } from "lucide-react";
 
 import { fonts } from "../../../config/fonts";
 import { BrutalBadge, BrutalCard } from "../AdminPrimitives";
 
-export function ProposalsTab({ ctx }: { ctx: any }) {
+export function ProposalsTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -317,9 +318,9 @@ export function ProposalsTab({ ctx }: { ctx: any }) {
         <div className="grid gap-6">
           {eventProposals.length === 0 ? (
             <BrutalCard color="bg-white" className="text-center">
-              <MessageSquare size={36} className="mx-auto mb-3 text-[#2563EB]" />
+              <MessageSquare size={36} className="mx-auto mb-3 text-primary" />
               <h2 className="text-2xl uppercase mb-2" style={fonts.display}>No Event Proposals</h2>
-              <p className="text-sm text-slate-600">Submitted event ideas will appear here for review.</p>
+              <p className="text-sm text-muted-foreground">Submitted event ideas will appear here for review.</p>
             </BrutalCard>
           ) : (
             eventProposals.map((proposal) => (
@@ -328,16 +329,16 @@ export function ProposalsTab({ ctx }: { ctx: any }) {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 flex-wrap mb-2">
                       <h3 className="text-xl font-bold uppercase" style={fonts.display}>{proposal.title}</h3>
-                      <BrutalBadge color="bg-[#2563EB]">{proposal.event_type}</BrutalBadge>
-                      <BrutalBadge color={proposal.status === "approved" ? "bg-green-500" : proposal.status === "rejected" ? "bg-[#FB7185]" : "bg-[#FFE800]"} text={proposal.status === "pending" ? "text-[#171717]" : "text-white"}>
+                      <BrutalBadge color="bg-primary">{proposal.event_type}</BrutalBadge>
+                      <BrutalBadge color={proposal.status === "approved" ? "bg-green-500" : proposal.status === "rejected" ? "bg-secondary" : "bg-highlight"} text={proposal.status === "pending" ? "text-foreground" : "text-white"}>
                         {proposal.status}
                       </BrutalBadge>
                     </div>
-                    <p className="text-sm text-slate-600 mb-3">
+                    <p className="text-sm text-muted-foreground mb-3">
                       by <span className="font-bold">{proposal.proposer}</span> - {proposal.submittedDate}
                     </p>
                     <p className="text-sm text-slate-700 mb-3">{proposal.summary}</p>
-                    <div className="flex gap-4 flex-wrap text-xs font-mono text-slate-500">
+                    <div className="flex gap-4 flex-wrap text-xs font-mono text-muted-foreground">
                       <span>Date: {proposal.proposed_date || "TBA"}</span>
                       <span>Venue: {proposal.venue || "TBA"}</span>
                       <span>Capacity: {proposal.capacity || "TBA"}</span>
@@ -347,13 +348,13 @@ export function ProposalsTab({ ctx }: { ctx: any }) {
                   <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => createEventFromProposal(proposal)}
-                      className="px-3 py-2 border-2 border-[#171717] bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs"
+                      className="px-3 py-2 border-2 border-foreground bg-green-500 text-white hover:bg-green-600 transition-all font-bold uppercase text-xs"
                     >
                       Approve + Create
                     </button>
                     <button
                       onClick={() => updateProposalStatus(proposal.id, "rejected")}
-                      className="px-3 py-2 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all font-bold uppercase text-xs"
+                      className="px-3 py-2 border-2 border-foreground bg-secondary text-white hover:bg-destructive transition-all font-bold uppercase text-xs"
                     >
                       Reject
                     </button>

@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
 import { BookMarked, BookOpen, Calendar, ChevronDown, Code, FileText, Handshake, Home, Image, LogOut, Mail, Menu, Shield, User, Users, X } from "lucide-react";
 import { UserBadge } from "../auth/AuthAndAdmin";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
 import { canOpenAdminPanel } from "../../app/auth/AdminRoute";
 import { DSC_LOGO_SRC } from "../../config/assets";
 import { fonts } from "../../config/fonts";
+import { prefersReducedMotion } from "../../utils/animations";
 
 
 type NavDropdownItem = { label: string; path: string; icon: React.ReactNode };
@@ -90,35 +92,41 @@ function DropdownMenu({
         aria-expanded={isOpen}
         onKeyDown={handleTriggerKeyDown}
         className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest transition-colors pb-1 ${
-          isActive ? "text-[#171717] border-b-2 border-[#171717]" : "text-slate-500 hover:text-[#171717]"
+          isActive ? "text-foreground border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"
         }`}
       >
         {label}
         <ChevronDown size={12} className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
-      {isOpen && (
-        <div
-          ref={menuRef}
-          className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-48 bg-[#F4EFEB] border-2 border-[#171717] brutal-shadow z-50"
-          onMouseEnter={() => onEnter(label)}
-          onMouseLeave={onLeave}
-          onKeyDown={handleMenuKeyDown}
-        >
-          {items.map((sub, i) => (
-            <Link
-              key={`${sub.path}-${sub.label}`}
-              to={sub.path}
-              onClick={() => onLeave()}
-              className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-colors
-                ${i < items.length - 1 ? "border-b-2 border-[#171717]" : ""}
-                ${location.pathname === sub.path ? "bg-[#171717] text-white" : "hover:bg-[#2563EB] hover:text-white"}`}
-            >
-              {sub.icon}
-              {sub.label}
-            </Link>
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            ref={menuRef}
+            initial={prefersReducedMotion ? false : { opacity: 0, scaleY: 0.85, transformOrigin: "top" }}
+            animate={{ opacity: 1, scaleY: 1 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, scaleY: 0.85 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.15, ease: "easeOut" }}
+            className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-48 bg-background border-2 border-foreground brutal-shadow z-50"
+            onMouseEnter={() => onEnter(label)}
+            onMouseLeave={onLeave}
+            onKeyDown={handleMenuKeyDown}
+          >
+            {items.map((sub, i) => (
+              <Link
+                key={`${sub.path}-${sub.label}`}
+                to={sub.path}
+                onClick={() => onLeave()}
+                className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest transition-colors
+                  ${i < items.length - 1 ? "border-b-2 border-foreground" : ""}
+                  ${location.pathname === sub.path ? "bg-foreground text-white" : "hover:bg-primary hover:text-white"}`}
+              >
+                {sub.icon}
+                {sub.label}
+              </Link>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -177,7 +185,7 @@ export function Nav() {
         session.user.email ||
         "Member";
       setIsLoggedIn(true);
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile, error: profileError } = await supabase!
         .from("profiles")
         .select("full_name,email,role,roles,membership_status,designation,designation_status")
         .eq("id", session.user.id)
@@ -218,18 +226,10 @@ export function Nav() {
     { label: "Events", path: "/events", icon: <Calendar size={13} /> },
     { label: "Projects", path: "/projects", icon: <Code size={13} /> },
     { label: "Blog", path: "/blog", icon: <FileText size={13} /> },
-    ...(isLoggedIn
-      ? [
-          {
-            label: "Resources",
-            path: "/resources",
-            icon: <BookOpen size={13} />,
-          } as NavItem,
-        ]
-      : [{ label: "Resources", path: "/resources", icon: <BookOpen size={13} /> } as NavItem]),
+    { label: "Resources", path: "/resources", icon: <BookOpen size={13} /> },
     { label: "Gallery", path: "/gallery", icon: <Image size={13} /> },
     {
-      label: "Community",
+      label: "About",
       dropdown: [
         { label: "About Us", path: "/about", icon: <BookMarked size={14} /> },
         { label: "Team", path: "/team", icon: <Users size={14} /> },
@@ -267,15 +267,15 @@ export function Nav() {
 
   const dropdownActivePaths: Record<string, string[]> = {
     Resources: ["/resources"],
-    Community: ["/about", "/team", "/partners", "/contact"],
+    About: ["/about", "/team", "/partners", "/contact"],
   };
 
   return (
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-200 ${
         scrolled
-          ? "bg-[#F4EFEB] border-b-2 border-[#171717] py-3 px-4 sm:px-6 md:px-8"
-          : "bg-[#F4EFEB] py-4 sm:py-5 px-4 sm:px-6 md:px-8"
+          ? "bg-background border-b-2 border-foreground py-3 px-4 sm:px-6 md:px-8"
+          : "bg-background py-4 sm:py-5 px-4 sm:px-6 md:px-8"
       }`}
       style={{ ["--dsc-header-height" as string]: scrolled ? "74px" : "88px" }}
     >
@@ -284,7 +284,7 @@ export function Nav() {
           <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white p-[2px]">
             <img src={DSC_LOGO_SRC} alt="Data Science Club logo" className="w-full h-full object-contain" />
           </div>
-          <span className="font-bold text-sm tracking-widest text-[#171717] uppercase hidden xl:block" style={fonts.sans}>
+          <span className="font-bold text-sm tracking-widest text-foreground uppercase hidden md:block" style={fonts.sans}>
             Data Science Club
           </span>
         </Link>
@@ -311,8 +311,8 @@ export function Nav() {
                 to={item.path!}
                 className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest transition-colors pb-1 ${
                   location.pathname === item.path
-                    ? "text-[#171717] border-b-2 border-[#171717]"
-                    : "text-slate-500 hover:text-[#171717]"
+                    ? "text-foreground border-b-2 border-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {item.icon}
@@ -327,32 +327,32 @@ export function Nav() {
             <>
               {canOpenAdmin && (
                 <Link to="/admin">
-                  <button className="px-3 py-2 bg-[#FB7185] text-white text-xs font-bold uppercase tracking-widest border-2 border-transparent hover:border-[#171717] transition-all flex items-center gap-1">
+                  <button className="px-3 py-2 bg-secondary text-white text-xs font-bold uppercase tracking-widest border-2 border-transparent hover:border-foreground transition-all flex items-center gap-1">
                     <Shield size={11} /> Admin
                   </button>
                 </Link>
               )}
               <div className="relative" onMouseEnter={handleUserEnter} onMouseLeave={handleUserLeave}>
-                <button className="flex items-center gap-2 px-3 py-2 border-2 border-[#171717] bg-white hover:bg-[#F4EFEB] transition-all">
+                <button className="flex items-center gap-2 px-3 py-2 border-2 border-foreground bg-white hover:bg-background transition-all">
                   <UserBadge role={currentUser.role} verified={currentUser.verified} designation={currentUser.designation} />
-                  <ChevronDown size={11} className={`transition-transform text-slate-500 ${userMenuOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown size={11} className={`transition-transform text-muted-foreground ${userMenuOpen ? "rotate-180" : ""}`} />
                 </button>
                 {userMenuOpen && (
                   <div
-                    className="absolute top-full right-0 mt-2 w-44 bg-[#F4EFEB] border-2 border-[#171717] brutal-shadow z-50"
+                    className="absolute top-full right-0 mt-2 w-44 bg-background border-2 border-foreground brutal-shadow z-50"
                     onMouseEnter={handleUserEnter}
                     onMouseLeave={handleUserLeave}
                   >
                     <Link to="/profile" onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest border-b-2 border-[#171717] hover:bg-[#2563EB] hover:text-white transition-colors">
+                      className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest border-b-2 border-foreground hover:bg-primary hover:text-white transition-colors">
                       <User size={13} /> View Profile
                     </Link>
                     <Link to="/dashboard" onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest border-b-2 border-[#171717] hover:bg-[#2563EB] hover:text-white transition-colors">
+                      className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest border-b-2 border-foreground hover:bg-primary hover:text-white transition-colors">
                       <Home size={13} /> Dashboard
                     </Link>
                     <button onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#FB7185] hover:bg-[#FB7185] hover:text-white transition-colors">
+                      className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest text-secondary hover:bg-secondary hover:text-white transition-colors">
                       <LogOut size={13} /> Logout
                     </button>
                   </div>
@@ -361,7 +361,7 @@ export function Nav() {
             </>
           ) : (
             <Link to="/login">
-              <button className="px-5 py-2 bg-[#FB7185] text-white text-xs font-bold uppercase tracking-widest border-2 border-transparent hover:border-[#171717] transition-all">
+              <button className="px-5 py-2 bg-secondary text-white text-xs font-bold uppercase tracking-widest border-2 border-transparent hover:border-foreground transition-all">
                 Login
               </button>
             </Link>
@@ -369,7 +369,7 @@ export function Nav() {
         </div>
 
         <button
-          className="md:hidden p-2 text-[#171717] border-2 border-[#171717] bg-white"
+          className="md:hidden p-2 text-foreground border-2 border-foreground bg-white"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-expanded={mobileOpen}
           aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
@@ -378,19 +378,26 @@ export function Nav() {
         </button>
       </div>
 
-      {mobileOpen && (
-        <div className="mobile-menu-panel fixed left-0 right-0 w-full bg-[#F4EFEB] border-y-2 border-[#171717] p-5 flex flex-col gap-4 md:hidden z-40 overflow-y-auto shadow-[0_8px_0_#171717]">
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -16 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
+            className="mobile-menu-panel fixed left-0 right-0 w-full bg-background border-y-2 border-foreground p-5 flex flex-col gap-4 md:hidden z-40 overflow-y-auto shadow-[0_8px_0_var(--color-foreground)]"
+          >
           {isLoggedIn && (
-            <div className="pb-4 border-b-2 border-[#171717] flex items-center justify-between">
+            <div className="pb-4 border-b-2 border-foreground flex items-center justify-between">
               <div>
                 <UserBadge role={currentUser.role} verified={currentUser.verified} designation={currentUser.designation} />
                 <p className="text-sm font-bold mt-2">{currentUser.name}</p>
                 {currentUser.designation && (
-                  <p className="text-xs text-slate-500 uppercase tracking-widest mt-0.5">{currentUser.designation}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mt-0.5">{currentUser.designation}</p>
                 )}
               </div>
               <Link to="/profile" onClick={() => setMobileOpen(false)}
-                className="p-2 border-2 border-[#171717] hover:bg-[#2563EB] hover:text-white transition-colors">
+                className="p-2 border-2 border-foreground hover:bg-primary hover:text-white transition-colors">
                 <User size={16} />
               </Link>
             </div>
@@ -402,16 +409,16 @@ export function Nav() {
                 <div key={item.label}>
                   <button
                     onClick={() => setMobileExpanded(mobileExpanded === item.label ? null : item.label)}
-                    className="w-full flex items-center justify-between text-sm font-bold text-[#171717] uppercase tracking-widest py-3 border-b border-[#171717]/15"
+                    className="w-full flex items-center justify-between text-sm font-bold text-foreground uppercase tracking-widest py-3 border-b border-foreground/15"
                   >
                     {item.label}
                     <ChevronDown size={15} className={`transition-transform ${mobileExpanded === item.label ? "rotate-180" : ""}`} />
                   </button>
                   {mobileExpanded === item.label && (
-                    <div className="mt-2 ml-4 flex flex-col gap-3 border-l-2 border-[#171717] pl-4">
+                    <div className="mt-2 ml-4 flex flex-col gap-3 border-l-2 border-foreground pl-4">
                       {item.dropdown.map((sub) => (
                         <Link key={sub.path + sub.label} to={sub.path} onClick={() => setMobileOpen(false)}
-                          className="flex items-center gap-2 text-xs font-bold text-[#171717] uppercase tracking-widest hover:text-[#2563EB] py-1">
+                          className="flex items-center gap-2 text-xs font-bold text-foreground uppercase tracking-widest hover:text-primary py-1">
                           {sub.icon} {sub.label}
                         </Link>
                       ))}
@@ -422,42 +429,47 @@ export function Nav() {
             }
             return (
               <Link key={item.path} to={item.path!} onClick={() => setMobileOpen(false)}
-                className="text-sm font-bold text-[#171717] uppercase tracking-widest flex items-center gap-2 hover:text-[#2563EB] py-2 border-b border-[#171717]/15">
+                className={`text-sm font-bold uppercase tracking-widest flex items-center gap-2 py-2 border-b border-foreground/15 ${
+                  location.pathname === item.path
+                    ? "text-primary border-l-2 border-primary pl-2"
+                    : "text-foreground hover:text-primary"
+                }`}>
                 {item.icon} {item.label}
               </Link>
             );
           })}
 
-          <div className="pt-3 border-t-2 border-[#171717] flex flex-col gap-3">
+          <div className="pt-3 border-t-2 border-foreground flex flex-col gap-3">
             {isLoggedIn ? (
               <>
                 <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
-                  <button className="w-full py-3 bg-[#171717] text-white text-sm font-bold uppercase tracking-widest border-2 border-[#171717] flex items-center justify-center gap-2">
+                  <button className="w-full py-3 bg-foreground text-white text-sm font-bold uppercase tracking-widest border-2 border-foreground flex items-center justify-center gap-2">
                     <Home size={15} /> Dashboard
                   </button>
                 </Link>
                 {canOpenAdmin && (
                   <Link to="/admin" onClick={() => setMobileOpen(false)}>
-                    <button className="w-full py-3 bg-[#FB7185] text-white text-sm font-bold uppercase tracking-widest border-2 border-[#171717] flex items-center justify-center gap-2">
+                    <button className="w-full py-3 bg-secondary text-white text-sm font-bold uppercase tracking-widest border-2 border-foreground flex items-center justify-center gap-2">
                       <Shield size={15} /> Admin Panel
                     </button>
                   </Link>
                 )}
                 <button onClick={handleLogout}
-                  className="w-full py-3 bg-white text-[#FB7185] text-sm font-bold uppercase tracking-widest border-2 border-[#171717] flex items-center justify-center gap-2">
+                  className="w-full py-3 bg-white text-secondary text-sm font-bold uppercase tracking-widest border-2 border-foreground flex items-center justify-center gap-2">
                   <LogOut size={15} /> Logout
                 </button>
               </>
             ) : (
               <Link to="/login" onClick={() => setMobileOpen(false)}>
-                <button className="w-full py-3 bg-[#FB7185] text-white text-sm font-bold uppercase tracking-widest border-2 border-[#171717]">
+                <button className="w-full py-3 bg-secondary text-white text-sm font-bold uppercase tracking-widest border-2 border-foreground">
                   Login / Join
                 </button>
               </Link>
             )}
           </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

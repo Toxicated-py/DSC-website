@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { isSupabaseConfigured, supabase } from "../../lib/supabase";
-import { BrutalCard } from "../../components/ui/brutal";
+import { BrutalCard } from "../../components/ui";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -32,7 +32,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="pt-32 pb-20 px-6 min-h-screen flex items-center justify-center">
         <BrutalCard color="bg-white">
-          <p className="font-mono text-sm text-slate-500">Checking account...</p>
+          <p className="font-mono text-sm text-muted-foreground">Checking account...</p>
         </BrutalCard>
       </div>
     );

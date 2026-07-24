@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Calendar } from "lucide-react";
-
-
-
-
+import { motion } from "motion/react";
 import { apiGet } from "../lib/apiClient";
-import { BrutalButton, BrutalBadge } from "../components/ui/brutal";
+import { BrutalButton, BrutalBadge } from "../components/ui";
 
 import { fonts } from "../config/fonts";
+import { defaultViewport, fadeUp, staggerContainer } from "../utils/animations";
 
 export function EventsPage() {
   const navigate = useNavigate();
@@ -31,7 +29,7 @@ export function EventsPage() {
         const uniqueEvents = (data || [])
           .filter((event, index, list) => list.findIndex((item) => item.id === event.id) === index)
           .sort((a, b) => String(a.start_time || "").localeCompare(String(b.start_time || "")));
-        const colors = ["bg-[#2563EB]", "bg-[#FB7185]", "bg-[#171717]", "bg-[#7C3AED]"];
+        const colors = ["bg-primary", "bg-secondary", "bg-foreground", "bg-violet-600"];
         const today = new Date();
         setAllEvents(uniqueEvents.map((event, index) => {
           const start = event.start_time ? new Date(event.start_time) : new Date(event.created_at || Date.now());
@@ -82,14 +80,14 @@ export function EventsPage() {
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1400px] mx-auto min-h-screen">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between border-b-4 border-[#171717] pb-8 mb-10 gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between border-b-4 border-foreground pb-8 mb-10 gap-6">
         <div>
-          <BrutalBadge color="bg-[#FFE800]" text="text-[#171717]" className="mb-4 inline-block">Events Sandbox</BrutalBadge>
+          <BrutalBadge color="bg-highlight" text="text-foreground" className="mb-4 inline-block">Events Sandbox</BrutalBadge>
           <h1 className="text-6xl md:text-8xl uppercase leading-none" style={fonts.display}>Events</h1>
-          <p className="mt-2 text-sm font-mono text-slate-500">{filtered.length} event{filtered.length !== 1 ? "s" : ""} found</p>
+          <p className="mt-2 text-sm font-mono text-muted-foreground">{filtered.length} event{filtered.length !== 1 ? "s" : ""} found</p>
         </div>
         <BrutalButton
-          color="bg-[#2563EB]"
+          color="bg-primary"
           text="text-white"
           className="w-full self-stretch text-sm sm:w-auto md:self-start"
           onClick={() => navigate("/events/propose")}
@@ -107,7 +105,7 @@ export function EventsPage() {
           placeholder="Search events..."
           value={searchQuery}
           onChange={e => { setSearchQuery(e.target.value); resetPage(); }}
-          className="w-full border-2 border-[#171717] p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/30 transition-all"
+          className="w-full border-2 border-foreground p-3 pl-12 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/30 transition-all"
         />
       </div>
 
@@ -118,8 +116,8 @@ export function EventsPage() {
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); resetPage(); }}
-              className={`px-4 py-2 border-2 border-[#171717] font-bold uppercase tracking-widest text-xs transition-all ${
-                activeTab === tab ? "bg-[#171717] text-white" : "bg-white hover:bg-[#F4EFEB]"
+              className={`px-4 py-2 border-2 border-foreground font-bold uppercase tracking-widest text-xs transition-all ${
+                activeTab === tab ? "bg-foreground text-white" : "bg-white hover:bg-background"
               }`}
             >
               {tab}
@@ -131,8 +129,8 @@ export function EventsPage() {
             <button
               key={type}
               onClick={() => { setTypeFilter(type); resetPage(); }}
-              className={`px-3 py-2 border-2 border-[#171717] font-bold uppercase tracking-widest text-[10px] transition-all ${
-                typeFilter === type ? "bg-[#2563EB] text-white" : "bg-white hover:bg-[#F4EFEB]"
+              className={`px-3 py-2 border-2 border-foreground font-bold uppercase tracking-widest text-[10px] transition-all ${
+                typeFilter === type ? "bg-primary text-white" : "bg-white hover:bg-background"
               }`}
             >
               {type === "all" ? "All Types" : type}
@@ -141,7 +139,7 @@ export function EventsPage() {
           <select
             value={sortOrder}
             onChange={e => { setSortOrder(e.target.value); resetPage(); }}
-            className="px-3 py-2 border-2 border-[#171717] font-bold uppercase tracking-widest text-[10px] bg-white focus:outline-none cursor-pointer"
+            className="px-3 py-2 border-2 border-foreground font-bold uppercase tracking-widest text-[10px] bg-white focus:outline-none cursor-pointer"
           >
             <option value="date-asc">Date ?</option>
             <option value="date-desc">Date ?</option>
@@ -152,7 +150,7 @@ export function EventsPage() {
 
       {/* Events Grid */}
       {paginated.length === 0 ? (
-        <div className="text-center py-24 border-2 border-dashed border-[#171717]">
+        <div className="text-center py-24 border-2 border-dashed border-foreground">
           <p className="text-2xl font-bold uppercase tracking-widest text-slate-400" style={fonts.display}>
             {loadingEvents ? "Loading events" : "No events found"}
           </p>
@@ -161,17 +159,24 @@ export function EventsPage() {
           </p>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={defaultViewport}
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
           {paginated.map(ev => {
             const pct = ev.total ? Math.round((ev.filled / ev.total) * 100) : 0;
             return (
-              <div
+              <motion.div
                 key={ev.id}
+                variants={fadeUp}
                 onClick={() => navigate(`/events/${ev.slug || ev.id}`)}
-                className={`relative cursor-pointer ${ev.color} border-2 border-[#171717] p-6 flex flex-col text-white brutal-shadow-lg brutal-shadow-hover transition-all group`}
+                className={`relative cursor-pointer ${ev.color} border-2 border-foreground p-6 flex flex-col text-white brutal-shadow-lg brutal-shadow-hover transition-all group`}
               >
                 {(ev as any).hot && (
-                  <div className="absolute -top-4 -right-4 w-12 h-12 rounded-full border-2 border-[#171717] flex items-center justify-center text-[#171717] bg-[#FFE800] text-xs font-bold rotate-12">HOT</div>
+                  <div className="absolute -top-4 -right-4 w-12 h-12 rounded-full border-2 border-foreground flex items-center justify-center text-foreground bg-highlight text-xs font-bold rotate-12">HOT</div>
                 )}
                 {ev.status === "past" && (
                   <div className="absolute top-3 right-3 px-2 py-1 bg-white/20 border border-white/30 text-[9px] font-bold uppercase tracking-widest">PAST</div>
@@ -180,17 +185,17 @@ export function EventsPage() {
                 <div className="text-sm font-bold tracking-widest mb-5 opacity-80">{ev.date.split(" ").slice(1).join(" ")}</div>
                 <h3 className="text-xl font-bold leading-tight mb-4 flex-1" style={fonts.sans}>{ev.title}</h3>
                 <div className="flex items-center justify-between mb-3">
-                  <BrutalBadge color="bg-white" text="text-[#171717]">{ev.type}</BrutalBadge>
+                  <BrutalBadge color="bg-white" text="text-foreground">{ev.type}</BrutalBadge>
                   <span className="text-xs font-mono opacity-80">{ev.filled}/{ev.total}</span>
                 </div>
                 <div className="w-full bg-white/20 h-1.5">
                   <div className="bg-white h-1.5 transition-all" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="mt-1.5 text-[10px] font-mono opacity-60">{pct}% filled</div>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       )}
 
       {/* Pagination */}
@@ -199,7 +204,7 @@ export function EventsPage() {
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 border-2 border-[#171717] font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-[#F4EFEB] transition-all"
+            className="px-4 py-2 border-2 border-foreground font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-background transition-all"
           >
             ? Prev
           </button>
@@ -207,8 +212,8 @@ export function EventsPage() {
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`w-10 h-10 border-2 border-[#171717] font-bold text-sm transition-all ${
-                currentPage === page ? "bg-[#171717] text-white" : "bg-white hover:bg-[#F4EFEB]"
+              className={`w-10 h-10 border-2 border-foreground font-bold text-sm transition-all ${
+                currentPage === page ? "bg-foreground text-white" : "bg-white hover:bg-background"
               }`}
             >
               {page}
@@ -217,7 +222,7 @@ export function EventsPage() {
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 border-2 border-[#171717] font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-[#F4EFEB] transition-all"
+            className="px-4 py-2 border-2 border-foreground font-bold text-xs uppercase tracking-widest disabled:opacity-30 hover:bg-background transition-all"
           >
             Next ?
           </button>

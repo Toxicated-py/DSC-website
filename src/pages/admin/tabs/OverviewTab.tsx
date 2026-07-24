@@ -1,9 +1,10 @@
+import type { AdminTabContext } from "../types";
 import { User, Calendar, Users, Trophy, Plus, Activity } from "lucide-react";
 
 import { fonts } from "../../../config/fonts";
 import { BrutalCard } from "../AdminPrimitives";
 
-export function OverviewTab({ ctx }: { ctx: any }) {
+export function OverviewTab({ ctx }: { ctx: AdminTabContext }) {
   const {
     SettingsSection,
     activeBlogs,
@@ -316,23 +317,23 @@ export function OverviewTab({ ctx }: { ctx: any }) {
 {activeTab === "overview" && isFullAdmin && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
-            <BrutalCard color="bg-[#2563EB]" className="text-white">
+            <BrutalCard color="bg-primary" className="text-white">
               <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>{users.length}</div>
               <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest opacity-80">Total Users</div>
             </BrutalCard>
-            <BrutalCard color="bg-[#7C3AED]" className="text-white">
+            <BrutalCard color="bg-violet-600" className="text-white">
               <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>{events.length}</div>
               <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest opacity-80">Events</div>
             </BrutalCard>
-            <BrutalCard color="bg-[#FB7185]" className="text-white">
+            <BrutalCard color="bg-secondary" className="text-white">
               <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>{projects.length}</div>
               <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest opacity-80">Projects</div>
             </BrutalCard>
-            <BrutalCard color="bg-[#FFE800]">
+            <BrutalCard color="bg-highlight">
               <div className="text-3xl md:text-4xl font-bold mb-1" style={fonts.display}>
                 {projects.filter(p => p.status === "submitted" || p.status === "pending").length + eventProposals.filter(p => p.status === "pending").length}
               </div>
-              <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-600">Pending Reviews</div>
+              <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-muted-foreground">Pending Reviews</div>
             </BrutalCard>
           </div>
 
@@ -343,7 +344,7 @@ export function OverviewTab({ ctx }: { ctx: any }) {
               {isFullAdmin && (
                 <button
                   onClick={() => void openEventModal()}
-                  className="p-4 border-2 border-[#171717] bg-[#2563EB] text-white hover:bg-[#1D4ED8] transition-all brutal-shadow brutal-shadow-hover"
+                  className="p-4 border-2 border-foreground bg-primary text-white hover:bg-blue-700 transition-all brutal-shadow brutal-shadow-hover"
                 >
                   <Plus size={20} className="mb-2" />
                   <div className="text-xs font-bold uppercase tracking-widest">Create Event</div>
@@ -352,7 +353,7 @@ export function OverviewTab({ ctx }: { ctx: any }) {
               {isFullAdmin && (
                 <button
                   onClick={() => openAdminTab("users")}
-                  className="p-4 border-2 border-[#171717] bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-all brutal-shadow brutal-shadow-hover"
+                  className="p-4 border-2 border-foreground bg-violet-600 text-white hover:bg-violet-700 transition-all brutal-shadow brutal-shadow-hover"
                 >
                   <Users size={20} className="mb-2" />
                   <div className="text-xs font-bold uppercase tracking-widest">Manage Users</div>
@@ -360,7 +361,7 @@ export function OverviewTab({ ctx }: { ctx: any }) {
               )}
               <button
                 onClick={() => openAdminTab("projects")}
-                className="p-4 border-2 border-[#171717] bg-[#FB7185] text-white hover:bg-[#F43F5E] transition-all brutal-shadow brutal-shadow-hover"
+                className="p-4 border-2 border-foreground bg-secondary text-white hover:bg-destructive transition-all brutal-shadow brutal-shadow-hover"
               >
                 <Trophy size={20} className="mb-2" />
                 <div className="text-xs font-bold uppercase tracking-widest">Review Projects</div>
@@ -373,30 +374,30 @@ export function OverviewTab({ ctx }: { ctx: any }) {
             <h2 className="text-2xl md:text-3xl uppercase mb-6" style={fonts.display}>Recent Activity</h2>
             <div className="space-y-4">
               <div className="flex items-start gap-4 pb-4 border-b border-slate-200">
-                <div className="w-10 h-10 bg-[#2563EB] border-2 border-[#171717] flex items-center justify-center text-white">
+                <div className="w-10 h-10 bg-primary border-2 border-foreground flex items-center justify-center text-white">
                   <User size={16} />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold">Latest member</p>
-                  <p className="text-xs text-slate-500 font-mono">{users[0]?.name || "No members yet"}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{users[0]?.name || "No members yet"}</p>
                 </div>
               </div>
               <div className="flex items-start gap-4 pb-4 border-b border-slate-200">
-                <div className="w-10 h-10 bg-[#FB7185] border-2 border-[#171717] flex items-center justify-center text-white">
+                <div className="w-10 h-10 bg-secondary border-2 border-foreground flex items-center justify-center text-white">
                   <Trophy size={16} />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold">Latest project submission</p>
-                  <p className="text-xs text-slate-500 font-mono">{projects[0]?.title || "No projects submitted yet"}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{projects[0]?.title || "No projects submitted yet"}</p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-[#7C3AED] border-2 border-[#171717] flex items-center justify-center text-white">
+                <div className="w-10 h-10 bg-violet-600 border-2 border-foreground flex items-center justify-center text-white">
                   <Calendar size={16} />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold">Latest event proposal</p>
-                  <p className="text-xs text-slate-500 font-mono">{eventProposals[0]?.title || "No event proposals yet"}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{eventProposals[0]?.title || "No event proposals yet"}</p>
                 </div>
               </div>
             </div>

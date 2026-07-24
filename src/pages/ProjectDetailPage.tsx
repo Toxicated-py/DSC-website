@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
-import { BrutalCard, BrutalBadge } from "../components/ui/brutal";
+import { BrutalCard, BrutalBadge } from "../components/ui";
 
 import { fonts } from "../config/fonts";
 
@@ -44,17 +44,17 @@ export function ProjectDetailPage() {
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1000px] mx-auto min-h-screen">
-      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-primary">
         <ArrowLeft size={16} /> Back to Projects
       </button>
 
       {loadingProject ? (
-        <BrutalCard><p className="font-mono text-sm text-slate-500">Loading project...</p></BrutalCard>
+        <BrutalCard><p className="font-mono text-sm text-muted-foreground">Loading project...</p></BrutalCard>
       ) : !project ? (
         <BrutalCard><p className="font-bold uppercase">Project not found or not published yet.</p></BrutalCard>
       ) : (
         <>
-        <div className="w-full aspect-video bg-[#2563EB] border-4 border-[#171717] brutal-shadow-lg mb-12 flex items-center justify-center overflow-hidden">
+        <div className="w-full aspect-video bg-primary border-4 border-foreground brutal-shadow-lg mb-12 flex items-center justify-center overflow-hidden">
           {project.thumbnail_url ? (
             <img src={project.thumbnail_url} alt={project.title} className="h-full w-full object-cover" />
           ) : (
@@ -68,7 +68,7 @@ export function ProjectDetailPage() {
           ))}
         </div>
 
-        <div className="prose prose-lg max-w-none text-[#171717]">
+        <div className="prose prose-lg max-w-none text-foreground">
           <p className="text-2xl font-serif italic mb-8">{project.summary || "Project details will be updated soon."}</p>
           <div className="whitespace-pre-wrap text-base leading-relaxed">{project.content || project.summary}</div>
         </div>

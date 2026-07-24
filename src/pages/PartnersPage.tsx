@@ -1,8 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { ExternalLink, Handshake, Heart, Mail, Star, Zap } from "lucide-react";
+import { motion } from "motion/react";
+import type { Variants } from "motion/react";
 import { apiGet } from "../lib/apiClient";
-import { BrutalCard, BrutalBadge } from "../components/ui/brutal";
+import { BrutalCard, BrutalBadge } from "../components/ui";
 import { fonts } from "../config/fonts";
+import { defaultViewport, prefersReducedMotion, scaleIn, staggerContainer } from "../utils/animations";
+
+const partnerStagger: Variants = {
+  ...staggerContainer,
+  visible: { transition: { staggerChildren: prefersReducedMotion ? 0 : 0.07 } },
+};
+
 export function PartnersPage() {
   const [adminPartners, setAdminPartners] = useState<any[]>([]);
   const [failedLogos, setFailedLogos] = useState<Record<string, boolean>>({});
@@ -53,7 +62,7 @@ export function PartnersPage() {
     }
 
     return (
-      <div className="w-20 h-20 bg-[#7C3AED] text-white border-2 border-[#171717] flex items-center justify-center text-2xl font-bold" style={fonts.display}>
+      <div className="w-20 h-20 bg-violet-600 text-white border-2 border-foreground flex items-center justify-center text-2xl font-bold" style={fonts.display}>
         {initials || partner.name[0] || "P"}
       </div>
     );
@@ -63,39 +72,39 @@ export function PartnersPage() {
     <div className="pt-16 pb-20 px-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-12 text-center">
-        <BrutalBadge color="bg-[#7C3AED]" className="mb-4 inline-flex items-center gap-1">
+        <BrutalBadge color="bg-violet-600" className="mb-4 inline-flex items-center gap-1">
           <Heart size={10} /> SPONSORS & PARTNERS
         </BrutalBadge>
         <h1 className="text-5xl md:text-7xl uppercase leading-none mb-4" style={fonts.display}>
           Our Partners
         </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           We're grateful to our partners who support our mission to empower students through data science.
         </p>
       </div>
 
       {/* Featured Partner */}
       {partners.filter(p => p.featured).map((partner, idx) => (
-        <BrutalCard key={idx} color="bg-[#FFE800]" className="mb-12">
+        <BrutalCard key={idx} color="bg-highlight" className="mb-12">
           <div className="flex items-center gap-3 mb-4">
-            <Star size={20} className="text-[#FB7185] fill-[#FB7185]" />
-            <BrutalBadge color="bg-[#FB7185]">FEATURED PARTNER</BrutalBadge>
+            <Star size={20} className="text-secondary fill-secondary" />
+            <BrutalBadge color="bg-secondary">FEATURED PARTNER</BrutalBadge>
           </div>
           <div className="md:flex md:items-center md:gap-8">
             <div className="md:w-1/3 mb-6 md:mb-0">
-              <div className="bg-white border-2 border-[#171717] p-8 flex items-center justify-center h-48">
+              <motion.div variants={scaleIn} initial="hidden" whileInView="visible" viewport={defaultViewport} className="bg-white border-2 border-foreground p-8 flex items-center justify-center h-48">
                 {renderPartnerLogo(partner)}
-              </div>
+              </motion.div>
             </div>
             <div className="md:w-2/3">
               <h2 className="text-3xl font-bold uppercase mb-2" style={fonts.display}>{partner.name}</h2>
-              <BrutalBadge color="bg-[#2563EB]" className="mb-4">{partner.category}</BrutalBadge>
+              <BrutalBadge color="bg-primary" className="mb-4">{partner.category}</BrutalBadge>
               <p className="text-slate-700 mb-4 text-lg">{partner.description}</p>
               <a
                 href={partner.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#171717] text-white border-2 border-[#171717] font-bold uppercase tracking-widest text-sm hover:bg-[#000] transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-foreground text-white border-2 border-foreground font-bold uppercase tracking-widest text-sm hover:bg-black transition-all"
               >
                 Visit Website <ExternalLink size={14} />
               </a>
@@ -108,43 +117,43 @@ export function PartnersPage() {
       <h2 className="text-3xl uppercase mb-8" style={fonts.display}>All Partners</h2>
       {partners.length === 0 ? (
         <BrutalCard color="bg-white" className="mb-12 text-center">
-          <Handshake size={44} className="mx-auto mb-4 text-[#7C3AED]" />
+          <Handshake size={44} className="mx-auto mb-4 text-violet-600" />
           <h3 className="text-2xl uppercase mb-2" style={fonts.display}>No partners published yet</h3>
-          <p className="text-sm text-slate-600">Partners added by admins will appear here.</p>
+          <p className="text-sm text-muted-foreground">Partners added by admins will appear here.</p>
         </BrutalCard>
       ) : (
-      <div className="grid md:grid-cols-2 gap-6 mb-12">
+      <motion.div variants={partnerStagger} initial="hidden" whileInView="visible" viewport={defaultViewport} className="grid md:grid-cols-2 gap-6 mb-12">
         {partners.filter(p => !p.featured).map((partner, idx) => (
-          <BrutalCard key={idx}>
-            <div className="h-28 bg-white border-2 border-[#171717] mb-4 p-5 flex items-center justify-center">
+          <BrutalCard key={idx} variants={scaleIn}>
+            <div className="h-28 bg-white border-2 border-foreground mb-4 p-5 flex items-center justify-center">
               {renderPartnerLogo(partner)}
             </div>
-            <BrutalBadge color="bg-[#7C3AED]" className="mb-3">{partner.category}</BrutalBadge>
+            <BrutalBadge color="bg-violet-600" className="mb-3">{partner.category}</BrutalBadge>
             <h3 className="text-2xl font-bold uppercase mb-2" style={fonts.display}>{partner.name}</h3>
-            <p className="text-sm text-slate-600 mb-4">{partner.description}</p>
+            <p className="text-sm text-muted-foreground mb-4">{partner.description}</p>
             {partner.website && (
               <a
                 href={partner.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-bold text-[#2563EB] hover:underline inline-flex items-center gap-1"
+                className="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1"
               >
                 Learn More <ExternalLink size={12} />
               </a>
             )}
           </BrutalCard>
         ))}
-      </div>
+      </motion.div>
       )}
 
       {/* Become a Partner CTA */}
-      <BrutalCard color="bg-[#2563EB]" className="text-white text-center">
+      <BrutalCard color="bg-primary" className="text-white text-center">
         <Zap size={48} className="mx-auto mb-4" />
         <h3 className="text-3xl uppercase mb-4" style={fonts.display}>Become a Partner</h3>
         <p className="mb-6 max-w-2xl mx-auto">
           Interested in supporting our mission? We're always looking for partners who share our passion for empowering students through data science education.
         </p>
-        <a href="/contact" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#2563EB] border-2 border-[#171717] font-bold uppercase tracking-widest text-sm brutal-shadow brutal-shadow-hover transition-all">
+        <a href="/contact" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary border-2 border-foreground font-bold uppercase tracking-widest text-sm brutal-shadow brutal-shadow-hover transition-all">
           <Mail size={16} /> Contact Us
         </a>
       </BrutalCard>

@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { getPersistenceLabel, submitEventProposal } from "../lib/contentApi";
 
 import { userFriendlyErrorMessage } from "../lib/apiClient";
-import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui/brutal";
+import { BrutalButton, BrutalCard, BrutalBadge, BrutalField, BrutalTextArea } from "../components/ui";
 import { requireLoginForAction } from "../utils/authNavigation";
 import { fonts } from "../config/fonts";
 
@@ -75,14 +75,14 @@ export function EventProposalPage() {
 
   return (
     <div className="pt-16 pb-20 px-6 max-w-[1200px] mx-auto min-h-screen">
-      <button onClick={() => navigate("/events")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-[#2563EB]">
+      <button onClick={() => navigate("/events")} className="inline-flex items-center gap-2 font-bold uppercase tracking-widest text-sm mb-8 hover:text-primary">
         <ArrowLeft size={16} /> Back to Events
       </button>
 
-      <div className="border-b-4 border-[#171717] pb-8 mb-10">
-        <BrutalBadge color="bg-[#2563EB]" className="mb-4 inline-block">Event Proposal</BrutalBadge>
+      <div className="border-b-4 border-foreground pb-8 mb-10">
+        <BrutalBadge color="bg-primary" className="mb-4 inline-block">Event Proposal</BrutalBadge>
         <h1 className="text-5xl md:text-7xl uppercase leading-none" style={fonts.display}>Propose Event</h1>
-        <p className="mt-3 text-slate-600 max-w-2xl">Suggest a workshop, seminar, competition, or community session for Data Science Club.</p>
+        <p className="mt-3 text-muted-foreground max-w-2xl">Suggest a workshop, seminar, competition, or community session for Data Science Club.</p>
       </div>
 
       <form onSubmit={submitProposal} className="grid lg:grid-cols-[1fr_380px] gap-8">
@@ -116,13 +116,13 @@ export function EventProposalPage() {
         </BrutalCard>
 
         <div className="space-y-6">
-          <BrutalCard color="bg-[#FFE800]">
+          <BrutalCard color="bg-highlight">
             <h2 className="text-3xl uppercase mb-4" style={fonts.display}>Proposal Preview</h2>
-            <div className="border-2 border-[#171717] bg-white p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">{form.type}</p>
+            <div className="border-2 border-foreground bg-white p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-primary">{form.type}</p>
               <h3 className="text-2xl uppercase leading-tight mt-2" style={fonts.display}>{form.title || "Event title"}</h3>
-              <p className="text-sm text-slate-600 mt-2">{form.summary || "Your event summary preview will appear here."}</p>
-              <div className="mt-4 text-xs font-mono text-slate-500">
+              <p className="text-sm text-muted-foreground mt-2">{form.summary || "Your event summary preview will appear here."}</p>
+              <div className="mt-4 text-xs font-mono text-muted-foreground">
                 {form.proposedDate || "Date TBD"} {form.proposedTime && `at ${form.proposedTime}`} � {form.venue || "Venue TBD"}
               </div>
             </div>
@@ -130,13 +130,13 @@ export function EventProposalPage() {
           </BrutalCard>
 
           {status && (
-            <div className="border-2 border-[#171717] bg-white p-4 text-sm font-bold">
+            <div className="border-2 border-foreground bg-white p-4 text-sm font-bold">
               {status}
             </div>
           )}
 
           <div className="flex flex-col gap-3">
-            <BrutalButton type="submit" color="bg-[#2563EB]" text="text-white" className="w-full" disabled={submittingProposal}>
+            <BrutalButton type="submit" color="bg-primary" text="text-white" className="w-full" disabled={submittingProposal}>
               {submittingProposal ? "Submitting..." : "Submit Proposal"}
             </BrutalButton>
           </div>

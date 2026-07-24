@@ -3,26 +3,26 @@ import { Link } from "react-router-dom";
 import { fonts } from "../config/fonts";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <section className="border-2 border-[#171717] bg-white p-5 md:p-6 brutal-shadow">
-    <h2 className="text-2xl uppercase text-[#171717]" style={fonts.display}>{title}</h2>
+  <section className="border-2 border-foreground bg-white p-5 md:p-6 brutal-shadow">
+    <h2 className="text-2xl uppercase text-foreground" style={fonts.display}>{title}</h2>
     <div className="mt-3 space-y-3 text-sm leading-7 text-slate-700" style={fonts.sans}>{children}</div>
   </section>
 );
 
 function LegalShell({ label, title, intro, children }: { label: string; title: string; intro: string; children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-[#F4EFEB] px-4 py-28 md:px-8">
+    <main className="min-h-screen bg-background px-4 py-28 md:px-8">
       <div className="mx-auto max-w-5xl">
-        <Link to="/" className="mb-8 inline-flex text-sm font-bold uppercase tracking-widest text-[#2563EB] hover:text-[#171717]">
+        <Link to="/" className="mb-8 inline-flex text-sm font-bold uppercase tracking-widest text-primary hover:text-foreground">
           Back Home
         </Link>
         <div className="mb-10">
-          <span className="inline-flex border-2 border-[#171717] bg-[#FFE800] px-3 py-1 text-xs font-bold uppercase tracking-widest">
+          <span className="inline-flex border-2 border-foreground bg-highlight px-3 py-1 text-xs font-bold uppercase tracking-widest">
             {label}
           </span>
-          <h1 className="mt-4 text-5xl uppercase leading-none text-[#171717] md:text-7xl" style={fonts.display}>{title}</h1>
+          <h1 className="mt-4 text-5xl uppercase leading-none text-foreground md:text-7xl" style={fonts.display}>{title}</h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-slate-700 md:text-lg" style={fonts.sans}>{intro}</p>
-          <p className="mt-3 text-xs font-bold uppercase tracking-widest text-slate-500">Last updated: June 23, 2026</p>
+          <p className="mt-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">Last updated: June 23, 2026</p>
         </div>
         <div className="space-y-5">{children}</div>
       </div>
@@ -53,7 +53,7 @@ export function PrivacyPolicyPage() {
         <p>You can contact the club to request correction or removal of your personal information where reasonable and permitted by club record needs, event records, and certificate verification requirements.</p>
       </Section>
       <Section title="Contact">
-        <p>For privacy questions, contact the Data Science Club through the <Link to="/contact" className="font-bold text-[#2563EB]">contact page</Link>.</p>
+        <p>For privacy questions, contact the Data Science Club through the <Link to="/contact" className="font-bold text-primary">contact page</Link>.</p>
       </Section>
     </LegalShell>
   );
