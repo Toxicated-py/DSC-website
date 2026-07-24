@@ -21,6 +21,7 @@ from .schemas import (
     ContactMessageCreate,
     EventStaffUpdate,
     EventProposalCreate,
+    GalleryCommentCreate,
     GallerySubmissionCreate,
     GenericPayload,
     ProjectCreate,
@@ -920,6 +921,7 @@ async def list_gallery(
         gallery_ids = [row.get("id") for row in rows if row.get("id")]
         submitter_ids = [row.get("submitted_by") for row in rows if row.get("submitted_by")]
         like_counts: dict[str, int] = {}
+        comment_counts: dict[str, int] = {}
         liked_ids: set[str] = set()
         submitter_names: dict[str, str] = {}
         if gallery_ids:
@@ -939,6 +941,18 @@ async def list_gallery(
             except SupabaseRestError:
                 like_counts = {}
                 liked_ids = set()
+            try:
+                comments = await service_client.select(
+                    "gallery_comments",
+                    columns="gallery_id",
+                    filters={"gallery_id": f"in.({','.join(gallery_ids)})"},
+                )
+                for comment in comments or []:
+                    gallery_id = comment.get("gallery_id")
+                    if gallery_id:
+                        comment_counts[gallery_id] = comment_counts.get(gallery_id, 0) + 1
+            except SupabaseRestError:
+                comment_counts = {}
             if submitter_ids:
                 try:
                     profiles = await service_client.select(
@@ -957,6 +971,7 @@ async def list_gallery(
             {
                 **row,
                 "likes_count": like_counts.get(row.get("id"), 0),
+                "comments_count": comment_counts.get(row.get("id"), 0),
                 "liked_by_me": row.get("id") in liked_ids,
                 "submitted_by_name": submitter_names.get(row.get("submitted_by"), "Club Member"),
             }
@@ -990,6 +1005,73 @@ async def toggle_gallery_like(
         liked = True
     likes = await client.select("gallery_likes", columns="id", filters={"gallery_id": f"eq.{gallery_id}"})
     return {"liked": liked, "likes_count": len(likes or [])}
+
+
+@app.get("/api/gallery/{gallery_id}/comments")
+async def list_gallery_comments(
+    gallery_id: str,
+    authorization: str | None = Header(default=None),
+    settings: Settings = Depends(get_settings),
+    client: SupabaseRestClient = Depends(get_supabase),
+) -> list[dict[str, Any]]:
+    profile = await optional_profile(authorization, settings, client)
+    service_client = get_privileged_supabase(settings, profile.get("_auth_token") if profile else None)
+    gallery = await select_one(service_client, "gallery_submissions", {"id": f"eq.{gallery_id}"})
+    if not gallery or gallery.get("status") not in {"approved", "published"}:
+        raise HTTPException(status_code=404, detail="Gallery item not found.")
+    comments = await service_client.select(
+        "gallery_comments",
+        filters={"gallery_id": f"eq.{gallery_id}"},
+        order="created_at.asc",
+    )
+    author_ids = [row.get("user_id") for row in comments or [] if row.get("user_id")]
+    names: dict[str, str] = {}
+    if author_ids:
+        profiles = await service_client.select(
+            "profiles",
+            columns="id,full_name,email,role",
+            filters={"id": f"in.({','.join(sorted(set(author_ids)))})"},
+        )
+        names = {row["id"]: row.get("full_name") or row.get("email") or "Member" for row in profiles or [] if row.get("id")}
+    return [
+        {
+            **row,
+            "author_name": names.get(row.get("user_id"), "Member"),
+            "can_delete": bool(profile and (row.get("user_id") == profile.get("id") or is_full_admin(profile))),
+        }
+        for row in comments or []
+    ]
+
+
+@app.post("/api/gallery/{gallery_id}/comments", status_code=201)
+async def create_gallery_comment(
+    gallery_id: str,
+    payload: GalleryCommentCreate,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
+    gallery = await select_one(client, "gallery_submissions", {"id": f"eq.{gallery_id}"})
+    if not gallery or gallery.get("status") not in {"approved", "published"}:
+        raise HTTPException(status_code=404, detail="Gallery item not found.")
+    rows = await client.insert("gallery_comments", {"gallery_id": gallery_id, "user_id": profile["id"], "text": payload.text})
+    row = rows[0] if rows else {}
+    return {**row, "author_name": profile.get("full_name") or profile.get("email") or "Member", "can_delete": True}
+
+
+@app.delete("/api/gallery/comments/{comment_id}", status_code=204)
+async def delete_gallery_comment(
+    comment_id: str,
+    profile: dict[str, Any] = Depends(get_current_profile),
+    settings: Settings = Depends(get_settings),
+) -> None:
+    client = get_privileged_supabase(settings, profile.get("_auth_token"))
+    comment = await select_one(client, "gallery_comments", {"id": f"eq.{comment_id}"})
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found.")
+    if comment.get("user_id") != profile.get("id") and not is_full_admin(profile):
+        raise HTTPException(status_code=403, detail="You can only delete your own comment.")
+    await client.delete("gallery_comments", filters={"id": f"eq.{comment_id}"})
 
 
 @app.get("/api/partners")

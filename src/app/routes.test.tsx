@@ -32,6 +32,8 @@ const pages: AppRoutePages = {
   PartnersPage: () => <Page name="partners" />,
   TicketPage: () => <Page name="ticket" />,
   ScannerPage: () => <Page name="scanner" />,
+  PrivacyPolicyPage: () => <Page name="privacy" />,
+  TermsOfServicePage: () => <Page name="terms" />,
 };
 
 describe("AppRoutes", () => {

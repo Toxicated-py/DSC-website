@@ -526,7 +526,7 @@ export function ComprehensiveAdminPanel() {
     });
   };
 
-  const profileToTeamFields = (profile: any) => ({
+  const profileToTeamFields = (profile: any): Partial<TeamMember> => ({
     profileId: profile?.id || "",
     profileEmail: profile?.email || "",
     name: profile?.full_name || profile?.email || "",
