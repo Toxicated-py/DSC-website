@@ -6,7 +6,7 @@ import { BrutalButton, BrutalBadge } from "../components/ui";
 import { apiGet } from "../lib/apiClient";
 import { defaultSiteSettings, loadSiteSettings } from "../lib/siteSettings";
 import { fonts } from "../config/fonts";
-import { defaultViewport, fadeIn, fadeUp, prefersReducedMotion, slideLeft, slideRight, staggerContainer } from "../utils/animations";
+import { defaultViewport, fadeIn, fadeUp, slideLeft, slideRight, staggerContainer } from "../utils/animations";
 
 const workCards = [
   {
@@ -113,49 +113,45 @@ export function HomePage() {
         <div className="relative mx-auto max-w-[1450px] px-5 py-8 sm:px-8 md:px-12 lg:px-16 lg:py-12">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
             <div className="min-w-0">
-              <motion.div variants={staggerContainer} initial="hidden" animate="visible">
-                <h1
-                  className="relative max-w-[760px] text-6xl leading-[0.84] text-foreground sm:text-7xl md:text-[7.5rem] lg:text-[8.5rem] xl:text-[10rem]"
-                  style={{ ...fonts.display, textShadow: "6px 6px 0 var(--color-primary), 12px 12px 0 var(--color-secondary)" }}
-                >
+              <h1
+                className="relative max-w-[760px] text-6xl leading-[0.84] text-foreground sm:text-7xl md:text-[7.5rem] lg:text-[8.5rem] xl:text-[10rem]"
+                style={{ ...fonts.display, textShadow: "6px 6px 0 var(--color-primary), 12px 12px 0 var(--color-secondary)" }}
+              >
+                <motion.div variants={staggerContainer} initial="hidden" animate="visible">
                   {heroTitleLines.map((line, index) => (
-                    <motion.span key={`${line}-${index}`} variants={fadeUp} className="block">
+                    <motion.span key={`${line}-${index}`} variants={fadeUp} className="block" style={{ display: "block" }}>
                       {line}
                     </motion.span>
                   ))}
-                </h1>
-              </motion.div>
+                </motion.div>
+              </h1>
 
-              <div className="mt-8 max-w-2xl border-t-2 border-foreground pt-6">
-                <motion.p
-                  variants={fadeUp}
-                  initial="hidden"
-                  animate="visible"
-                  transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.3 }}
+              <motion.div
+                className="mt-8 max-w-2xl border-t-2 border-foreground pt-6"
+                variants={fadeUp}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: 0.35 }}
+              >
+                <p
                   className="text-xl leading-snug text-foreground sm:text-2xl"
                   style={fonts.serif}
                 >
                   <em className="text-secondary">Sarathi</em> means guide. We are the student community at SMS TU that turns data science <em className="text-primary">from theory into practice.</em>
-                </motion.p>
+                </p>
                 <p className="mt-4 font-mono text-sm text-muted-foreground">Open to all students at SMS, TU.</p>
-                <motion.div
-                  variants={fadeIn}
-                  initial="hidden"
-                  animate="visible"
-                  transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.5 }}
-                  className="mt-6 flex flex-wrap gap-4"
-                >
+                <div className="mt-6 flex flex-wrap gap-4">
                   <Link to="/events"><BrutalButton color="bg-white">See Events</BrutalButton></Link>
                   <Link to="/about"><BrutalButton color="bg-foreground" text="text-white">Our Story</BrutalButton></Link>
-                </motion.div>
-              </div>
+                </div>
+              </motion.div>
             </div>
 
             <motion.div
               variants={slideRight}
               initial="hidden"
               animate="visible"
-              transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.4 }}
+              transition={{ delay: 0.3 }}
               className="grid min-w-0 gap-4 lg:pt-4"
             >
               <Link
@@ -246,33 +242,40 @@ export function HomePage() {
             </Link>
           </div>
 
-          <div className="grid border-2 border-white/15 md:grid-cols-3">
+          <motion.div
+            className="grid border-2 border-white/15 md:grid-cols-3"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={defaultViewport}
+          >
             {homeEvents.length ? homeEvents.slice(0, 3).map((event) => (
-              <Link
-                key={event.id}
-                to={`/events/${event.slug || event.id}`}
-                className="min-h-[220px] border-b-2 border-white/15 p-6 transition-colors hover:bg-white/5 md:border-b-0 md:border-r-2 md:last:border-r-0"
-              >
-                <div className="flex items-start justify-between gap-6">
-                  <div>
-                    <p className="text-6xl leading-none" style={fonts.display}>{event.num}</p>
-                    <p className="mt-2 text-sm font-bold uppercase tracking-widest text-white/45">{event.month}</p>
+              <motion.div key={event.id} variants={fadeUp}>
+                <Link
+                  to={`/events/${event.slug || event.id}`}
+                  className="min-h-[220px] border-b-2 border-white/15 p-6 transition-colors hover:bg-white/5 md:border-b-0 md:border-r-2 md:last:border-r-0"
+                >
+                  <div className="flex items-start justify-between gap-6">
+                    <div>
+                      <p className="text-6xl leading-none" style={fonts.display}>{event.num}</p>
+                      <p className="mt-2 text-sm font-bold uppercase tracking-widest text-white/45">{event.month}</p>
+                    </div>
+                    <BrutalBadge color={event.color} text="text-white" className="text-xs">{event.type}</BrutalBadge>
                   </div>
-                  <BrutalBadge color={event.color} text="text-white" className="text-xs">{event.type}</BrutalBadge>
-                </div>
-                <h3 className="mt-8 text-2xl uppercase" style={fonts.display}>{event.label}</h3>
-                <p className="mt-3 font-mono text-sm text-white/50">{event.time}</p>
-                <p className="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/50">
-                  Register <ArrowRight size={15} />
-                </p>
-              </Link>
+                  <h3 className="mt-8 text-2xl uppercase" style={fonts.display}>{event.label}</h3>
+                  <p className="mt-3 font-mono text-sm text-white/50">{event.time}</p>
+                  <p className="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/50">
+                    Register <ArrowRight size={15} />
+                  </p>
+                </Link>
+              </motion.div>
             )) : (
-              <div className="p-8 md:col-span-3">
+              <motion.div className="p-8 md:col-span-3" variants={fadeUp}>
                 <p className="text-3xl uppercase" style={fonts.display}>No published events yet.</p>
                 <p className="mt-2 font-mono text-sm text-white/50">New exicting events will be available soon.</p>
-              </div>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
 
           <Link to="/events" className="mt-8 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/70 hover:text-white sm:hidden">
             All Events <ArrowRight size={16} />
@@ -282,7 +285,12 @@ export function HomePage() {
 
       <section className="bg-background py-12 md:py-16">
         <div className="mx-auto grid max-w-[1320px] gap-8 px-5 sm:px-8 md:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:px-12">
-          <div>
+          <motion.div
+            variants={slideLeft}
+            initial="hidden"
+            whileInView="visible"
+            viewport={defaultViewport}
+          >
             <BrutalBadge color="bg-highlight" text="text-foreground">Who we are</BrutalBadge>
             <motion.h2
               variants={slideLeft}
@@ -300,7 +308,7 @@ export function HomePage() {
             <Link to="/about" className="mt-7 inline-block">
               <BrutalButton color="bg-highlight">Read Our Story</BrutalButton>
             </Link>
-          </div>
+          </motion.div>
 
           <motion.div
             variants={staggerContainer}
@@ -328,15 +336,22 @@ export function HomePage() {
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
         <div className="relative z-10 mx-auto max-w-4xl px-5">
           <BrutalBadge color="bg-white" text="text-primary">Open to all SMS TU students</BrutalBadge>
-          <motion.h2 variants={slideLeft} initial="hidden" whileInView="visible" viewport={defaultViewport} className="mt-6 text-5xl leading-[0.92] sm:text-6xl md:text-7xl" style={fonts.display}>YOUR SARATHI IS WAITING.</motion.h2>
+          <motion.h2 variants={fadeUp} initial="hidden" whileInView="visible" viewport={defaultViewport} className="mt-6 text-5xl leading-[0.92] sm:text-6xl md:text-7xl" style={fonts.display}>YOUR SARATHI IS WAITING.</motion.h2>
           <p className="mx-auto mt-6 max-w-3xl text-xl leading-relaxed opacity-90" style={fonts.serif}>
             Data Sarathi is new. The community is still forming. This is the moment to show up - before it becomes something you wish you had joined earlier.
           </p>
           <p className="mt-6 font-mono text-sm text-white/70">Free to join - Open to all SMS TU students - No prior experience needed.</p>
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
+          <motion.div
+            className="mt-10 flex flex-wrap justify-center gap-4"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ delay: 0.2 }}
+          >
             <Link to="/events"><BrutalButton color="bg-highlight">See Events</BrutalButton></Link>
             <Link to="/contact"><BrutalButton color="bg-white" text="text-primary">Get In Touch</BrutalButton></Link>
-          </div>
+          </motion.div>
         </div>
       </section>
     </>
