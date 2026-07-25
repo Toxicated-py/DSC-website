@@ -8,6 +8,8 @@ import { defaultSiteSettings, loadSiteSettings } from "../lib/siteSettings";
 import { fonts } from "../config/fonts";
 import { defaultViewport, fadeIn, fadeUp, slideLeft, slideRight, staggerContainer } from "../utils/animations";
 
+const MotionLink = motion.create(Link);
+
 const workCards = [
   {
     title: "Workshops",
@@ -250,25 +252,25 @@ export function HomePage() {
             viewport={defaultViewport}
           >
             {homeEvents.length ? homeEvents.slice(0, 3).map((event) => (
-              <motion.div key={event.id} variants={fadeUp}>
-                <Link
-                  to={`/events/${event.slug || event.id}`}
-                  className="min-h-[220px] border-b-2 border-white/15 p-6 transition-colors hover:bg-white/5 md:border-b-0 md:border-r-2 md:last:border-r-0"
-                >
-                  <div className="flex items-start justify-between gap-6">
-                    <div>
-                      <p className="text-6xl leading-none" style={fonts.display}>{event.num}</p>
-                      <p className="mt-2 text-sm font-bold uppercase tracking-widest text-white/45">{event.month}</p>
-                    </div>
-                    <BrutalBadge color={event.color} text="text-white" className="text-xs">{event.type}</BrutalBadge>
+              <MotionLink
+                key={event.id}
+                variants={fadeUp}
+                to={`/events/${event.slug || event.id}`}
+                className="min-h-[220px] border-b-2 border-white/15 p-6 transition-colors hover:bg-white/5 md:border-b-0 md:border-r-2 md:last:border-r-0"
+              >
+                <div className="flex items-start justify-between gap-6">
+                  <div>
+                    <p className="text-6xl leading-none" style={fonts.display}>{event.num}</p>
+                    <p className="mt-2 text-sm font-bold uppercase tracking-widest text-white/45">{event.month}</p>
                   </div>
-                  <h3 className="mt-8 text-2xl uppercase" style={fonts.display}>{event.label}</h3>
-                  <p className="mt-3 font-mono text-sm text-white/50">{event.time}</p>
-                  <p className="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/50">
-                    Register <ArrowRight size={15} />
-                  </p>
-                </Link>
-              </motion.div>
+                  <BrutalBadge color={event.color} text="text-white" className="text-xs">{event.type}</BrutalBadge>
+                </div>
+                <h3 className="mt-8 text-2xl uppercase" style={fonts.display}>{event.label}</h3>
+                <p className="mt-3 font-mono text-sm text-white/50">{event.time}</p>
+                <p className="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/50">
+                  Register <ArrowRight size={15} />
+                </p>
+              </MotionLink>
             )) : (
               <motion.div className="p-8 md:col-span-3" variants={fadeUp}>
                 <p className="text-3xl uppercase" style={fonts.display}>No published events yet.</p>
